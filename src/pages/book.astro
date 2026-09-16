@@ -1,0 +1,46 @@
+---
+/** 书斋页（对应旧站 app/book/page.tsx） */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Comment from '@/components/Comment.astro';
+import book from '@/data/book.json';
+---
+
+<BaseLayout title={`书斋 - 云影`}>
+  <div class="page book">
+    <ul class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {
+        book.map((item) => (
+          <li class="transform p-3 duration-300 hover:-translate-y-1">
+            <div class="flex">
+              <div class="cover relative mb-4 mr-3">
+                <img src={item.cover} alt={item.name} />
+              </div>
+              <div class="info">
+                <h3 class="mb-1 line-clamp-1 transform text-lg duration-300">
+                  <a href={item.link} target="_blank" rel="noreferrer noopener">
+                    {item.name}
+                  </a>
+                </h3>
+                <p>作者：{item.author}</p>
+                <p>出版时间：{item.published}</p>
+                <p>阅读进度：{item.progress}</p>
+                <p>
+                  读书笔记：
+                  {item.postLink ? (
+                    <a href={item.postLink} target="_blank" rel="noopener noreferrer">
+                      {item.postTitle}
+                    </a>
+                  ) : (
+                    '暂无'
+                  )}
+                </p>
+              </div>
+            </div>
+            <p class="text-justify">{item.description}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <Comment term="书斋" />
+  </div>
+</BaseLayout>

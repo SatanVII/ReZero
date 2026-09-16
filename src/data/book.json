@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Compiler Design",
+    "author": "Reinhard Wilhelm, Helmut Seidl, Sebastian Hack",
+    "published": "2013-05-13",
+    "progress": "Reading",
+    "postTitle": "待更新",
+    "postLink": "https://yun37.me/#/post/12",
+    "cover": "/assets/book/Compiler_Design.jpg",
+    "link": "https://link.springer.com/book/10.1007/978-3-642-17540-4",
+    "description": "For Zhenyun, from Reinhard, 2024.1.20"
+  },
+  {
+    "name": "欢迎来到宇宙",
+    "author": "李旻 孙正凡 粱焰译",
+    "published": "2021-05-01",
+    "progress": "知新",
+    "postTitle": "待更新",
+    "postLink": "https://yun37.me/#/post/1",
+    "cover": "/assets/book/欢迎来到宇宙.jpg",
+    "link": "https://book.douban.com/subject/35459590/",
+    "description": "我们身处广袤的宇宙之中，可是对它又有多少了解呢？"
+  }
+]

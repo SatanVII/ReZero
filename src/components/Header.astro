@@ -1,0 +1,50 @@
+---
+/**
+ * 移动端顶部栏（对应旧站 components/Header，lg 以下显示）
+ * 导航激活态在构建期由 Astro.url.pathname 决定
+ */
+import { BookOpen, CodeXml, Ghost, HeartPulse, ScrollText, Sparkles } from '@lucide/astro';
+import '@/components/Header.css';
+
+const navItems = [
+  { href: '/article', name: '文字', Icon: ScrollText },
+  { href: '/inspiration', name: '火花', Icon: Sparkles },
+  { href: '/project', name: '项目', Icon: CodeXml },
+  { href: '/book', name: '书斋', Icon: BookOpen },
+  { href: '/friend', name: '会友', Icon: HeartPulse },
+  { href: '/about', name: '自述', Icon: Ghost },
+];
+
+const { pathname } = Astro.url;
+---
+
+<div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden">
+  <h3 class="title text-4xl tracking-wider">云山栖</h3>
+
+  <nav class="nav hidden items-center sm:flex">
+    {
+      navItems.map(({ href, name, Icon }) => (
+        <a class={pathname === href ? 'active' : undefined} href={href}>
+          <Icon />
+          {name}
+        </a>
+      ))
+    }
+  </nav>
+
+  <div class="toggle flex w-7 flex-col sm:hidden" data-toggle-nav>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<script>
+  // 移动端导航开合（事件委托：换页后自动生效）
+  document.addEventListener('click', (event) => {
+    const toggle = (event.target as HTMLElement).closest('[data-toggle-nav]');
+    if (!toggle) return;
+    toggle.classList.toggle('active');
+    toggle.parentElement?.querySelector('.nav')?.classList.toggle('over');
+  });
+</script>

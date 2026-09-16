@@ -1,0 +1,15 @@
+---
+/** 文字列表（对应旧站 app/article/page.tsx）：排除特殊分类 */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostList from '@/components/PostList.astro';
+
+const EXCLUDED = ['一心净土', '真我之名', '观云碎月'];
+const entries = (await getCollection('post'))
+  .filter(({ data }) => !EXCLUDED.includes(data.category))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<BaseLayout title={`文字 - 云影`}>
+  <PostList entries={entries} />
+</BaseLayout>

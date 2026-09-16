@@ -1,0 +1,53 @@
+---
+/**
+ * 主题选择面板（对应旧站 components/Panel）
+ * 交互改为原生脚本：点击主题派发 theme:select 事件，由 BaseLayout 的主题系统接管
+ */
+import themes, { withAlpha } from '@/data/themes';
+import '@/components/Panel.css';
+
+const current = themes[0];
+---
+
+<div class="panel" hidden>
+  <div class="overlay" data-panel-overlay></div>
+  <div class="main">
+    <div class="wrapper">
+      <div class="short-line">
+        <div></div>
+        <div></div>
+      </div>
+      <div class="content">
+        <div class="head">RETURN TO THE FUTURE</div>
+        <ul class="body">
+          {
+            themes.map((theme) => (
+              <li data-theme-item={theme.type} data-theme-url={theme.url} data-theme-description={theme.description}>
+                <span style={`border-color: ${theme.color.primary}; background-color: ${withAlpha(theme.color.primary, 0.3)}`}>
+                  {theme.name}
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="foot">
+          <a class="description" href={current.url} rel="noopener noreferrer" target="_blank" data-title={current.description}></a>
+        </div>
+      </div>
+      <div class="long-line">
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('click', (event) => {
+    const item = (event.target as HTMLElement).closest('[data-theme-item]');
+    if (!item) return;
+    window.dispatchEvent(
+      new CustomEvent('theme:select', { detail: item.getAttribute('data-theme-item') }),
+    );
+  });
+</script>

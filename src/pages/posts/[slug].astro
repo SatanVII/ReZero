@@ -1,0 +1,50 @@
+---
+/**
+ * 文章/笔记详情（对应旧站 app/posts/[slug]/page.tsx）
+ * slug 即 frontmatter 标题（中文），构建期生成全部静态页面
+ */
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content';
+import { format } from 'date-fns';
+import { Bookmark, Calendar, Tag } from '@lucide/astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Comment from '@/components/Comment.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('post');
+  const notes = await getCollection('note');
+  return [...posts, ...notes].map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry: entry as CollectionEntry<'post' | 'note'> },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const { title, date, category, tags, description } = entry.data;
+---
+
+<BaseLayout title={`${title} - 云影`} description={description} keywords={tags.join(',')}>
+  <div class="page">
+    <article>
+      <h2 class="mb-6 text-4xl italic">{title}</h2>
+      <div class="meta mb-12 flex justify-start">
+        <Calendar class="mr-1" />
+        {format(date, 'yyyy-MM-dd')}
+        <Bookmark class="ml-4 mr-1" />
+        {category}
+        <Tag class="ml-4 mr-1" />
+        {
+          tags.map((tag) => (
+            <span class="mr-2">{tag.trim()}</span>
+          ))
+        }
+      </div>
+      <div class="prose max-w-full">
+        <Content />
+      </div>
+    </article>
+    <Comment term={title} />
+  </div>
+</BaseLayout>

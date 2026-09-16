@@ -1,0 +1,287 @@
+---
+/**
+ * 全局布局（对应旧站 app/layout.tsx + app/template.tsx + app/context.tsx）
+ * - Fonts API：--font-serif（正文衬线）/ --font-site（站名）
+ * - ClientRouter：接管旧 template.tsx 的切页过渡
+ * - 主题系统：8 套主题、localStorage 过期缓存、按访问次数轮换默认主题
+ * - 全局脚本：AOS、正文图片增强（渐显/图注/灯箱）、控制台彩蛋
+ */
+import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
+import Cloud from '@/components/Cloud.astro';
+import Header from '@/components/Header.astro';
+import Side from '@/components/Side.astro';
+import themes from '@/data/themes';
+import '@/styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+}
+
+const {
+  title = '云山栖',
+  description = '愿似飘飖五云影，从来从去九天间。',
+  keywords = '云影',
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content="云影" />
+    <link rel="canonical" href={canonicalURL} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="云山栖" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <Font cssVariable="--font-serif" preload />
+    <Font cssVariable="--font-site" />
+    <ClientRouter />
+  </head>
+  <body data-theme-data={JSON.stringify(themes)}>
+    <Cloud />
+    <Header />
+    <Side />
+    <slot />
+  </body>
+</html>
+
+<script>
+  import AOS from 'aos';
+
+  /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
+  const nya = () => {
+    const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
+    console.info(`%c 云影 %c`, labelStyle, '', 'https://www.yun37.me');
+    console.info('%c 主题 %c', labelStyle, '', 'https://github.com/chanshiyucx/zero');
+    console.info('~❀~ 发现控制台报错请务必联系博主 ~❀~');
+  };
+
+  /* ---------- 主题系统（对应旧站 app/context.tsx） ---------- */
+  interface ThemeItem {
+    type: string;
+    name: string;
+    description: string;
+    color: { primary: string; background: string };
+    image: string;
+    url: string;
+  }
+
+  const STORE_KEY = 'theme';
+  const EXPIRE_KEY = 'theme-expire';
+  const VIEW_KEY = 'viewCount';
+  const EXPIRE = 24 * 60 * 60 * 1000;
+
+  let themeList: ThemeItem[] = [];
+  let currentTheme = '';
+
+  const readJSON = <T,>(key: string, fallback: T): T => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const resolveInitialTheme = (list: ThemeItem[]) => {
+    const expire = localStorage.getItem(EXPIRE_KEY);
+    const cached = localStorage.getItem(STORE_KEY);
+    if (!(expire && Date.now() > Number(expire)) && cached && list.some((t) => t.type === cached)) {
+      return cached;
+    }
+    // 与旧站一致：默认主题按访问次数轮换
+    const count = readJSON<number>(VIEW_KEY, 0);
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify(count + 1));
+    } catch {
+      /* localStorage 不可用时忽略 */
+    }
+    return list[count % list.length].type;
+  };
+
+  const applyTheme = (type: string, list: ThemeItem[]) => {
+    const theme = list.find((t) => t.type === type);
+    if (!theme) return;
+    currentTheme = type;
+
+    document.body.dataset.theme = theme.type;
+    document.documentElement.style.setProperty('--theme-color', theme.color.primary);
+    document.documentElement.style.setProperty('--background-color', theme.color.background);
+    document.documentElement.style.setProperty('--background-image', `url('${theme.image}')`);
+    const classList = list.map((t) => t.type);
+    document.body.classList.remove(...classList);
+    document.body.classList.add(theme.type);
+
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(theme.type));
+      localStorage.setItem(EXPIRE_KEY, String(Date.now() + EXPIRE));
+    } catch {
+      /* ignore */
+    }
+
+    // 同步主题面板高亮与底部链接
+    document.querySelectorAll('.panel [data-theme-item]').forEach((li) => {
+      li.classList.toggle('active', li.getAttribute('data-theme-item') === theme.type);
+    });
+    const description = document.querySelector<HTMLAnchorElement>('.panel .description');
+    if (description) {
+      description.href = theme.url;
+      description.dataset.title = theme.description;
+    }
+
+    window.dispatchEvent(new CustomEvent('theme:changed', { detail: theme.type }));
+  };
+
+  const initTheme = () => {
+    const root = document.body;
+    if (!root) return;
+    try {
+      themeList = JSON.parse(root.dataset.themeData ?? '[]');
+    } catch {
+      themeList = [];
+    }
+    if (!themeList.length) return;
+    applyTheme(resolveInitialTheme(themeList), themeList);
+  };
+
+  window.addEventListener('theme:select', (event) => {
+    const type = (event as CustomEvent<string>).detail;
+    if (type) applyTheme(type, themeList);
+  });
+
+  // ClientRouter 换页后新文档丢失 CSS 变量，交换完成后立即恢复主题
+  document.addEventListener('astro:after-swap', () => {
+    if (currentTheme && themeList.length) applyTheme(currentTheme, themeList);
+  });
+
+  /* ---------- AOS 滚动动画 ---------- */
+  const initAOS = () => {
+    AOS.init({
+      duration: 500,
+      easing: 'ease',
+      debounceDelay: 50,
+      throttleDelay: 100,
+      offset: 0,
+    });
+  };
+
+  /* ---------- 正文图片：渐显 / 图注 / 灯箱（替代 react-photo-view + 自定义 MDX Image） ---------- */
+  const enhanceProseImages = () => {
+    document.querySelectorAll<HTMLImageElement>('.prose img').forEach((img) => {
+      if (img.dataset.enhanced) return;
+      img.dataset.enhanced = '1';
+
+      if (img.alt) {
+        const figure = document.createElement('figure');
+        const caption = document.createElement('figcaption');
+        caption.textContent = `◭ ${img.alt}`;
+        img.replaceWith(figure);
+        figure.appendChild(img);
+        figure.appendChild(caption);
+      }
+
+      const markLoaded = () => img.classList.add('loaded');
+      if (img.complete && img.naturalWidth > 0) {
+        markLoaded();
+      } else {
+        img.addEventListener('load', markLoaded, { once: true });
+        img.addEventListener('error', () => img.classList.remove('loaded'), { once: true });
+      }
+    });
+  };
+
+  /* ---------- 正文外链补 nofollow（对应旧站 rehype-external-links 插件） ---------- */
+  const enhanceProseLinks = () => {
+    document.querySelectorAll<HTMLAnchorElement>('.prose a[href^="http"]').forEach((a) => {
+      a.setAttribute('rel', 'nofollow noopener noreferrer');
+    });
+  };
+
+  const ensureLightbox = () => {
+    if (document.getElementById('photo-lightbox')) return;
+    const dialog = document.createElement('dialog');
+    dialog.id = 'photo-lightbox';
+    const img = document.createElement('img');
+    const caption = document.createElement('p');
+    caption.className = 'photo-caption';
+    dialog.append(img, caption);
+    dialog.addEventListener('click', () => dialog.close());
+    document.body.appendChild(dialog);
+  };
+
+  document.addEventListener('click', (event) => {
+    const img = (event.target as HTMLElement).closest<HTMLImageElement>('.prose img');
+    if (!img) return;
+    const dialog = document.getElementById('photo-lightbox');
+    if (!(dialog instanceof HTMLDialogElement)) return;
+    dialog.querySelector('img')?.setAttribute('src', img.currentSrc || img.src);
+    const caption = dialog.querySelector('.photo-caption');
+    if (caption) caption.textContent = img.alt ? `◭ ${img.alt}` : '';
+    dialog.showModal();
+  });
+
+  /* ---------- 生命周期 ---------- */
+  nya();
+
+  // 主题初始化需在 DOM 就绪后（body dataset 可读）
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTheme, { once: true });
+  } else {
+    initTheme();
+  }
+
+  initAOS();
+
+  document.addEventListener('astro:page-load', () => {
+    initAOS();
+    // 与旧站一致：小屏列表动画从纵向进入
+    if (document.documentElement.clientWidth <= 640) {
+      document.querySelectorAll('[data-aos="fade-left"]').forEach((el) => {
+        el.setAttribute('data-aos', 'fade-up');
+      });
+    }
+    AOS.refresh();
+    enhanceProseImages();
+    enhanceProseLinks();
+  });
+</script>
+
+<style is:global>
+  @reference "../styles/global.css";
+
+  /* 正文图片灯箱 */
+  dialog#photo-lightbox {
+    @apply m-auto max-w-[92vw] cursor-zoom-out border-0 bg-transparent p-0 text-center;
+    max-height: 92vh;
+  }
+  dialog#photo-lightbox::backdrop {
+    background-color: var(--background-color);
+    opacity: 1;
+  }
+  dialog#photo-lightbox img {
+    @apply mx-auto max-h-[86vh] max-w-full rounded shadow-md;
+  }
+  dialog#photo-lightbox .photo-caption {
+    @apply mt-3 text-sm italic;
+    color: var(--font-color);
+  }
+</style>

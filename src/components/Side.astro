@@ -1,0 +1,102 @@
+---
+/**
+ * 桌面端侧栏（对应旧站 components/Side）
+ * 垂直导航 + 站名诗句 + 社交链接 + 蝴蝶按钮（主题面板入口）
+ */
+import {
+  BookMarked,
+  BookOpen,
+  CodeXml,
+  Ghost,
+  Globe,
+  HeartPulse,
+  Mail,
+  Music,
+  ScrollText,
+  Send,
+  Sparkles,
+} from '@lucide/astro';
+import Butterfly from '@/components/Butterfly.astro';
+import Github from '@/components/icons/Github.astro';
+import Panel from '@/components/Panel.astro';
+import ShootingStar from '@/components/ShootingStar.astro';
+import Site from '@/components/Site.astro';
+import config from '@/utils/config';
+import '@/components/Side.css';
+
+const navItems = [
+  { href: '/article', name: '文字', Icon: ScrollText },
+  { href: '/inspiration', name: '火花', Icon: Sparkles },
+  { href: '/project', name: '项目', Icon: CodeXml },
+  { href: '/book', name: '书斋', Icon: BookOpen },
+  { href: '/friend', name: '会友', Icon: HeartPulse },
+  { href: '/about', name: '自述', Icon: Ghost },
+];
+
+const socialItems = [
+  { href: config.contact.github, Icon: Github },
+  { href: config.contact.email, Icon: Mail },
+  { href: config.contact.blog, Icon: BookMarked },
+];
+
+const { pathname } = Astro.url;
+---
+
+<div class="side sticky top-0 hidden h-screen min-w-[24rem] flex-col items-start justify-between lg:flex">
+  <ShootingStar />
+  <Panel hidden></Panel>
+
+  <!-- side menu -->
+  <div class="z-20 flex h-3/5 w-full justify-end">
+    <nav class="nav nav-y flex w-12 flex-col items-center justify-end">
+      {
+        navItems.map(({ href, name, Icon }) => (
+          <a class={pathname === href ? 'active' : undefined} href={href} data-name={name}>
+            <Icon />
+          </a>
+        ))
+      }
+    </nav>
+
+    <Site />
+  </div>
+
+  <!-- footer menu -->
+  <div class="flex justify-end py-12">
+    <div class="nya" data-name="STORM" data-toggle-panel>
+      <Butterfly />
+    </div>
+    <div class="nav nav-x flex h-12 items-center">
+      {
+        socialItems
+          .filter(({ href }) => href)
+          .map(({ href, Icon }) => (
+            <a href={href} rel="noopener noreferrer" target="_blank">
+              <Icon />
+            </a>
+          ))
+      }
+      <a>
+        <Globe />
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 主题面板开合（事件委托）
+  document.addEventListener('click', (event) => {
+    const toggle = (event.target as HTMLElement).closest('[data-toggle-panel]');
+    if (!toggle) return;
+    const panel = document.querySelector('.panel');
+    if (!panel) return;
+    panel.toggleAttribute('hidden');
+    // 重新显示时重放面板下落动画
+    const main = panel.querySelector('.main');
+    if (main instanceof HTMLElement && !panel.hasAttribute('hidden')) {
+      main.style.animation = 'none';
+      void main.offsetWidth;
+      main.style.animation = '';
+    }
+  });
+</script>

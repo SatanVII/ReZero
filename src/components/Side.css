@@ -1,0 +1,62 @@
+@reference "../styles/global.css";
+
+/* 原文件已损坏（含大量无效 @apply 类与非法选择器），此处按视觉意图重建 */
+.side {
+  @apply z-10;
+}
+
+.side .nav > a {
+  @apply relative transform cursor-pointer p-2 duration-300;
+}
+
+.side .nav svg {
+  transform: translateX(-10px);
+  @apply w-5;
+}
+
+.side .nav-y > a:hover {
+  @apply translate-x-1;
+}
+
+.side .nav-x > a:hover {
+  @apply -translate-y-1;
+}
+
+.side .nav > a.active {
+  color: var(--theme-color);
+}
+
+/* data-name 悬浮提示（重建自损坏前的意图：hover 时淡入） */
+.side .nav > a::after,
+.nya::after {
+  content: attr(data-name);
+  position: absolute;
+  @apply hidden w-fit text-sm;
+  animation: fade 0.6s ease-out;
+}
+
+.side .nav-y > a:hover::after {
+  @apply block;
+  @apply top-1/2 -left-6 -translate-y-1/2;
+  color: var(--theme-color);
+}
+
+.side .nav-x > a:hover::after {
+  @apply block;
+  @apply -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap;
+  color: var(--theme-color);
+}
+
+.nya {
+  @apply relative translate-y-3;
+}
+.nya:hover {
+  color: var(--theme-color);
+}
+.nya::after {
+  @apply -top-5 left-1 right-0 mx-auto whitespace-nowrap;
+}
+.nya:hover::after {
+  @apply block;
+  color: var(--theme-color);
+}

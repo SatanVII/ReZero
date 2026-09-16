@@ -1,0 +1,23 @@
+---
+/**
+ * 首页（对应旧站 app/page.tsx）：渲染「观云碎月」分类的最新文章 + 评论
+ */
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Comment from '@/components/Comment.astro';
+
+const home = (
+  await getCollection('post', ({ data }) => data.category === '观云碎月')
+).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())[0];
+
+const { Content } = await render(home);
+---
+
+<BaseLayout>
+  <div class="page prose max-w-full">
+    <article>
+      <Content />
+    </article>
+    <Comment term="空空" />
+  </div>
+</BaseLayout>

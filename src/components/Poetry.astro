@@ -1,0 +1,55 @@
+---
+/** 诗句打字机（对应旧站 components/Poetry，typed.js 官方初始化参数不变） */
+import poetry from '@/data/poetry.json';
+
+const strings = poetry.map((item) => item.poetry);
+---
+
+<div class="h-12 flex-shrink-0 pl-1">
+  <span id="poetry-target" class="poetry leading-7 tracking-wide" style="font-size: 14px"
+    ><span data-poetry={JSON.stringify(strings)} class="typed-hidden"></span></span
+  >
+</div>
+
+<script>
+  import Typed from 'typed.js';
+
+  const initPoetry = () => {
+    const target = document.getElementById('poetry-target');
+    if (!target) return;
+    const raw = target.querySelector('[data-poetry]');
+    const strings: string[] = raw ? JSON.parse(raw.getAttribute('data-poetry') ?? '[]') : [];
+    // ClientRouter 换页后 DOM 重建，先清空旧实例残留
+    target.querySelectorAll('.typed-cursor, .typed-element').forEach((el) => el.remove());
+    target.querySelectorAll('[data-poetry]').forEach((el) => el.remove());
+    new Typed('#poetry-target', {
+      strings,
+      typeSpeed: 60,
+      backSpeed: 60,
+      startDelay: 600,
+      backDelay: 10000,
+      shuffle: true,
+      loop: true,
+    });
+  };
+
+  document.addEventListener('astro:page-load', initPoetry);
+</script>
+
+<style>
+  .typed-hidden {
+    visibility: hidden;
+  }
+  .typed-cursor {
+    opacity: 1;
+    animation: blink 0.7s infinite;
+  }
+  @keyframes blink {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+</style>

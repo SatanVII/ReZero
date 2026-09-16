@@ -1,0 +1,64 @@
+---
+/**
+ * 文章/笔记列表（对应旧站 article/note/stars/moon 的 React 列表页）
+ * - 无限滚动改为构建期全量渲染（个人博客体量下 SEO 与体验更优）
+ * - 保留悬浮 mask 跟随效果与 AOS 滚动动画
+ */
+import type { CollectionEntry } from 'astro:content';
+import { format } from 'date-fns';
+import { Bookmark, Calendar, Tag } from '@lucide/astro';
+import { excerpt } from '@/utils/excerpt';
+
+interface Props {
+  entries: CollectionEntry<'post' | 'note'>[];
+}
+
+const { entries } = Astro.props;
+---
+
+<div class="page px-0" data-list-container>
+  <div class="mask pointer-events-none absolute left-0 top-0 w-full transform rounded transition-all duration-300 ease-in-out" data-list-mask></div>
+  <div class="relative space-y-4" data-post-list>
+    {
+      entries.map((entry) => (
+        <a
+          href={`/posts/${entry.id}`}
+          class="block cursor-pointer p-4"
+          data-post-item
+          data-aos="fade-left"
+        >
+          <h2 class="mb-2 text-xl italic">{entry.data.title}</h2>
+          <p class="my-0">{excerpt(entry)}</p>
+          <div class="meta mt-2 flex justify-start">
+            <Calendar class="mr-1" />
+            {format(entry.data.date, 'yyyy-MM-dd')}
+            <Bookmark class="ml-4 mr-1" />
+            {entry.data.category}
+            <Tag class="ml-4 mr-1" />
+            {entry.data.tags.map((tag, index) => (
+              <span class:list={['mr-2', index >= 1 && 'hidden sm:inline-block']}>{tag}</span>
+            ))}
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  const calcMaskPos = (target: HTMLElement) => {
+    const mask = document.querySelector<HTMLElement>('[data-list-mask]');
+    const container = document.querySelector<HTMLElement>('[data-list-container]');
+    if (!mask || !container) return;
+    const { clientHeight, offsetTop } = target;
+    const paddingTop = document.documentElement.clientWidth > 1024 ? 4 * 16 : 6 * 16;
+    mask.style.height = `${clientHeight}px`;
+    mask.style.transform = `translateY(${offsetTop + paddingTop}px)`;
+  };
+
+  // 悬浮 mask 跟随（事件委托，换页自动生效）
+  document.addEventListener('mouseover', (event) => {
+    const item = (event.target as HTMLElement).closest<HTMLElement>('[data-post-item]');
+    if (item) calcMaskPos(item);
+  });
+</script>

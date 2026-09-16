@@ -1,0 +1,65 @@
+---
+/**
+ * 桌面端右上角天气组件（对应旧站 components/Cloud）
+ * 常量晴朗图标；脚本从天气 API 拉取后切换图标与文案
+ */
+import Rain from '@/components/icons/Rain.astro';
+import Snow from '@/components/icons/Snow.astro';
+import Sun from '@/components/icons/Sun.astro';
+import Sunshine from '@/components/icons/Sunshine.astro';
+import Thunder from '@/components/icons/Thunder.astro';
+import Windy from '@/components/icons/Windy.astro';
+import '@/components/Weather.css';
+---
+
+<div id="weather-widget" class="fixed right-3 top-3 hidden items-center lg:flex">
+  <Sunshine data-weather-icon="qing" hidden></Sunshine>
+  <Sun data-weather-icon="yun" hidden></Sun>
+  <Sun data-weather-icon="yin" hidden></Sun>
+  <Sun data-weather-icon="wu" hidden></Sun>
+  <Thunder data-weather-icon="lei" hidden></Thunder>
+  <Rain data-weather-icon="yu" hidden></Rain>
+  <Snow data-weather-icon="xue" hidden></Snow>
+  <Windy data-weather-icon="shachen" hidden></Windy>
+  <Windy data-weather-icon="bingbao" hidden></Windy>
+  <div class="flex transform flex-col justify-center px-1.5">
+    <span id="weather-temperature" class="text-base leading-4">26℃</span>
+    <span id="weather-city" class="text-xs">晴</span>
+  </div>
+</div>
+
+<script>
+  const CLOUD_API =
+    'https://v0.yiketianqi.com/free/day?unescape=1&version=v61&appid=53266342&appsecret=mB1eOBjO';
+
+  interface CloudData {
+    city: string;
+    wea: string;
+    wea_img: string;
+    tem: string;
+  }
+
+  const showWeather = (code: string) => {
+    document.querySelectorAll('#weather-widget [data-weather-icon]').forEach((el) => {
+      el.toggleAttribute('hidden', el.getAttribute('data-weather-icon') !== code);
+    });
+  };
+
+  const initWeather = () => {
+    showWeather('qing');
+    fetch(CLOUD_API)
+      .then((res) => res.json())
+      .then((data: CloudData) => {
+        const temperature = document.getElementById('weather-temperature');
+        const city = document.getElementById('weather-city');
+        if (temperature) temperature.textContent = `${data.tem}℃`;
+        if (city) city.textContent = `${data.city}·${data.wea}`;
+        showWeather(data.wea_img);
+      })
+      .catch(() => {
+        /* 天气接口失败时保持默认晴天图标 */
+      });
+  };
+
+  document.addEventListener('astro:page-load', initWeather);
+</script>

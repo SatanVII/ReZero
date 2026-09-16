@@ -1,0 +1,8 @@
+---
+/** 流星雨（对应旧站 components/ShootingStar） */
+import '@/components/ShootingStar.css';
+---
+
+<div class="pointer-events-none absolute h-full w-full rotate-45 transform">
+  {Array.from({ length: 4 }).map(() => <div class="shooting_star"></div>)}
+</div>

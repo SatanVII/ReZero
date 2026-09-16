@@ -1,0 +1,64 @@
+---
+/**
+ * giscus 评论（对应旧站 components/Comment 的 React 方案，改为官方 script 嵌入）
+ * mapping=specific 按传入的 term 区分评论区；主题联动 giscus 主题 CSS
+ */
+interface Props {
+  term: string;
+}
+
+const { term } = Astro.props;
+---
+
+<div class="mt-16" data-giscus data-term={term}></div>
+
+<script>
+  // 与旧站 components/Comment 的配置一致
+  const GISCUS_CONFIG = {
+    repo: 'JanetYin/Comment',
+    repoId: 'R_kgDOLeBa5g',
+    category: 'Announcements',
+    categoryId: 'DIC_kwDOLeBa5s4Cd2Ra',
+  };
+
+  const themeUrl = (theme: string) =>
+    new URL(`/assets/styles/${theme.toLowerCase()}.css`, window.location.origin).toString();
+
+  const mount = (container: HTMLElement) => {
+    if (container.querySelector('iframe')) return;
+    const script = document.createElement('script');
+    script.src = 'https://giscus.app/client.js';
+    script.crossOrigin = 'anonymous';
+    script.async = true;
+    script.dataset.repo = GISCUS_CONFIG.repo;
+    script.dataset.repoId = GISCUS_CONFIG.repoId;
+    script.dataset.category = GISCUS_CONFIG.category;
+    script.dataset.categoryId = GISCUS_CONFIG.categoryId;
+    script.dataset.mapping = 'specific';
+    script.dataset.term = container.getAttribute('data-term') ?? '';
+    script.dataset.reactionsEnabled = '0';
+    script.dataset.emitMetadata = '0';
+    script.dataset.inputPosition = 'top';
+    script.dataset.theme = themeUrl(document.body.dataset.theme ?? 'Hutao');
+    script.dataset.lang = 'zh-CN';
+    script.dataset.loading = 'lazy';
+    container.appendChild(script);
+  };
+
+  const mountAll = () => {
+    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach(mount);
+  };
+
+  // 主题切换时同步 giscus iframe 配色
+  window.addEventListener('theme:changed', (event) => {
+    const theme = (event as CustomEvent<string>).detail;
+    document.querySelectorAll<HTMLIFrameElement>('.giscus-frame').forEach((frame) => {
+      frame.contentWindow?.postMessage(
+        { giscus: { setConfig: { theme: themeUrl(theme) } } },
+        'https://giscus.app',
+      );
+    });
+  });
+
+  document.addEventListener('astro:page-load', mountAll);
+</script>

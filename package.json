@@ -1,0 +1,38 @@
+{
+  "name": "zero-astro",
+  "version": "1.0.0",
+  "description": "文心雕龙 · Astro 版",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/sync-content.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/sync-content.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "content:sync": "node scripts/sync-content.mjs",
+    "sync": "astro sync"
+  },
+  "dependencies": {
+    "@astrojs/markdown-satteri": "^0.4.1",
+    "@astrojs/mdx": "^8.0.1",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "@lucide/astro": "^1.46.0",
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
+    "aos": "^2.3.4",
+    "astro": "^7.3.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "gray-matter": "^4.0.3",
+    "tailwindcss": "^4.3.3",
+    "typed.js": "^3.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/aos": "^3.0.8",
+    "typescript": "^6.0.3"
+  }
+}

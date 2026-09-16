@@ -1,0 +1,33 @@
+---
+/**
+ * 火花流（对应旧站 app/inspiration/page.tsx）
+ * 「一心净土」按小节拆分的条目，按文章日期倒序 + 文内倒序
+ */
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const entries = (await getCollection('inspiration')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime() || b.data.order - a.data.order,
+);
+
+const items = await Promise.all(
+  entries.map(async (entry) => ({ entry, Content: (await render(entry)).Content })),
+);
+---
+
+<BaseLayout title={`火花 - 云影`}>
+  <div class="page px-0">
+    <div class="relative space-y-4">
+      {
+        items.map(({ entry, Content }) => (
+          <article class="cursor-pointer p-4" data-aos="fade-left">
+            <h2 class="mb-2 text-xl italic">{entry.data.title}</h2>
+            <div class="prose max-w-full">
+              <Content />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>

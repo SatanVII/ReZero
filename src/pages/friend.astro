@@ -1,0 +1,32 @@
+---
+/** 会友页（对应旧站 app/friend/page.tsx） */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Comment from '@/components/Comment.astro';
+import friend from '@/data/friend.json';
+---
+
+<BaseLayout title={`会友 - 云影`}>
+  <div class="page friend">
+    <div class="mx-4 mb-4 block leading-7">
+      <p style="font-size: 24px; font-weight: bold; margin-bottom: 20px">云溪会友</p>
+      <p>故人万里，归来对影。</p>
+    </div>
+    <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+      {
+        friend.map((item) => (
+          <li class="relative inline-block transform overflow-hidden text-center duration-300 hover:-translate-y-1">
+            <a href={item.link} class="block h-full w-full py-4" target="_blank" rel="noopener noreferrer">
+              {item.name}
+            </a>
+            <img
+              class="absolute right-0 top-0 h-full transform rounded-full duration-300"
+              src={item.avatar}
+              alt={item.name}
+            />
+          </li>
+        ))
+      }
+    </ul>
+    <Comment term="友邻" />
+  </div>
+</BaseLayout>
