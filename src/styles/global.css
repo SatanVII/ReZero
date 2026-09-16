@@ -1,9 +1,21 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
-/* 旧 tailwind.config.js：sans 字体优先使用全局衬线变量（Astro Fonts API 提供） */
+/* 旧 tailwind.config.js：sans 字体优先 Noto Serif SC（@fontsource 500 字重，与旧站 Google Fonts w500 一致） */
 @theme {
-  --font-sans: var(--font-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Noto Serif SC', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* 站名手写体（旧站 next/font/local：assets/font/liuyunkuaizai.ttf） */
+@font-face {
+  font-family: 'LiuYunKuaiZai';
+  src: url('../assets/fonts/liuyunkuaizai.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* svg 不响应 hidden 属性的 UA 默认样式，显式补齐 */
+svg[hidden] {
+  display: none;
 }
 
 /* 旧 tailwind.config.js typography 定制：全部是 CSS 变量，直接覆盖插件的 .prose 默认值 */
@@ -22,6 +34,7 @@
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
+    --font-site: 'LiuYunKuaiZai', serif;
     scrollbar-gutter: stable both-edges;
   }
 
@@ -72,6 +85,22 @@
 }
 
 @layer components {
+  /* 旧站 app/template.tsx：内容容器（普通块级 flex 子项）+ 切页进场动画 */
+  .page-wrap {
+    @apply max-w-[64rem] flex-1;
+    animation: page-in 0.5s ease-out both;
+  }
+  @keyframes page-in {
+    0% {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
   /* page fade animation */
   .fade {
     @apply w-full self-start;

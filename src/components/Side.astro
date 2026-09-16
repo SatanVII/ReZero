@@ -21,6 +21,7 @@ import Github from '@/components/icons/Github.astro';
 import Panel from '@/components/Panel.astro';
 import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
+import Twitter from '@/components/icons/Twitter.astro';
 import config from '@/utils/config';
 import '@/components/Side.css';
 
@@ -33,9 +34,13 @@ const navItems = [
   { href: '/about', name: '自述', Icon: Ghost },
 ];
 
+// 与旧站一致：全部渲染（含空链接的 twitter/telegram/music）
 const socialItems = [
   { href: config.contact.github, Icon: Github },
+  { href: config.contact.twitter, Icon: Twitter },
+  { href: config.contact.telegram, Icon: Send },
   { href: config.contact.email, Icon: Mail },
+  { href: config.contact.music, Icon: Music },
   { href: config.contact.blog, Icon: BookMarked },
 ];
 
@@ -68,13 +73,11 @@ const { pathname } = Astro.url;
     </div>
     <div class="nav nav-x flex h-12 items-center">
       {
-        socialItems
-          .filter(({ href }) => href)
-          .map(({ href, Icon }) => (
-            <a href={href} rel="noopener noreferrer" target="_blank">
-              <Icon />
-            </a>
-          ))
+        socialItems.map(({ href, Icon }) => (
+          <a href={href} rel="noopener noreferrer" target="_blank">
+            <Icon />
+          </a>
+        ))
       }
       <a>
         <Globe />

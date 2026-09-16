@@ -7,11 +7,12 @@
  * - 全局脚本：AOS、正文图片增强（渐显/图注/灯箱）、控制台彩蛋
  */
 import { ClientRouter } from 'astro:transitions';
-import { Font } from 'astro:assets';
 import Cloud from '@/components/Cloud.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import themes from '@/data/themes';
+// 与旧站一致：Noto Serif SC w500（自托管子集，构建期零外部网络）
+import '@fontsource/noto-serif-sc/500.css';
 import '@/styles/global.css';
 
 interface Props {
@@ -52,15 +53,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <Font cssVariable="--font-serif" preload />
-    <Font cssVariable="--font-site" />
     <ClientRouter />
   </head>
   <body data-theme-data={JSON.stringify(themes)}>
     <Cloud />
     <Header />
     <Side />
-    <slot />
+    <div class="page-wrap">
+      <slot />
+    </div>
   </body>
 </html>
 

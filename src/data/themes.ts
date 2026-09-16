@@ -1,11 +1,15 @@
-import Ayaka from '@/assets/images/Vertin.png';
-import Beelzebul from '@/assets/images/Night.jpg';
-import Ganyu from '@/assets/images/voyager2.jpg';
-import Hutao from '@/assets/images/qu2.jpg';
-import Kokomi from '@/assets/images/kaalaa3.jpg';
-import Nahida from '@/assets/images/Spring.jpg';
-import Nilou from '@/assets/images/37.jpg';
-import Yoimiya from '@/assets/images/Sonetto.jpg';
+/**
+ * 主题背景图为 8% 透明度的全屏装饰图，无需 astro:assets 优化管线；
+ * 用 Vite 原生 ?url 导入，保证 dev/build 都稳定产出资源 URL。
+ */
+import Ayaka from '@/assets/images/Vertin.png?url';
+import Beelzebul from '@/assets/images/Night.jpg?url';
+import Ganyu from '@/assets/images/voyager2.jpg?url';
+import Hutao from '@/assets/images/qu2.jpg?url';
+import Kokomi from '@/assets/images/kaalaa3.jpg?url';
+import Nahida from '@/assets/images/Spring.jpg?url';
+import Nilou from '@/assets/images/37.jpg?url';
+import Yoimiya from '@/assets/images/Sonetto.jpg?url';
 
 export type ThemeType =
   | 'Hutao'
@@ -45,7 +49,7 @@ const themes: Theme[] = [
     name: '朔日手记',
     description: 'Notes on Shuòrì',
     color: { primary: '#E06458', background: '#FCFAF2' },
-    image: Hutao.src,
+    image: Hutao,
     url: 'https://www.bilibili.com/video/BV1tT4y187zp/',
   },
   {
@@ -53,7 +57,7 @@ const themes: Theme[] = [
     name: '春风有信',
     description: 'Moonlight Grows',
     color: { primary: '#7EA08A', background: '#F3F7F2' },
-    image: Nahida.src,
+    image: Nahida,
     url: 'https://www.bilibili.com/video/BV1Kw411F79h/',
   },
   {
@@ -61,7 +65,7 @@ const themes: Theme[] = [
     name: '具象之外',
     description: 'Transcends All Matters',
     color: { primary: '#74B5DB', background: '#DBEAF1' },
-    image: Nilou.src,
+    image: Nilou,
     url: 'https://www.bilibili.com/video/BV1sh4y1z7JB/',
   },
   {
@@ -69,7 +73,7 @@ const themes: Theme[] = [
     name: '遥远来客',
     description: 'Galaxy On The Strings',
     color: { primary: '#5260A6', background: '#E2E5F5' },
-    image: Ganyu.src,
+    image: Ganyu,
     url: 'https://www.bilibili.com/video/BV1Uy4y1c78E/',
   },
   {
@@ -77,7 +81,7 @@ const themes: Theme[] = [
     name: '交于坠星',
     description: 'पंख की ओर यात्रा मोर',
     color: { primary: '#BF9997', background: '#F2E1DC' },
-    image: Kokomi.src,
+    image: Kokomi,
     url: 'https://www.bilibili.com/video/BV1z34y1K7s9/',
   },
   {
@@ -85,7 +89,7 @@ const themes: Theme[] = [
     name: '行至日暮',
     description: 'Cantabile',
     color: { primary: '#8996B2', background: '#D8E2EC' },
-    image: Ayaka.src,
+    image: Ayaka,
     url: 'https://www.bilibili.com/video/BV1Ea4y157HT/',
   },
   {
@@ -93,7 +97,7 @@ const themes: Theme[] = [
     name: '诗篇以外',
     description: 'Beyond Poems',
     color: { primary: '#C15C42', background: '#F3E8DB' },
-    image: Yoimiya.src,
+    image: Yoimiya,
     url: 'https://www.bilibili.com/video/BV1BV4y1C7tJ/',
   },
   {
@@ -101,7 +105,7 @@ const themes: Theme[] = [
     name: '心向天灯',
     description: 'E lucevan le stelle',
     color: { primary: '#8C78B0', background: '#E3DBED' },
-    image: Beelzebul.src,
+    image: Beelzebul,
     url: 'https://www.bilibili.com/video/BV1nF4m1j7MR/',
   },
 ];
