@@ -1,0 +1,21 @@
+---
+/**
+ * 主题配色样式（构建期生成）
+ *
+ * 8 套主题的 --theme-color / --background-color / --background-image 全部在这里
+ * 编译成静态 CSS，运行时不再需要把主题数据当 JSON 塞进 HTML、再 JSON.parse 后
+ * 逐个 setProperty —— 只需给 <html> 打一个 data-theme="X"，浏览器自己套用。
+ * 背景图走 themes.ts 里的 ?url 导入，保留 Vite 的内容哈希。
+ */
+import themes from '@/data/themes';
+
+const themeCss = themes
+  .map(
+    // 用 :root[data-theme=...] 而不是 [data-theme=...]：global.css 的 :root 里有兜底默认值，
+    // 两者同为 (0,1,0) 时会被文档顺序（<link> 在 <style> 之后）压掉，加一级 :root 保证生效。
+    (t) => `:root[data-theme='${t.type}']{--theme-color:${t.color.primary};--background-color:${t.color.background};--background-image:url('${t.image}')}`,
+  )
+  .join('');
+---
+
+<Fragment set:html={`<style>${themeCss}</style>`} />

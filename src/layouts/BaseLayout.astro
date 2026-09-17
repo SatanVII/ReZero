@@ -3,14 +3,15 @@
  * 全局布局（对应旧站 app/layout.tsx + app/template.tsx + app/context.tsx）
  * - Fonts API：--font-serif（正文衬线）/ --font-site（站名）
  * - ClientRouter：接管旧 template.tsx 的切页过渡
- * - 主题系统：8 套主题、localStorage 过期缓存、按访问次数轮换默认主题
- * - 全局脚本：AOS、正文图片增强（渐显/图注/灯箱）、控制台彩蛋
+ * - 主题系统：配色由 ThemeStyles 在构建期编译成 CSS；运行时只决定"用哪一套"
+ * - 正文图片/外链的增强在构建期由 satteri hast 插件完成（见 astro.config.mjs）
  */
 import { ClientRouter } from 'astro:transitions';
 import Cloud from '@/components/Cloud.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
-import themes from '@/data/themes';
+import ThemeStyles from '@/components/ThemeStyles.astro';
+import { themeTypes } from '@/data/themes';
 // 与旧站一致：Noto Serif SC w500（自托管子集，构建期零外部网络）
 import '@fontsource/noto-serif-sc/500.css';
 import '@/styles/global.css';
@@ -53,21 +54,72 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <ThemeStyles />
+    <!--
+      首屏防闪：在首次绘制前把 data-theme 写到 <html> 上。
+      配色/背景图由上面 ThemeStyles 在构建期编译成的 [data-theme='X'] 规则提供，
+      这里只做"选哪一套"：读缓存 → 过期或无效则按访问次数轮换（不落盘，对齐旧站）。
+      必须 is:inline 且放在 head（同步执行、阻塞首绘），否则会闪一下默认主题。
+    -->
+    <script is:inline define:vars={{ themeTypes }}>
+      (() => {
+        // ClientRouter 换页会随新 head 重跑本脚本：完整加载（首访/刷新）才计数/定主题，
+        // 换页时的主题由 astro:after-swap 补回机制维护（见下方模块脚本），
+        // 否则 viewCount 会被换页不断推进、轮换游标失真。
+        if (window.__themeBoot) return;
+        window.__themeBoot = true;
+        const LIST = themeTypes;
+        const K = 'theme';
+        const E = 'theme-expire';
+        const V = 'viewCount';
+        let type = '';
+        try {
+          // 访问计数：每次完整加载 +1（旧站 context.tsx 挂载时无条件 setCount(count+1)）
+          const count = Number(localStorage.getItem(V)) || 0;
+          localStorage.setItem(V, String(count + 1));
+          const expire = Number(localStorage.getItem(E) || 0);
+          const cached = localStorage.getItem(K) || '';
+          if (expire && Date.now() < expire && LIST.includes(cached)) {
+            type = cached; // 用户点选后 24h 内：保持所选主题
+          } else {
+            // 默认态（首次/过期/未点选）：按访问次数轮换。
+            // 与旧站一致：先用**旧** count 取索引（首访 count=0 → 第一套胡桃），再落 count+1。
+            // 且轮换值不落盘（theme-expire 只在用户点选时写入）——
+            // 否则未点选时刷新不再换壁纸，即"刷新切换壁纸失效"。
+            type = LIST[count % LIST.length];
+          }
+        } catch {
+          /* localStorage 不可用（隐私模式等）：退回第一套主题 */
+        }
+        document.documentElement.dataset.theme = type || LIST[0];
+        // 供 CSS 判断"脚本可用"：无 JS 时不做图片渐显，避免正文图片永久不可见
+        document.documentElement.classList.add('js');
+      })();
+    </script>
     <ClientRouter />
   </head>
-  <body data-theme-data={JSON.stringify(themes)}>
+  <body>
+    <!--
+      布局组件在换页时保持不重建（对应旧站 Next App Router 的持久 layout）：
+      指令写在**组件内部的根元素**上 —— transition:persist 放在普通 .astro 组件标签上
+      只会被当作 prop 丢弃，不会生成 data-astro-transition-persist（已实测）。
+    -->
     <Cloud />
     <Header />
     <Side />
     <div class="page-wrap">
       <slot />
     </div>
+
+    <!-- 正文图片灯箱：构建期输出静态标记，运行时只挂一个委托监听器 -->
+    <dialog id="photo-lightbox">
+      <img alt="" />
+      <p class="photo-caption"></p>
+    </dialog>
   </body>
 </html>
 
 <script>
-  import AOS from 'aos';
-
   /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
   const nya = () => {
     const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
@@ -76,159 +128,85 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     console.info('~❀~ 发现控制台报错请务必联系博主 ~❀~');
   };
 
-  /* ---------- 主题系统（对应旧站 app/context.tsx） ---------- */
-  interface ThemeItem {
-    type: string;
-    name: string;
-    description: string;
-    color: { primary: string; background: string };
-    image: string;
-    url: string;
-  }
-
+  /*
+   * 主题系统（对应旧站 app/context.tsx）
+   *
+   * 配色已经搬到构建期：ThemeStyles.astro 把 8 套主题编译成 [data-theme='X'] 的 CSS，
+   * 首屏由 head 里的 is:inline 脚本在首次绘制前把 data-theme 写到 <html> 上。
+   * 这里只剩两件事：用户点选时改写 data-theme 并落盘；把主题面板与底部说明链接对齐。
+   * 面板的文案/链接直接读面板项自身的 data-*，因此不再需要把主题数据塞进 HTML。
+   */
   const STORE_KEY = 'theme';
   const EXPIRE_KEY = 'theme-expire';
-  const VIEW_KEY = 'viewCount';
   const EXPIRE = 24 * 60 * 60 * 1000;
 
-  let themeList: ThemeItem[] = [];
-  let currentTheme = '';
-
-  const readJSON = <T,>(key: string, fallback: T): T => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
+  const syncThemePanel = (type: string) => {
+    document.querySelectorAll('.panel [data-theme-item]').forEach((li) => {
+      li.classList.toggle('active', li.getAttribute('data-theme-item') === type);
+    });
+    const description = document.querySelector<HTMLAnchorElement>('.panel .description');
+    const current = document.querySelector(`.panel [data-theme-item='${type}']`);
+    if (description && current) {
+      description.href = current.getAttribute('data-theme-url') ?? '#';
+      description.dataset.title = current.getAttribute('data-theme-description') ?? '';
     }
   };
 
-  const resolveInitialTheme = (list: ThemeItem[]) => {
-    const expire = localStorage.getItem(EXPIRE_KEY);
-    const cached = localStorage.getItem(STORE_KEY);
-    if (!(expire && Date.now() > Number(expire)) && cached && list.some((t) => t.type === cached)) {
-      return cached;
-    }
-    // 与旧站一致：默认主题按访问次数轮换
-    const count = readJSON<number>(VIEW_KEY, 0);
+  // 当前主题（首屏由 head 内联脚本定好，这里接手后续维护）
+  let currentTheme = document.documentElement.dataset.theme ?? '';
+
+  const applyTheme = (type: string) => {
+    currentTheme = type;
+    document.documentElement.dataset.theme = type;
     try {
-      localStorage.setItem(VIEW_KEY, JSON.stringify(count + 1));
+      localStorage.setItem(STORE_KEY, type);
+      localStorage.setItem(EXPIRE_KEY, String(Date.now() + EXPIRE));
     } catch {
       /* localStorage 不可用时忽略 */
     }
-    return list[count % list.length].type;
+    syncThemePanel(type);
+    window.dispatchEvent(new CustomEvent('theme:changed', { detail: type }));
   };
 
-  const applyTheme = (type: string, list: ThemeItem[]) => {
-    const theme = list.find((t) => t.type === type);
-    if (!theme) return;
-    currentTheme = type;
-
-    document.body.dataset.theme = theme.type;
-    document.documentElement.style.setProperty('--theme-color', theme.color.primary);
-    document.documentElement.style.setProperty('--background-color', theme.color.background);
-    document.documentElement.style.setProperty('--background-image', `url('${theme.image}')`);
-    const classList = list.map((t) => t.type);
-    document.body.classList.remove(...classList);
-    document.body.classList.add(theme.type);
-
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(theme.type));
-      localStorage.setItem(EXPIRE_KEY, String(Date.now() + EXPIRE));
-    } catch {
-      /* ignore */
-    }
-
-    // 同步主题面板高亮与底部链接
-    document.querySelectorAll('.panel [data-theme-item]').forEach((li) => {
-      li.classList.toggle('active', li.getAttribute('data-theme-item') === theme.type);
-    });
-    const description = document.querySelector<HTMLAnchorElement>('.panel .description');
-    if (description) {
-      description.href = theme.url;
-      description.dataset.title = theme.description;
-    }
-
-    window.dispatchEvent(new CustomEvent('theme:changed', { detail: theme.type }));
-  };
-
-  const initTheme = () => {
-    const root = document.body;
-    if (!root) return;
-    try {
-      themeList = JSON.parse(root.dataset.themeData ?? '[]');
-    } catch {
-      themeList = [];
-    }
-    if (!themeList.length) return;
-    applyTheme(resolveInitialTheme(themeList), themeList);
-  };
+  /*
+   * ClientRouter 换页时会用新页面的属性重置 <html>（实测 data-theme 与 class 都会被清掉），
+   * 所以交换完成后要立刻补回 —— 否则每一页都会闪一下 global.css 里的兜底默认主题，
+   * 图片渐显的 .js 开关也会失效。这是最早可用的时机（早于 astro:page-load）。
+   */
+  document.addEventListener('astro:after-swap', () => {
+    document.documentElement.classList.add('js');
+    if (currentTheme) document.documentElement.dataset.theme = currentTheme;
+  });
 
   window.addEventListener('theme:select', (event) => {
     const type = (event as CustomEvent<string>).detail;
-    if (type) applyTheme(type, themeList);
+    if (type) applyTheme(type);
   });
 
-  // ClientRouter 换页后新文档丢失 CSS 变量，交换完成后立即恢复主题
-  document.addEventListener('astro:after-swap', () => {
-    if (currentTheme && themeList.length) applyTheme(currentTheme, themeList);
-  });
+  /*
+   * 正文图片渐显
+   * 图注（figure/figcaption）与 loading/decoding 已在构建期由 hast 插件生成，
+   * 这里只用一个捕获型监听器统一处理「图片解码完成 → 加 .loaded」。
+   * （load/error 不冒泡，故必须用捕获阶段。）
+   */
+  document.addEventListener(
+    'load',
+    (event) => {
+      if (event.target instanceof HTMLImageElement) event.target.classList.add('loaded');
+    },
+    true,
+  );
+  document.addEventListener(
+    'error',
+    (event) => {
+      // 加载失败时也显示出来（保持 opacity:1），避免图片永久不可见
+      if (event.target instanceof HTMLImageElement) event.target.classList.add('loaded');
+    },
+    true,
+  );
 
-  /* ---------- AOS 滚动动画 ---------- */
-  const initAOS = () => {
-    AOS.init({
-      duration: 500,
-      easing: 'ease',
-      debounceDelay: 50,
-      throttleDelay: 100,
-      offset: 0,
-    });
-  };
-
-  /* ---------- 正文图片：渐显 / 图注 / 灯箱（替代 react-photo-view + 自定义 MDX Image） ---------- */
-  const enhanceProseImages = () => {
-    document.querySelectorAll<HTMLImageElement>('.prose img').forEach((img) => {
-      if (img.dataset.enhanced) return;
-      img.dataset.enhanced = '1';
-
-      if (img.alt) {
-        const figure = document.createElement('figure');
-        const caption = document.createElement('figcaption');
-        caption.textContent = `◭ ${img.alt}`;
-        img.replaceWith(figure);
-        figure.appendChild(img);
-        figure.appendChild(caption);
-      }
-
-      const markLoaded = () => img.classList.add('loaded');
-      if (img.complete && img.naturalWidth > 0) {
-        markLoaded();
-      } else {
-        img.addEventListener('load', markLoaded, { once: true });
-        img.addEventListener('error', () => img.classList.remove('loaded'), { once: true });
-      }
-    });
-  };
-
-  /* ---------- 正文外链补 nofollow（对应旧站 rehype-external-links 插件） ---------- */
-  const enhanceProseLinks = () => {
-    document.querySelectorAll<HTMLAnchorElement>('.prose a[href^="http"]').forEach((a) => {
-      a.setAttribute('rel', 'nofollow noopener noreferrer');
-    });
-  };
-
-  const ensureLightbox = () => {
-    if (document.getElementById('photo-lightbox')) return;
-    const dialog = document.createElement('dialog');
-    dialog.id = 'photo-lightbox';
-    const img = document.createElement('img');
-    const caption = document.createElement('p');
-    caption.className = 'photo-caption';
-    dialog.append(img, caption);
-    dialog.addEventListener('click', () => dialog.close());
-    document.body.appendChild(dialog);
-  };
-
+  /* ---------- 正文图片灯箱 ----------
+   * <dialog id="photo-lightbox"> 是构建期输出的静态标记，这里只挂一个委托监听器。 */
   document.addEventListener('click', (event) => {
     const img = (event.target as HTMLElement).closest<HTMLImageElement>('.prose img');
     if (!img) return;
@@ -240,30 +218,40 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     dialog.showModal();
   });
 
+  /* ---------- 导航激活态（Side/Header 被 transition:persist 保留后，激活类需在换页后手动更新） ---------- */
+  const updateActiveNav = () => {
+    const path = location.pathname.endsWith('/') ? location.pathname.slice(0, -1) : location.pathname;
+    document.querySelectorAll('.nav a[href]').forEach((a) => {
+      const href = a.getAttribute('href') ?? '';
+      // 占位社交链接（twitter/telegram/music，config 里为空串）在旧站从不参与激活态；
+      // 若参与，首页 pathname 归一化后也是空串，会把它们误标成主题色
+      if (!href) {
+        a.classList.remove('active');
+        return;
+      }
+      const normalized = href.endsWith('/') ? href.slice(0, -1) : href;
+      a.classList.toggle('active', normalized === path);
+    });
+  };
+
   /* ---------- 生命周期 ---------- */
   nya();
 
-  // 主题初始化需在 DOM 就绪后（body dataset 可读）
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTheme, { once: true });
-  } else {
-    initTheme();
-  }
-
-  initAOS();
-
+  // 列表入场动画已改为纯 CSS 滚动驱动动画（见 global.css 的 [data-aos] 规则），无需 JS。
   document.addEventListener('astro:page-load', () => {
-    initAOS();
-    // 与旧站一致：小屏列表动画从纵向进入
-    if (document.documentElement.clientWidth <= 640) {
-      document.querySelectorAll('[data-aos="fade-left"]').forEach((el) => {
-        el.setAttribute('data-aos', 'fade-up');
-      });
-    }
-    AOS.refresh();
-    enhanceProseImages();
-    enhanceProseLinks();
+    updateActiveNav();
+    if (currentTheme) syncThemePanel(currentTheme);
   });
+
+  // 首屏：面板高亮与说明链接需要跟 head 内联脚本定下的主题对齐
+  const boot = () => {
+    if (currentTheme) syncThemePanel(currentTheme);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
 </script>
 
 <style is:global>

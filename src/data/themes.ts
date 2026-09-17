@@ -110,4 +110,7 @@ const themes: Theme[] = [
   },
 ];
 
+/** 主题名列表（首屏防闪脚本按访问次数轮换默认主题时用） */
+export const themeTypes: ThemeType[] = themes.map((t) => t.type);
+
 export default themes;

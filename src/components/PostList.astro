@@ -6,7 +6,9 @@
  */
 import type { CollectionEntry } from 'astro:content';
 import { format } from 'date-fns';
-import { Bookmark, Calendar, Tag } from '@lucide/astro';
+import Bookmark from '@/components/icons/Bookmark.astro';
+import Calendar from '@/components/icons/Calendar.astro';
+import Tag from '@/components/icons/Tag.astro';
 import { excerpt } from '@/utils/excerpt';
 
 interface Props {
@@ -28,7 +30,7 @@ const { entries } = Astro.props;
           data-aos="fade-left"
         >
           <h2 class="mb-2 text-xl italic">{entry.data.title}</h2>
-          <p class="my-0">{excerpt(entry)}</p>
+          <p class="my-0 text-[17px]">{excerpt(entry)}</p>
           <div class="meta mt-2 flex justify-start">
             <Calendar class="mr-1" />
             {format(entry.data.date, 'yyyy-MM-dd')}

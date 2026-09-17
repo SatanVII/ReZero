@@ -20,6 +20,8 @@ svg[hidden] {
 
 /* 旧 tailwind.config.js typography 定制：全部是 CSS 变量，直接覆盖插件的 .prose 默认值 */
 .prose {
+  /* 正文整体字号 +1px（typography 默认 16px）；标题/段距为 em 相对值，随 base 同步放大 */
+  font-size: 17px;
   --tw-prose-headings: var(--font-color);
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
@@ -120,6 +122,14 @@ svg[hidden] {
     @apply relative overflow-x-auto;
   }
 
+  /* Shiki 会内联写入主题底色/前景色（#FAFAFA / #90A4AE，浅底浅字不可读）；
+     旧站 rehype-pretty-code 不注入底色，此处覆盖为旧站的深字浅底，
+     token 高亮 span 有各自内联色不受影响 */
+  .prose pre.astro-code {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: var(--font-color) !important;
+  }
+
   /* Shiki（astro-code）输出的 pre 带 data-language 属性 */
   .prose pre[data-language]::before {
     @apply absolute right-2 top-2 text-base uppercase leading-4;
@@ -135,18 +145,67 @@ svg[hidden] {
 
   .prose img {
     @apply mx-auto mb-4 cursor-zoom-in rounded shadow-md;
+  }
+  /* 渐显只在 JS 可用时启用（head 内联脚本给 <html> 加 .js）；
+     否则脚本若被禁用，opacity:0 会让正文图片永久不可见 */
+  .js .prose img {
     opacity: 0;
     transition: opacity 0.5s;
   }
-  .prose img.loaded {
+  .js .prose img.loaded {
     @apply opacity-100;
   }
 
-  .prose figure {
-    @apply my-0;
-  }
-  .prose figcaption {
+  /* 图注由构建期 hast 插件插入（与旧站 MDX Image 的输出一致） */
+  .prose .img-caption {
     @apply mb-8 block text-center italic;
+    /* 旧站图注继承正文色；typography 默认的 gray-500 偏白发虚 */
+    color: var(--font-color);
+  }
+
+  /* 列表滚动入场：CSS 滚动驱动动画，替代旧站的 AOS（零 JS）。
+     不支持 animation-timeline 的浏览器不做动画、内容照常显示（渐进增强）。
+     注意：必须写成 animation-* 长属性 —— 若用 animation 简写，
+     Lightning CSS 会把上面的 animation-timeline 合并进简写，
+     而浏览器不接受简写里的 view()，整条声明作废、动画静默失效（已实测）。 */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      [data-aos='fade-left'],
+      [data-aos='fade-up'] {
+        animation-name: aos-in-left;
+        animation-duration: 1ms;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 55%;
+      }
+      /* 与旧站一致：小屏改为纵向进入 */
+      @media (width < 40rem) {
+        [data-aos='fade-left'] {
+          animation-name: aos-in-up;
+        }
+      }
+    }
+  }
+  @keyframes aos-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes aos-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .prose p,

@@ -50,4 +50,11 @@ const current = themes[0];
       new CustomEvent('theme:select', { detail: item.getAttribute('data-theme-item') }),
     );
   });
+
+  // 点击空白处（overlay）关闭面板 —— 对应旧站 <div className="overlay" onClick={togglePanle} />
+  // .main 为 pointer-events:none，面板外所有点击都会落到全屏 overlay 上
+  document.addEventListener('click', (event) => {
+    if (!(event.target as HTMLElement).closest('[data-panel-overlay]')) return;
+    document.querySelector('.panel')?.setAttribute('hidden', '');
+  });
 </script>

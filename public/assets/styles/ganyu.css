@@ -1,4 +1,4 @@
-@import url('https://www.yun37.me/assets/styles/comment.css');
+@import url('./comment.css');
 
 main {
   --color-btn-primary-bg: var(--ganyu-primary);

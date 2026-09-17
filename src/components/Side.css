@@ -1,17 +1,46 @@
 @reference "../styles/global.css";
 
-/* 原文件已损坏（含大量无效 @apply 类与非法选择器），此处按视觉意图重建 */
+/*
+ * 对应旧站 components/Side/index.css
+ *
+ * 注意：旧站该文件里的 `.nav svg` 规则是「全局」的（Next.js 中组件级 CSS 不做作用域隔离），
+ * 因此桌面侧栏（.nav-y / .nav-x）与移动端顶栏（Header 的 .nav）共用同一套图标尺寸。
+ * 这里刻意不加 `.side` 前缀，否则 Header 的导航图标会退回 <svg> 的 24px 属性值而偏大。
+ * 旧站实测（www.yun37.me，1440×900）：svg 盒子 20×24、transform translateX(-10px)。
+ *   宽 20px  = 旧站 `@apply w-5`（1.25rem）
+ *   高 24px  = 旧站未显式设置，由 <svg height="24"> 属性生效；图形按 xMidYMid 在盒内居中，
+ *              上下各留 2px —— 正是这 2px 让下方的 ::after 提示（top: 0.625rem）与图标对齐。
+ */
+.nav svg {
+  width: 1.25rem;
+  height: 1.5rem;
+  transform: translateX(-10px);
+}
+
 .side {
   @apply z-10;
 }
 
-.side .nav > a {
-  @apply relative transform cursor-pointer p-2 duration-300;
+/*
+ * 关掉侧栏竖排导航与底栏社交导航的入场动画。
+ *
+ * 旧站 Header/index.css 里 `.nav { animation: zoomIn }` 是全局规则，桌面侧栏也会命中；
+ * 但旧站用的是 Next App Router，layout 常驻、侧栏 DOM 从不重建，所以那个 zoomIn
+ * 只在整页首次加载时播一次，之后换页不会重放。
+ * Astro 的 ClientRouter 每次换页都会整体替换 <body>，标了 transition:persist 的元素
+ * 也要被搬进新 DOM —— 元素被重新插入时浏览器会重启其 CSS 动画（官方文档
+ * "Maintaining State" 明确写了：CSS 动画的重启在 view transition 期间无法避免）。
+ * 结果就是每次换页 6 个导航图标 + 7 个底栏图标都会缩放闪现一次。
+ * 这两处是常驻导航，按要求保持静止，故在此显式关掉；
+ * Header 的 .nav 动画保留（移动端下拉菜单靠 display 切换重放它来实现缩放弹出）。
+ * 选择器 (0,2,0) 优先级高于 Header.css 的 `.nav` (0,1,0)，不受文件加载顺序影响。
+ */
+.side .nav {
+  animation: none;
 }
 
-.side .nav svg {
-  transform: translateX(-10px);
-  @apply w-5;
+.side .nav > a {
+  @apply relative transform cursor-pointer p-2 duration-300;
 }
 
 .side .nav-y > a:hover {
@@ -26,37 +55,39 @@
   color: var(--theme-color);
 }
 
-/* data-name 悬浮提示（重建自损坏前的意图：hover 时淡入） */
-.side .nav > a::after,
+/* data-name 悬浮提示（旧站 .nav a::after / .nya::after 定位值）
+ * 不设置 color：旧站由继承决定 —— 普通项取 var(--font-color)，.active 项取主题色，.nya 取自身主题色 */
+.side .nav a::after,
 .nya::after {
   content: attr(data-name);
   position: absolute;
-  @apply hidden w-fit text-sm;
+  display: none;
+  width: fit-content;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transform: translateX(-10px);
   animation: fade 0.6s ease-out;
 }
 
-.side .nav-y > a:hover::after {
-  @apply block;
-  @apply top-1/2 -left-6 -translate-y-1/2;
-  color: var(--theme-color);
+.side .nav a::after {
+  left: -1.5rem;
+  top: 0.625rem;
 }
 
-.side .nav-x > a:hover::after {
-  @apply block;
-  @apply -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap;
-  color: var(--theme-color);
+.side .nav-y > a:hover::after,
+.nya:hover::after {
+  display: block;
 }
 
 .nya {
   @apply relative translate-y-3;
-}
-.nya:hover {
   color: var(--theme-color);
 }
+
 .nya::after {
-  @apply -top-5 left-1 right-0 mx-auto whitespace-nowrap;
-}
-.nya:hover::after {
-  @apply block;
-  color: var(--theme-color);
+  top: -1.25rem;
+  left: 0.25rem;
+  right: 0;
+  margin: 0 auto;
+  white-space: nowrap;
 }

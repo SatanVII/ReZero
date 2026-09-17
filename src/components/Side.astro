@@ -3,32 +3,31 @@
  * 桌面端侧栏（对应旧站 components/Side）
  * 垂直导航 + 站名诗句 + 社交链接 + 蝴蝶按钮（主题面板入口）
  */
-import {
-  BookMarked,
-  BookOpen,
-  CodeXml,
-  Ghost,
-  Globe,
-  HeartPulse,
-  Mail,
-  Music,
-  ScrollText,
-  Send,
-  Sparkles,
-} from '@lucide/astro';
 import Butterfly from '@/components/Butterfly.astro';
-import Github from '@/components/icons/Github.astro';
 import Panel from '@/components/Panel.astro';
 import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
-import Twitter from '@/components/icons/Twitter.astro';
 import config from '@/utils/config';
+// 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
+import BookMarked from '@/components/icons/BookMarked.astro';
+import BookOpen from '@/components/icons/BookOpen.astro';
+import Codepen from '@/components/icons/Codepen.astro';
+import Ghost from '@/components/icons/Ghost.astro';
+import Github from '@/components/icons/Github.astro';
+import Globe from '@/components/icons/Globe.astro';
+import HeartPulse from '@/components/icons/HeartPulse.astro';
+import Mail from '@/components/icons/Mail.astro';
+import Music from '@/components/icons/Music.astro';
+import ScrollText from '@/components/icons/ScrollText.astro';
+import Send from '@/components/icons/Send.astro';
+import Sparkles from '@/components/icons/Sparkles.astro';
+import Twitter from '@/components/icons/Twitter.astro';
 import '@/components/Side.css';
 
 const navItems = [
   { href: '/article', name: '文字', Icon: ScrollText },
   { href: '/inspiration', name: '火花', Icon: Sparkles },
-  { href: '/project', name: '项目', Icon: CodeXml },
+  { href: '/project', name: '项目', Icon: Codepen },
   { href: '/book', name: '书斋', Icon: BookOpen },
   { href: '/friend', name: '会友', Icon: HeartPulse },
   { href: '/about', name: '自述', Icon: Ghost },
@@ -47,7 +46,7 @@ const socialItems = [
 const { pathname } = Astro.url;
 ---
 
-<div class="side sticky top-0 hidden h-screen min-w-[24rem] flex-col items-start justify-between lg:flex">
+<div class="side sticky top-0 hidden h-screen min-w-[24rem] flex-col items-start justify-between lg:flex" transition:persist="side">
   <ShootingStar />
   <Panel hidden></Panel>
 

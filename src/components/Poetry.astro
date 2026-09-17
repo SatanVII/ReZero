@@ -1,36 +1,108 @@
 ---
-/** 诗句打字机（对应旧站 components/Poetry，typed.js 官方初始化参数不变） */
+/**
+ * 诗句打字机（对应旧站 components/Poetry）
+ *
+ * 旧站用 typed.js（约 10.7KB 产物）。这里换成等价的极小实现：
+ * 同样的打字/退格速度、startDelay/backDelay、shuffle、loop，且同样按 HTML 逐字渲染
+ * （诗句里含 <br>，不能在标签中间截断）。省掉整个依赖。
+ */
 import poetry from '@/data/poetry.json';
 
 const strings = poetry.map((item) => item.poetry);
 ---
 
 <div class="h-12 flex-shrink-0 pl-1">
-  <span id="poetry-target" class="poetry leading-7 tracking-wide" style="font-size: 14px"
+  <span id="poetry-target" class="poetry leading-7 tracking-wide" style="font-size: 15px"
     ><span data-poetry={JSON.stringify(strings)} class="typed-hidden"></span></span
   >
 </div>
 
 <script>
-  import Typed from 'typed.js';
-
   const initPoetry = () => {
     const target = document.getElementById('poetry-target');
-    if (!target) return;
+    // Side 被 transition:persist 保留，换页不重建；已初始化则跳过，避免多个实例竞争同一节点
+    if (!target || target.dataset.poetryReady) return;
+    target.dataset.poetryReady = '1';
+
     const raw = target.querySelector('[data-poetry]');
     const strings: string[] = raw ? JSON.parse(raw.getAttribute('data-poetry') ?? '[]') : [];
-    // ClientRouter 换页后 DOM 重建，先清空旧实例残留
-    target.querySelectorAll('.typed-cursor, .typed-element').forEach((el) => el.remove());
-    target.querySelectorAll('[data-poetry]').forEach((el) => el.remove());
-    new Typed('#poetry-target', {
-      strings,
-      typeSpeed: 60,
-      backSpeed: 60,
-      startDelay: 600,
-      backDelay: 10000,
-      shuffle: true,
-      loop: true,
-    });
+    raw?.remove();
+    if (!strings.length) return;
+
+    const TYPE = 60; // 每字打字间隔
+    const BACK = 60; // 每字退格间隔
+    const START = 600; // 首次开始延迟
+    const HOLD = 10000; // 打完后的保持时长
+
+    const text = document.createElement('span');
+    const cursor = document.createElement('span');
+    cursor.className = 'typed-cursor';
+    cursor.textContent = '|';
+    target.append(text, cursor);
+
+    // shuffle + loop：取空后重新洗牌
+    let pool: string[] = [];
+    const pick = () => {
+      if (!pool.length) {
+        pool = strings.slice();
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+      }
+      return pool.pop() as string;
+    };
+
+    /** 按「可见字符」截断，遇到标签整体带过，避免把 <br> 截成半截 */
+    const slice = (source: string, count: number) => {
+      let i = 0;
+      let out = '';
+      while (i < count && i < source.length) {
+        if (source[i] === '<') {
+          const end = source.indexOf('>', i);
+          if (end === -1) break;
+          out += source.slice(i, end + 1);
+          i = end + 1;
+        } else {
+          out += source[i];
+          i += 1;
+        }
+      }
+      return out;
+    };
+
+    let current = '';
+    let index = 0;
+    let deleting = false;
+
+    const step = () => {
+      if (!current) {
+        current = pick();
+        index = 0;
+        deleting = false;
+      }
+      if (!deleting) {
+        index += 1;
+        text.innerHTML = slice(current, index);
+        if (index >= current.length) {
+          deleting = true;
+          setTimeout(step, HOLD);
+        } else {
+          setTimeout(step, TYPE);
+        }
+        return;
+      }
+      index -= 1;
+      text.innerHTML = index <= 0 ? '' : slice(current, index);
+      if (index <= 0) {
+        current = '';
+        setTimeout(step, TYPE);
+      } else {
+        setTimeout(step, BACK);
+      }
+    };
+
+    setTimeout(step, START);
   };
 
   document.addEventListener('astro:page-load', initPoetry);

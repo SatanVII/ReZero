@@ -1,7 +1,12 @@
 ---
 /**
  * 桌面端右上角天气组件（对应旧站 components/Cloud）
- * 常量晴朗图标；脚本从天气 API 拉取后切换图标与文案
+ *
+ * 旧站在客户端 useEffect 里拉天气接口；这里改到**构建期**取一次：
+ *   - 页面运行时零请求、零 JS（原来每次首访都要发一次 XHR）
+ *   - 只渲染当天需要的那一个图标，不再把 9 个 SVG 全塞进 DOM 再靠 hidden 切换
+ * 代价是数值等于构建那一刻的实况，随每次构建刷新。
+ * 接口不可达时静默退回兜底值（26℃ / 晴），构建不会因此失败。
  */
 import Rain from '@/components/icons/Rain.astro';
 import Snow from '@/components/icons/Snow.astro';
@@ -10,56 +15,64 @@ import Sunshine from '@/components/icons/Sunshine.astro';
 import Thunder from '@/components/icons/Thunder.astro';
 import Windy from '@/components/icons/Windy.astro';
 import '@/components/Weather.css';
+
+const CLOUD_API =
+  'https://v0.yiketianqi.com/free/day?unescape=1&version=v61&appid=53266342&appsecret=mB1eOBjO';
+
+interface CloudData {
+  city: string;
+  wea: string;
+  wea_img: string;
+  tem: string;
+}
+
+/** 旧站初始值，也是接口失败时的兜底值 */
+const FALLBACK: CloudData = { city: '', wea: '晴', wea_img: 'qing', tem: '26' };
+
+/** wea_img → 图标，与旧站 weatherComponents 的映射一致 */
+const ICONS: Record<string, typeof Sunshine> = {
+  qing: Sunshine,
+  yun: Sun,
+  yin: Sun,
+  wu: Sun,
+  lei: Thunder,
+  yu: Rain,
+  xue: Snow,
+  shachen: Windy,
+  bingbao: Windy,
+};
+
+// dev 下每个请求都会跑一遍 frontmatter，加个 10 分钟内存缓存避免重复外呼
+let cache: { at: number; data: CloudData } | null = null;
+const TTL = 10 * 60 * 1000;
+
+const fetchWeather = async (): Promise<CloudData> => {
+  if (cache && Date.now() - cache.at < TTL) return cache.data;
+  try {
+    const res = await fetch(CLOUD_API, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const data = (await res.json()) as Partial<CloudData>;
+      if (data?.wea_img && ICONS[data.wea_img]) {
+        const merged = { ...FALLBACK, ...data } as CloudData;
+        cache = { at: Date.now(), data: merged };
+        return merged;
+      }
+    }
+  } catch {
+    /* 接口不可达/超时：用兜底值，构建继续 */
+  }
+  cache = { at: Date.now(), data: FALLBACK };
+  return FALLBACK;
+};
+
+const weather = await fetchWeather();
+const Icon = ICONS[weather.wea_img] ?? Sunshine;
 ---
 
-<div id="weather-widget" class="fixed right-3 top-3 hidden items-center lg:flex">
-  <Sunshine data-weather-icon="qing" hidden></Sunshine>
-  <Sun data-weather-icon="yun" hidden></Sun>
-  <Sun data-weather-icon="yin" hidden></Sun>
-  <Sun data-weather-icon="wu" hidden></Sun>
-  <Thunder data-weather-icon="lei" hidden></Thunder>
-  <Rain data-weather-icon="yu" hidden></Rain>
-  <Snow data-weather-icon="xue" hidden></Snow>
-  <Windy data-weather-icon="shachen" hidden></Windy>
-  <Windy data-weather-icon="bingbao" hidden></Windy>
+<div id="weather-widget" class="fixed right-3 top-3 hidden items-center lg:flex" transition:persist="cloud">
+  <Icon />
   <div class="flex transform flex-col justify-center px-1.5">
-    <span id="weather-temperature" class="text-base leading-4">26℃</span>
-    <span id="weather-city" class="text-xs">晴</span>
+    <span class="text-base leading-4">{weather.tem}℃</span>
+    <span class="text-xs">{weather.city ? `${weather.city}·` : ''}{weather.wea}</span>
   </div>
 </div>
-
-<script>
-  const CLOUD_API =
-    'https://v0.yiketianqi.com/free/day?unescape=1&version=v61&appid=53266342&appsecret=mB1eOBjO';
-
-  interface CloudData {
-    city: string;
-    wea: string;
-    wea_img: string;
-    tem: string;
-  }
-
-  const showWeather = (code: string) => {
-    document.querySelectorAll('#weather-widget [data-weather-icon]').forEach((el) => {
-      el.toggleAttribute('hidden', el.getAttribute('data-weather-icon') !== code);
-    });
-  };
-
-  const initWeather = () => {
-    showWeather('qing');
-    fetch(CLOUD_API)
-      .then((res) => res.json())
-      .then((data: CloudData) => {
-        const temperature = document.getElementById('weather-temperature');
-        const city = document.getElementById('weather-city');
-        if (temperature) temperature.textContent = `${data.tem}℃`;
-        if (city) city.textContent = `${data.city}·${data.wea}`;
-        showWeather(data.wea_img);
-      })
-      .catch(() => {
-        /* 天气接口失败时保持默认晴天图标 */
-      });
-  };
-
-  document.addEventListener('astro:page-load', initWeather);
-</script>

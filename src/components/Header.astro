@@ -3,13 +3,19 @@
  * 移动端顶部栏（对应旧站 components/Header，lg 以下显示）
  * 导航激活态在构建期由 Astro.url.pathname 决定
  */
-import { BookOpen, CodeXml, Ghost, HeartPulse, ScrollText, Sparkles } from '@lucide/astro';
+// 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
+import BookOpen from '@/components/icons/BookOpen.astro';
+import Codepen from '@/components/icons/Codepen.astro';
+import Ghost from '@/components/icons/Ghost.astro';
+import HeartPulse from '@/components/icons/HeartPulse.astro';
+import ScrollText from '@/components/icons/ScrollText.astro';
+import Sparkles from '@/components/icons/Sparkles.astro';
 import '@/components/Header.css';
 
 const navItems = [
   { href: '/article', name: '文字', Icon: ScrollText },
   { href: '/inspiration', name: '火花', Icon: Sparkles },
-  { href: '/project', name: '项目', Icon: CodeXml },
+  { href: '/project', name: '项目', Icon: Codepen },
   { href: '/book', name: '书斋', Icon: BookOpen },
   { href: '/friend', name: '会友', Icon: HeartPulse },
   { href: '/about', name: '自述', Icon: Ghost },
@@ -18,7 +24,7 @@ const navItems = [
 const { pathname } = Astro.url;
 ---
 
-<div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden">
+<div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden" transition:persist="header">
   <h3 class="title text-4xl tracking-wider">云山栖</h3>
 
   <nav class="nav hidden items-center sm:flex">
