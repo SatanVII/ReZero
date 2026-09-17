@@ -1,11 +1,11 @@
 ---
-/** 自述页（对应旧站 app/about/page.tsx）：渲染「观云碎月」最新文章 */
+/** 自述页（对应旧站 app/about/page.tsx）：渲染「关于」最新文章 */
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Comment from '@/components/Comment.astro';
 
 const post = (
-  await getCollection('post', ({ data }) => data.category === '观云碎月')
+  await getCollection('post', ({ data }) => data.category === '关于')
 ).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())[0];
 
 const { Content } = await render(post);

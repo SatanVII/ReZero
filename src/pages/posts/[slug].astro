@@ -13,11 +13,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import Comment from '@/components/Comment.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('post');
-  const notes = await getCollection('note');
-  return [...posts, ...notes].map((entry) => ({
+  const entries = await getCollection('post');
+  return entries.map((entry) => ({
     params: { slug: entry.id },
-    props: { entry: entry as CollectionEntry<'post' | 'note'> },
+    props: { entry: entry as CollectionEntry<'post'> },
   }));
 }
 

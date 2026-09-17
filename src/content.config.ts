@@ -21,19 +21,8 @@ const postSchema = z.object({
 });
 
 // 「 blog-post/ 」目录：文章按年份子目录归档（2024/、2025/…），
-// 分类：观云碎月（首页/自述）、灵感（火花流）、日志、随笔（后三者进文字页）
+// 分类体系：关于（首页/自述）、灵感（火花流）、日志、随笔（后两者进文字页）
 const post = defineCollection({
-  loader: glob({
-    pattern: '**/*.md',
-    base: './content/blog-post',
-    generateId: generateIdFromTitle,
-  }),
-  schema: postSchema,
-});
-
-// 笔记与 post 同源加载（同一批文件，URL /note 仅取 category === 'Note'）。
-// 原「 computer-science/ 」目录已从内容仓库移除，Note 分类的文章暂缺，/note 页为空列表。
-const note = defineCollection({
   loader: glob({
     pattern: '**/*.md',
     base: './content/blog-post',
@@ -54,4 +43,4 @@ const inspiration = defineCollection({
   }),
 });
 
-export const collections = { post, note, inspiration };
+export const collections = { post, inspiration };

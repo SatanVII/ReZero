@@ -4,10 +4,7 @@ import type { APIRoute } from 'astro';
 
 /** RSS 订阅（旧站没有，属新增能力；@astrojs/rss 官方用法） */
 export const GET: APIRoute = async (context) => {
-  const posts = await getCollection('post');
-  const notes = await getCollection('note');
-
-  const items = [...posts, ...notes]
+  const items = (await getCollection('post'))
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
     .map((entry) => ({
       title: entry.data.title,

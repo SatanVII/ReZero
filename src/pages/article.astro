@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostList from '@/components/PostList.astro';
 
-const EXCLUDED = ['灵感', '真我之名', '观云碎月'];
+const EXCLUDED = ['灵感', '关于'];
 const entries = (await getCollection('post'))
   .filter(({ data }) => !EXCLUDED.includes(data.category))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());

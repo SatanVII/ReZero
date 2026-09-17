@@ -14,7 +14,7 @@ zero-astro/
 ├── content/                      # ② 内容目录（不入库；blog-post 按年份归档 + IMAGES）
 ├── public/                       # ①⑥ favicon/giscus 主题 CSS/书影友链图/CNAME/robots.txt
 └── src/
-    ├── content.config.ts         # ② post/note（glob loader，标题作 id）+ inspiration（自定义 loader）
+    ├── content.config.ts         # ② post（glob loader，标题作 id）+ inspiration（自定义 loader）
     ├── lib/
     │   └── inspirationLoader.ts  # ② 「灵感」按 ## 拆段 + renderMarkdown 预渲染
     ├── styles/global.css         # ③ Tailwind v4 入口 + 旧 globals.css 平移 + typography 变量
