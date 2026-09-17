@@ -12,7 +12,7 @@ import Tag from '@/components/icons/Tag.astro';
 import { excerpt } from '@/utils/excerpt';
 
 interface Props {
-  entries: CollectionEntry<'post' | 'note'>[];
+  entries: CollectionEntry<'post'>[];
 }
 
 const { entries } = Astro.props;
@@ -82,10 +82,16 @@ const { entries } = Astro.props;
 
     // 遮罩是 .page 的绝对定位子元素（top:0 贴 .page 顶边），
     // 而 a[data-post-item].offsetTop 相对 .relative 的列表容器 —— 故需补上 .page 的上内边距。
-    const paddingTop = Number.parseFloat(getComputedStyle(container).paddingTop) || 0;
+    // 上内边距是响应式的（py-24 → lg:py-16）：每次定位现读，避免窗口跨 lg 断口缩放后用到旧值
+    //（垂直 padding 变化不改变列表内容盒尺寸，ResizeObserver 不会因此触发）。
     const moveTo = (item: HTMLElement) => {
-      mask.style.height = `${item.offsetHeight}px`;
-      mask.style.transform = `translateY(${item.offsetTop + paddingTop}px)`;
+      const paddingTop = Number.parseFloat(getComputedStyle(container).paddingTop) || 0;
+      const height = `${item.offsetHeight}px`;
+      const transform = `translateY(${item.offsetTop + paddingTop}px)`;
+      // 与旧站 calcMaskPos 的早退守卫一致：位置不变不重复写样式（mouseover 高频触发）
+      if (mask.style.height === height && mask.style.transform === transform) return;
+      mask.style.height = height;
+      mask.style.transform = transform;
     };
 
     // 进场：指示框动画滑向第一条文章（对应旧站挂载后的初始化）

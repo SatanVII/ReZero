@@ -72,10 +72,15 @@ const items = await Promise.all(
 
     // 遮罩是 .page 的绝对定位子元素（top:0 贴 .page 顶边），
     // 而 article.offsetTop 相对 .relative 的列表容器 —— 故需补上 .page 的上内边距。
+    // 上内边距是响应式的（py-24 → lg:py-16），在 moveTo 内现读，避免跨 lg 断口缩放后用到旧值。
     const moveTo = (item: HTMLElement) => {
       const paddingTop = Number.parseFloat(getComputedStyle(page).paddingTop) || 0;
-      mask.style.height = `${item.offsetHeight}px`;
-      mask.style.transform = `translateY(${item.offsetTop + paddingTop}px)`;
+      const height = `${item.offsetHeight}px`;
+      const transform = `translateY(${item.offsetTop + paddingTop}px)`;
+      // 早退守卫：位置不变不重复写样式（mouseover 高频触发）
+      if (mask.style.height === height && mask.style.transform === transform) return;
+      mask.style.height = height;
+      mask.style.transform = transform;
     };
 
     let current = items()[0] ?? null;
