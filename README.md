@@ -17,8 +17,7 @@
 
 文章来自独立内容仓库，默认读取本地 `content/`：
 
-- `content/wandering-clouds/` 文章（观云碎月 / 一心净土 / 藏星 / 碎月 / 随笔）
-- `content/computer-science/` 笔记（Note）
+- `content/blog-post/<年份>/` 文章（观云碎月 / 一心净土 / 藏星 / 碎月 / 随笔）
 
 接入远程内容仓库：
 

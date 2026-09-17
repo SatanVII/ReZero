@@ -11,7 +11,7 @@ zero-astro/
 ├── tsconfig.json                 # ① strict + @/* 别名
 ├── scripts/
 │   └── sync-content.mjs          # ② 内容同步（CONTENT_REPO git clone/pull，predev/prebuild 挂钩）
-├── content/                      # ② 内容目录（不入库；wandering-clouds + computer-science）
+├── content/                      # ② 内容目录（不入库；blog-post 按年份归档 + IMAGES）
 ├── public/                       # ①⑥ favicon/giscus 主题 CSS/书影友链图/CNAME/robots.txt
 └── src/
     ├── content.config.ts         # ② post/note（glob loader，标题作 id）+ inspiration（自定义 loader）

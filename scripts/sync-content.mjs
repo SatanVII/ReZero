@@ -46,7 +46,7 @@ const main = () => {
     console.log('[sync] 未设置 CONTENT_REPO，使用本地 content/ 目录')
     copyImages()
   } else {
-    console.warn('[sync] content/ 目录不存在：设置 CONTENT_REPO=<内容仓库地址> 后重跑，或手动创建 content/wandering-clouds 与 content/computer-science')
+    console.warn('[sync] content/ 目录不存在：设置 CONTENT_REPO=<内容仓库地址> 后重跑，或手动创建 content/blog-post（文章按年份子目录归档）')
   }
 }
 

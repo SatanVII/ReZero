@@ -20,21 +20,23 @@ const postSchema = z.object({
   description: z.string().optional(),
 });
 
-// 「 wandering-clouds/ 」目录：文章（观云碎月/一心净土/藏星/碎月/随笔等分类）
+// 「 blog-post/ 」目录：文章按年份子目录归档（2024/、2025/…），
+// 分类沿用原站约定（观云碎月/一心净土/藏星/碎月/随笔等）
 const post = defineCollection({
   loader: glob({
     pattern: '**/*.md',
-    base: './content/wandering-clouds',
+    base: './content/blog-post',
     generateId: generateIdFromTitle,
   }),
   schema: postSchema,
 });
 
-// 「 computer-science/ 」目录：笔记
+// 笔记与 post 同源加载（同一批文件，URL /note 仅取 category === 'Note'）。
+// 原「 computer-science/ 」目录已从内容仓库移除，Note 分类的文章暂缺，/note 页为空列表。
 const note = defineCollection({
   loader: glob({
     pattern: '**/*.md',
-    base: './content/computer-science',
+    base: './content/blog-post',
     generateId: generateIdFromTitle,
   }),
   schema: postSchema,

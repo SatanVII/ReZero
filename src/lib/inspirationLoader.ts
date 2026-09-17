@@ -3,7 +3,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import type { Loader, LoaderContext } from 'astro/loaders';
 
-const POST_DIR = path.resolve('content/wandering-clouds');
+const POST_DIR = path.resolve('content/blog-post');
 // 旧站逻辑：仅「一心净土」分类的文章参与火花流
 const INSPIRATION_CATEGORY = '一心净土';
 
