@@ -43,12 +43,36 @@
   @apply relative transform cursor-pointer p-2 duration-300;
 }
 
-.side .nav-y > a:hover {
-  @apply translate-x-1;
+/*
+ * hover 位移作用于内层 svg 而不是 a 盒子（视觉动效与旧站 a 位移完全一致）。
+ * 原实现 `.nav-y > a:hover { translate-x-1 }` 移动整个链接盒子：鼠标停在盒子
+ * 左边缘附近时进入 "hover→盒子右移→鼠标脱出→回位→再 hover" 的死循环。
+ *
+ * 但仅把位移挪到 svg 还不够：svg 基准 translateX(-10px) 使其视觉左缘突出
+ * a 盒子左缘约 2px（svg@-10px 从 x=82 起，a 从 x=84 起），而 svg 仍参与
+ * hit-testing —— 鼠标停在这 2px 上时依旧死循环：
+ *   命中 svg → hover → svg 移到 -6px（视觉从 86 起）且 ::after 提示自带
+ *   translateX(-10px) 只覆盖到 x≈78 → 鼠标下方无任何元素 → 脱 hover →
+ *   svg 回位 → 再命中 → 光标 pointer/default 反复翻转（实测 bug）。
+ *
+ * 根除：pointer-events:none 让 svg 退出 hit-testing，hover 命中区恒为
+ * 静止的 a 盒子矩形，任何时刻命中结果不随动效变化，循环无从发生。
+ * 动效、颜色、::after 提示均不受影响；代价仅是图标视觉突出 a 盒子的
+ * 那 2px 不再触发 hover（原站该区域正是闪烁区，行为上只会更好）。
+ *   nav-y: translateX(-10px) → translateX(-6px)   （等效 translate-x-1 右移）
+ *   nav-x: translateX(-10px) → translate(-10px, -4px)（等效 -translate-y-1 上移）
+ */
+.side .nav > a svg {
+  transition: transform 0.3s;
+  pointer-events: none;
 }
 
-.side .nav-x > a:hover {
-  @apply -translate-y-1;
+.side .nav-y > a:hover svg {
+  transform: translateX(-6px);
+}
+
+.side .nav-x > a:hover svg {
+  transform: translate(-10px, -4px);
 }
 
 .side .nav > a.active {
