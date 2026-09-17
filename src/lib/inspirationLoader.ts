@@ -4,11 +4,11 @@ import matter from 'gray-matter';
 import type { Loader, LoaderContext } from 'astro/loaders';
 
 const POST_DIR = path.resolve('content/blog-post');
-// 旧站逻辑：仅「一心净土」分类的文章参与火花流
-const INSPIRATION_CATEGORY = '一心净土';
+// 旧站逻辑：仅「灵感」（原「一心净土」）分类的文章参与火花流
+const INSPIRATION_CATEGORY = '灵感';
 
 /**
- * 自定义内容 loader：把「一心净土」文章正文按一级小节（## 标题）拆成独立条目，
+ * 自定义内容 loader：把「灵感」文章正文按一级小节（## 标题）拆成独立条目，
  * 并用 LoaderContext 官方 renderMarkdown() 预渲染（走完整 Markdown 管线，GFM/Shiki 生效）。
  *
  * 对应旧站 contentlayer 的 inspiration computed field（mdx-bundler 编译）。

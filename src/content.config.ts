@@ -21,7 +21,7 @@ const postSchema = z.object({
 });
 
 // 「 blog-post/ 」目录：文章按年份子目录归档（2024/、2025/…），
-// 分类沿用原站约定（观云碎月/一心净土/藏星/碎月/随笔等）
+// 分类：观云碎月（首页/自述）、灵感（火花流）、日志、随笔（后三者进文字页）
 const post = defineCollection({
   loader: glob({
     pattern: '**/*.md',
@@ -42,7 +42,7 @@ const note = defineCollection({
   schema: postSchema,
 });
 
-// 「一心净土」分类按一级小节（## 标题）拆成的火花流
+// 「灵感」分类按一级小节（## 标题）拆成的火花流
 const inspiration = defineCollection({
   loader: inspirationLoader(),
   schema: z.object({

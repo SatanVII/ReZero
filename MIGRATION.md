@@ -16,7 +16,7 @@ zero-astro/
 └── src/
     ├── content.config.ts         # ② post/note（glob loader，标题作 id）+ inspiration（自定义 loader）
     ├── lib/
-    │   └── inspirationLoader.ts  # ② 「一心净土」按 ## 拆段 + renderMarkdown 预渲染
+    │   └── inspirationLoader.ts  # ② 「灵感」按 ## 拆段 + renderMarkdown 预渲染
     ├── styles/global.css         # ③ Tailwind v4 入口 + 旧 globals.css 平移 + typography 变量
     ├── data/                     # ①③ themes.ts（8 主题）/ book / friend / poetry JSON
     ├── utils/                    # ③ config（联系方式）/ excerpt（列表摘要）

@@ -17,7 +17,7 @@
 
 文章来自独立内容仓库，默认读取本地 `content/`：
 
-- `content/blog-post/<年份>/` 文章（观云碎月 / 一心净土 / 藏星 / 碎月 / 随笔）
+- `content/blog-post/<年份>/` 文章（观云碎月 / 灵感 / 日志 / 随笔）
 
 接入远程内容仓库：
 
@@ -25,7 +25,7 @@
 CONTENT_REPO=https://github.com/<user>/<blog>.git npm run content:sync
 ```
 
-「一心净土」分类的文章会按一级小节（`## `）自动拆成火花流。
+「灵感」分类的文章会按一级小节（`## `）自动拆成火花流。
 
 ## 部署
 
