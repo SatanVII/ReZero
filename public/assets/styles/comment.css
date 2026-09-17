@@ -3,7 +3,12 @@
  * https://github.com/primer/primitives/blob/main/LICENSE
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC&family=Noto+Serif+SC&display=swap');
+/* 原项目此处为 @import Google Fonts 的 Noto Serif SC；该外链国内不可达，
+ * 且 giscus iframe 内无法请求本站字体（PNA/CORS 拦截）。
+ * 现改为与文章正文一致的 Noto Serif SC 500（@fontsource 同源自托管分片）：
+ * 本 @import 仅供 Comment.astro 解析——由它在页面侧把 woff2 分片抓取并
+ * base64 内联进 data: URL 主题，iframe 内无需任何外部请求。 */
+@import url('./fonts/noto-serif-sc-500.css');
 
 main {
   font-family: 'Noto Serif SC', sans-serif;

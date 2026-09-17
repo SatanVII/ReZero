@@ -13,19 +13,177 @@ const { term } = Astro.props;
 <div class="mt-16" data-giscus data-term={term}></div>
 
 <script>
-  // 与旧站 components/Comment 的配置一致
+  // 与旧站 components/Comment 的配置一致（仓库/ID 已替换为 SatanVII/Comment）
   const GISCUS_CONFIG = {
-    repo: 'JanetYin/Comment',
-    repoId: 'R_kgDOLeBa5g',
+    repo: 'SatanVII/Comment',
+    repoId: 'R_kgDOUdgH8Q',
     category: 'Announcements',
-    categoryId: 'DIC_kwDOLeBa5s4Cd2Ra',
+    categoryId: 'DIC_kwDOUdgH8c4DFvXO',
   };
 
-  const themeUrl = (theme: string) =>
-    new URL(`/assets/styles/${theme.toLowerCase()}.css`, window.location.origin).toString();
+  // 主题 CSS 版本号：改 public/assets/styles/*.css 后手动 bump，用于破坏缓存
+  const THEME_V = '2026091705';
 
-  const mount = (container: HTMLElement) => {
+  // ---------------------------------------------------------------------------
+  // 主题注入方式说明（重要）：
+  // giscus 运行在 https://giscus.app 的 iframe 里。浏览器把 http://localhost 视为
+  // 私有网络地址，公网(https)上下文加载它会被拦截（样式表 ERR_ABORTED、字体
+  // MissingAllowOriginHeader），因此主题 URL 不能直接指向本站——这正是之前
+  // 评论区一直白屏的根因。
+  // 解决：在页面侧（同源、不受限）把主题 CSS + comment.css 打包成自包含的
+  // data:text/css URL 传给 giscus。data: URL 已验证可在 giscus iframe 内生效。
+  // 任何部署域名下行为一致，不依赖宿主 CORS 头。
+  // ---------------------------------------------------------------------------
+
+  const stripImports = (css: string) => css.replace(/@import\s+url\([^)]*\)\s*;?/g, '');
+  const toDataUrl = (css: string) =>
+    'data:text/css;charset=utf-8,' + encodeURIComponent(css);
+
+  async function fetchText(url: string): Promise<string> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${url}`);
+    return res.text();
+  }
+
+  async function fetchBuffer(url: string): Promise<Uint8Array> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${url}`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+
+  const toBase64 = (bytes: Uint8Array): string => {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  };
+
+  // ---------------------------------------------------------------------------
+  // 评论字体：与文章正文一致（Noto Serif SC 500，@fontsource 同源自托管分片，
+  // 位置 public/assets/styles/fonts/noto-serif-sc-500/）。iframe 内无法请求
+  // 本站字体（PNA/CORS 拦截），故在页面侧把 woff2 分片抓下来 base64 内联进
+  // 主题 CSS，再打包进 data: URL。unicode-range 分片下浏览器只真正加载
+  // 用到的字形分片，注册上百个 face 无额外网络成本。
+  // ---------------------------------------------------------------------------
+  const FONT_CSS_URL = `/assets/styles/fonts/noto-serif-sc-500.css?v=${THEME_V}`;
+  let fontCssPromise: Promise<string> | null = null;
+
+  function buildFontCss(): Promise<string> {
+    fontCssPromise ??= (async () => {
+      // 以字体 CSS 自身 URL 为基准解析相对路径（正则只抓 ./ 开头的 woff2 引用）
+      const fontCssUrl = new URL(FONT_CSS_URL, location.origin).href;
+      let css = await fetchText(FONT_CSS_URL);
+      const refs = [
+        ...new Set(
+          [...css.matchAll(/url\((\.\/[^)]+\.woff2)\)/g)].map((m) => m[1]),
+        ),
+      ];
+      await Promise.all(
+        refs.map(async (rel) => {
+          const abs = new URL(rel, fontCssUrl).href;
+          const bytes = await fetchBuffer(abs);
+          // wOF2 魔数校验，防止 404 的 HTML 被误当字体内联
+          if (
+            !(bytes[0] === 0x77 && bytes[1] === 0x4f && bytes[2] === 0x46 && bytes[3] === 0x32)
+          ) {
+            throw new Error(`woff2 魔数校验失败: ${abs}`);
+          }
+          css = css.split(rel).join(`data:font/woff2;base64,${toBase64(bytes)}`);
+        }),
+      );
+      console.log(`[giscus] 评论字体内联完成：${refs.length} 片 (Noto Serif SC 500)`);
+      return css;
+    })().catch((err) => {
+      // 字体失败不阻塞配色：返回空串即回退 sans-serif
+      console.error('[giscus] 构建评论字体失败，回退 sans-serif：', err);
+      return '';
+    });
+    return fontCssPromise;
+  }
+
+  // 完整主题：字体（与文章一致）+ comment.css（基础变量）+ 主题覆盖
+  const fullThemeCache = new Map<string, Promise<string>>();
+
+  function buildFullTheme(theme: string): Promise<string> {
+    const key = theme.toLowerCase();
+    if (!fullThemeCache.has(key)) {
+      fullThemeCache.set(
+        key,
+        (async () => {
+          const [themeCss, commentCss, fontCss] = await Promise.all([
+            fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
+            fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
+            buildFontCss(),
+          ]);
+          // 顺序：字体声明在前，comment.css 次之，主题覆盖在后（与原站级联一致）
+          const merged =
+            (fontCss ? fontCss + '\n' : '') +
+            stripImports(commentCss) +
+            '\n' +
+            stripImports(themeCss);
+          return toDataUrl(merged);
+        })().catch((err) => {
+          console.error('[giscus] 构建完整主题失败，回退内置 light：', err);
+          return Promise.resolve('light');
+        }),
+      );
+    }
+    return fullThemeCache.get(key)!;
+  }
+
+  // 引导主题：仅配色（去掉注释与空白以压体积），随 widget URL 传入；
+  // 字体由 iframe 就绪后的 postMessage 升级补齐
+  async function buildBootstrapTheme(theme: string): Promise<string> {
+    const key = theme.toLowerCase();
+    try {
+      const [themeCss, commentCss] = await Promise.all([
+        fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
+        fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
+      ]);
+      const minify = (css: string) =>
+        stripImports(css)
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/\n\s*/g, '');
+      return toDataUrl(minify(commentCss) + minify(themeCss));
+    } catch (err) {
+      console.error('[giscus] 构建引导主题失败，回退内置 light：', err);
+      return 'light';
+    }
+  }
+
+  const postTheme = (theme: string) => {
+    document.querySelectorAll<HTMLIFrameElement>('.giscus-frame').forEach((frame) => {
+      frame.contentWindow?.postMessage(
+        { giscus: { setConfig: { theme } } },
+        'https://giscus.app',
+      );
+    });
+  };
+
+  // 当前期望的完整主题（data URL）；iframe 就绪探测与主题切换共用，
+  // 每次重试都取"当下"的主题，避免慢就绪的旧主题覆盖新切换
+  let currentThemeName = document.documentElement.dataset.theme ?? 'Hutao';
+
+  // iframe 就绪后把完整主题（含字体）推过去；giscus 初始化存在竞态，故多次重试
+  function upgradeWhenReady() {
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries++;
+      const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+      if (frame) postCurrentFullTheme();
+      if ((frame && tries > 4) || tries > 16) clearInterval(timer);
+    }, 800);
+  }
+
+  function postCurrentFullTheme() {
+    buildFullTheme(currentThemeName).then(postTheme);
+  }
+
+  const mount = async (container: HTMLElement) => {
     if (container.querySelector('iframe')) return;
+    currentThemeName = document.documentElement.dataset.theme ?? 'Hutao';
+    const theme = currentThemeName;
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
     script.crossOrigin = 'anonymous';
@@ -39,25 +197,22 @@ const { term } = Astro.props;
     script.dataset.reactionsEnabled = '0';
     script.dataset.emitMetadata = '0';
     script.dataset.inputPosition = 'top';
-    script.dataset.theme = themeUrl(document.body.dataset.theme ?? 'Hutao');
+    // 主题挂在 <html data-theme> 上（构建期 CSS 提供配色），首屏由 head 内联脚本写好
+    script.dataset.theme = await buildBootstrapTheme(theme);
     script.dataset.lang = 'zh-CN';
     script.dataset.loading = 'lazy';
     container.appendChild(script);
+    upgradeWhenReady();
   };
 
   const mountAll = () => {
-    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach(mount);
+    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach((el) => void mount(el));
   };
 
-  // 主题切换时同步 giscus iframe 配色
+  // 主题切换时同步 giscus iframe 配色（完整主题已缓存，切换即时生效）
   window.addEventListener('theme:changed', (event) => {
-    const theme = (event as CustomEvent<string>).detail;
-    document.querySelectorAll<HTMLIFrameElement>('.giscus-frame').forEach((frame) => {
-      frame.contentWindow?.postMessage(
-        { giscus: { setConfig: { theme: themeUrl(theme) } } },
-        'https://giscus.app',
-      );
-    });
+    currentThemeName = (event as CustomEvent<string>).detail;
+    postCurrentFullTheme();
   });
 
   document.addEventListener('astro:page-load', mountAll);
