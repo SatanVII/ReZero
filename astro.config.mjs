@@ -15,9 +15,12 @@ export default defineConfig({
   integrations: [mdx(), sitemap()],
 
   markdown: {
-    // Shiki 主题配置保留在 markdown 顶层（Astro 内部传给处理器）
+    // Shiki 主题配置保留在 markdown 顶层（Astro 内部传给处理器）。
+    // 旧站用 material-theme-lighter，但该主题 token 配色极浅（注释 #B0BEC5、
+    // 默认前景 #90A4AE），在近白底色上模糊发白、难以阅读；github-light
+    // 为对比度最高的经典浅色主题，token 均为深色系，可读性优先。
     shikiConfig: {
-      theme: 'material-theme-lighter',
+      theme: 'github-light',
     },
     // Astro 7 默认处理器为 Rust 版 Sätteri；关闭旧站未使用的 smartypants 以保持输出一致
     processor: satteri({

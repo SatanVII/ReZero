@@ -22,7 +22,7 @@ const { term } = Astro.props;
   };
 
   // 主题 CSS 版本号：改 public/assets/styles/*.css 后手动 bump，用于破坏缓存
-  const THEME_V = '2026091705';
+  const THEME_V = '2026091708';
 
   // ---------------------------------------------------------------------------
   // 主题注入方式说明（重要）：
@@ -60,13 +60,14 @@ const { term } = Astro.props;
   };
 
   // ---------------------------------------------------------------------------
-  // 评论字体：与文章正文一致（Noto Serif SC 500，@fontsource 同源自托管分片，
-  // 位置 public/assets/styles/fonts/noto-serif-sc-500/）。iframe 内无法请求
-  // 本站字体（PNA/CORS 拦截），故在页面侧把 woff2 分片抓下来 base64 内联进
-  // 主题 CSS，再打包进 data: URL。unicode-range 分片下浏览器只真正加载
-  // 用到的字形分片，注册上百个 face 无额外网络成本。
+  // 评论字体：与文章正文一致（霞鹜文楷 LXGW WenKai Regular 400，
+  // lxgw-wenkai-webfont 包同源自托管分片，位置
+  // public/assets/styles/fonts/lxgw-wenkai/；2026-09-17 由 Noto Serif SC 更换）。
+  // iframe 内无法请求本站字体（PNA/CORS 拦截），故在页面侧把 woff2 分片抓下来
+  // base64 内联进主题 CSS，再打包进 data: URL。unicode-range 分片下浏览器只
+  // 真正加载用到的字形分片，注册上百个 face 无额外网络成本。
   // ---------------------------------------------------------------------------
-  const FONT_CSS_URL = `/assets/styles/fonts/noto-serif-sc-500.css?v=${THEME_V}`;
+  const FONT_CSS_URL = `/assets/styles/fonts/lxgw-wenkai.css?v=${THEME_V}`;
   let fontCssPromise: Promise<string> | null = null;
 
   function buildFontCss(): Promise<string> {
@@ -92,7 +93,7 @@ const { term } = Astro.props;
           css = css.split(rel).join(`data:font/woff2;base64,${toBase64(bytes)}`);
         }),
       );
-      console.log(`[giscus] 评论字体内联完成：${refs.length} 片 (Noto Serif SC 500)`);
+      console.log(`[giscus] 评论字体内联完成：${refs.length} 片 (LXGW WenKai Regular)`);
       return css;
     })().catch((err) => {
       // 字体失败不阻塞配色：返回空串即回退 sans-serif
@@ -184,6 +185,10 @@ const { term } = Astro.props;
     if (container.querySelector('iframe')) return;
     currentThemeName = document.documentElement.dataset.theme ?? 'Hutao';
     const theme = currentThemeName;
+    // 完整主题（含字体分片内联）预构建：与 giscus 脚本网络加载、引导版构建并行。
+    // 此前要等 iframe 就绪探测循环首次触发才开始抓 97 个分片，字体应用总是
+    // "慢半拍"；现在构建提前启动，探测循环推送时直接命中缓存，零等待。
+    const fullThemePromise = buildFullTheme(theme);
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
     script.crossOrigin = 'anonymous';
@@ -202,6 +207,8 @@ const { term } = Astro.props;
     script.dataset.lang = 'zh-CN';
     script.dataset.loading = 'lazy';
     container.appendChild(script);
+    // 防止预构建 Promise 未被探测循环消费时静默失败（缓存已建，后续调用复用）
+    void fullThemePromise;
     upgradeWhenReady();
   };
 

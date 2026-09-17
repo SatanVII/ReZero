@@ -1,9 +1,13 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
-/* 旧 tailwind.config.js：sans 字体优先 Noto Serif SC（@fontsource 500 字重，与旧站 Google Fonts w500 一致） */
+/* 2026-09-17 起全站中文字体为霞鹜文楷（LXGW WenKai，lxgw-wenkai-webfont 包 Regular 400）。
+   自托管分片 public/assets/styles/fonts/lxgw-wenkai.css（正文 <link> 与评论区 data: URL
+   主题共用同一文件，分片只下载一次）；换字体版本时 bump 该文件引用的 ?v 参数。
+   回退栈接系统楷体：文楷分片加载完成前（font-display: swap）先以楷体渲染，
+   避免先见无衬线再跳楷体的明显闪变（评论区 iframe 内同理，见 comment.css） */
 @theme {
-  --font-sans: 'Noto Serif SC', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* 站名手写体（旧站 next/font/local：assets/font/liuyunkuaizai.ttf） */
@@ -20,8 +24,9 @@ svg[hidden] {
 
 /* 旧 tailwind.config.js typography 定制：全部是 CSS 变量，直接覆盖插件的 .prose 默认值 */
 .prose {
-  /* 正文整体字号 +1px（typography 默认 16px）；标题/段距为 em 相对值，随 base 同步放大 */
-  font-size: 17px;
+  /* 正文整体字号 +2px（typography 默认 16px；18px 为文楷易读性实测下限，
+     用户反馈 17px 偏小）；标题/段距为 em 相对值，随 base 同步放大 */
+  font-size: 18px;
   --tw-prose-headings: var(--font-color);
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
@@ -31,8 +36,10 @@ svg[hidden] {
 
 @layer base {
   :root {
-    /* 主题变量的兜底默认值（胡桃主题）；真实值由客户端主题脚本写入 */
-    --font-color: #374151;
+    /* 主题变量的兜底默认值（胡桃主题）；真实值由客户端主题脚本写入。
+       正文字色取 gray-800：旧站 gray-700 偏灰，宋体 17px 下笔画对比不足，
+       易读性差（用户实测反馈）；加深后所有主题统一受益 */
+    --font-color: #1f2937;
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
@@ -47,9 +54,13 @@ svg[hidden] {
   body {
     @apply container mx-auto flex justify-center;
     scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    /* 不启用 -webkit-font-smoothing: antialiased——灰度平滑会让细笔画
+       发灰发虚（旧站有此设置，与"模糊发白"观感直接相关）；默认亚像素渲染
+       笔画更黑实，中文小字清晰度更高 */
     -webkit-text-size-adjust: 100%;
+    /* 文楷 Regular 笔画偏细（手写楷体风），0.2px 同色描边让笔画视觉增粗、
+       显著提升小字号易读性（用户反馈"字体偏细"）；所有文字统一受益 */
+    -webkit-text-stroke: 0.2px;
     color: var(--font-color);
     background-color: var(--background-color);
     background-image: url('../assets/images/texture.png');

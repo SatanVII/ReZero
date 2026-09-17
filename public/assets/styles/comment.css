@@ -3,15 +3,20 @@
  * https://github.com/primer/primitives/blob/main/LICENSE
  */
 
-/* 原项目此处为 @import Google Fonts 的 Noto Serif SC；该外链国内不可达，
+/* 原项目此处为 @import Google Fonts 的字体外链；该外链国内不可达，
  * 且 giscus iframe 内无法请求本站字体（PNA/CORS 拦截）。
- * 现改为与文章正文一致的 Noto Serif SC 500（@fontsource 同源自托管分片）：
+ * 现改为与文章正文一致的霞鹜文楷 LXGW WenKai（lxgw-wenkai-webfont 包同源自托管分片，
+ * 2026-09-17 由 Noto Serif SC 更换）：
  * 本 @import 仅供 Comment.astro 解析——由它在页面侧把 woff2 分片抓取并
  * base64 内联进 data: URL 主题，iframe 内无需任何外部请求。 */
-@import url('./fonts/noto-serif-sc-500.css');
+@import url('./fonts/lxgw-wenkai.css');
 
 main {
-  font-family: 'Noto Serif SC', sans-serif;
+  /* 与正文一致的字体栈：文楷 + 系统楷体回退（引导版主题即含本声明——
+     完整主题（内联文楷分片）到达前先以系统楷体渲染，消除先无衬线后楷体的闪变）；
+     0.2px 描边与正文 body 一致，补偿文楷 Regular 细笔画 */
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', sans-serif;
+  -webkit-text-stroke: 0.2px;
 
   /* theme color */
   --hutao-primary: #e06458;

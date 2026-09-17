@@ -12,8 +12,9 @@ import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import { themeTypes } from '@/data/themes';
-// 与旧站一致：Noto Serif SC w500（自托管子集，构建期零外部网络）
-import '@fontsource/noto-serif-sc/500.css';
+// 全站中文字体：霞鹜文楷（2026-09-17 由 Noto Serif SC 600 更换）。
+// 自托管分片走 public（正文 <link> 与评论区内联共用，见 head 内 link 标签），
+// lxgw-wenkai-webfont 包仅作为 prepare-fonts.mjs 的分片来源保留在 devDependencies。
 import '@/styles/global.css';
 
 interface Props {
@@ -54,6 +55,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- 霞鹜文楷（全站中文字体）：自托管分片，与评论区 data: URL 主题共用同一 css；
+         换字体版本时 bump ?v（与 public/assets/styles/fonts/ 内容保持同步） -->
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai.css?v=1" />
     <ThemeStyles />
     <!--
       首屏防闪：在首次绘制前把 data-theme 写到 <html> 上。
