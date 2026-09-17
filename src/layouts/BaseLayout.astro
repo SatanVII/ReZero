@@ -249,10 +249,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   /* ---------- 生命周期 ---------- */
   nya();
 
-  // 列表入场动画已改为纯 CSS 滚动驱动动画（见 global.css 的 [data-aos] 规则），无需 JS。
+  /*
+   * 列表滚动入场（对应旧站 AOS init{duration:500, easing:'ease', offset:0}，once 默认 false）
+   * 元素任意 1px 进入视口（等价 offset 0）加 .aos-animate，完全离开移除 → 重进重播；
+   * 初始态/过渡参数由 global.css 的 [data-aos] 规则提供。
+   * ClientRouter 换页会替换 body：astro:page-load 里重建观察器（旧节点 disconnect 丢弃）。
+   */
+  let aosObserver: IntersectionObserver | null = null;
+  const setupAos = () => {
+    aosObserver?.disconnect();
+    aosObserver = null;
+    const items = document.querySelectorAll<HTMLElement>('[data-aos]');
+    if (!items.length) return;
+    aosObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) entry.target.classList.toggle('aos-animate', entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    items.forEach((item) => aosObserver!.observe(item));
+  };
+
   document.addEventListener('astro:page-load', () => {
     updateActiveNav();
     if (currentTheme) syncThemePanel(currentTheme);
+    setupAos();
   });
 
   // 首屏：面板高亮与说明链接需要跟 head 内联脚本定下的主题对齐

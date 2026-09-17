@@ -174,49 +174,34 @@ svg[hidden] {
     color: var(--font-color);
   }
 
-  /* 列表滚动入场：CSS 滚动驱动动画，替代旧站的 AOS（零 JS）。
-     不支持 animation-timeline 的浏览器不做动画、内容照常显示（渐进增强）。
-     注意：必须写成 animation-* 长属性 —— 若用 animation 简写，
-     Lightning CSS 会把上面的 animation-timeline 合并进简写，
-     而浏览器不接受简写里的 view()，整条声明作废、动画静默失效（已实测）。 */
-  @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) {
-      [data-aos='fade-left'],
-      [data-aos='fade-up'] {
-        animation-name: aos-in-left;
-        animation-duration: 1ms;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: view();
-        animation-range: entry 0% entry 55%;
-      }
-      /* 与旧站一致：小屏改为纵向进入 */
-      @media (width < 40rem) {
-        [data-aos='fade-left'] {
-          animation-name: aos-in-up;
-        }
-      }
+  /* 列表滚动入场：AOS 等价实现（原站 aos@2.3.4 + init{duration:500, easing:'ease', offset:0}）。
+     变换值/时长/缓动逐字对照 aos.css：fade-left 从右侧 100px 滑入、fade-up 从下方滑入、
+     .aos-animate 归位 translateZ(0)；once 默认 false → 完全离开视口回退、重进重播
+     （触发逻辑在 BaseLayout 的 IntersectionObserver）。
+     挂在 html.js 下：无 JS 时不隐藏内容（旧站 aos.css 由 JS 打包注入，天然同效）。
+     曾用 CSS 滚动驱动动画（animation-timeline: view()）替代，但动画进度绑定滚动位置、
+     观感与 AOS 的定时播放不同，且被 prefers-reduced-motion/@supports 双门槛静默禁用，已弃用。 */
+  html.js [data-aos^='fade'] {
+    opacity: 0;
+    transition-property: opacity, transform;
+    transition-timing-function: ease;
+    transition-duration: 500ms;
+  }
+  html.js [data-aos='fade-left'] {
+    transform: translate3d(100px, 0, 0);
+  }
+  html.js [data-aos='fade-up'] {
+    transform: translate3d(0, 100px, 0);
+  }
+  /* 与旧站一致：小屏（clientWidth <= 640）fade-left 改为纵向进入 */
+  @media (width < 40rem) {
+    html.js [data-aos='fade-left'] {
+      transform: translate3d(0, 100px, 0);
     }
   }
-  @keyframes aos-in-left {
-    from {
-      opacity: 0;
-      transform: translateX(1.5rem);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  @keyframes aos-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(1.5rem);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
+  html.js [data-aos^='fade'].aos-animate {
+    opacity: 1;
+    transform: translateZ(0);
   }
 
   .prose p,
