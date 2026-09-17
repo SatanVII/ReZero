@@ -222,6 +222,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     dialog.showModal();
   });
 
+  /* 点击灯箱任意区域（大图 / 图注 / 背景）关闭 —— 对应样式里的 cursor-zoom-out；
+   * 旧站 react-photo-view 的「点击遮罩关闭」等价物。dialog 内的 img 不在 .prose 内，
+   * 不会误触上面的打开逻辑；ESC 关闭是 showModal 的原生行为，无需额外处理。 */
+  document.addEventListener('click', (event) => {
+    const dialog = (event.target as HTMLElement).closest('#photo-lightbox');
+    if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+  });
+
   /* ---------- 导航激活态（Side/Header 被 transition:persist 保留后，激活类需在换页后手动更新） ---------- */
   const updateActiveNav = () => {
     const path = location.pathname.endsWith('/') ? location.pathname.slice(0, -1) : location.pathname;
