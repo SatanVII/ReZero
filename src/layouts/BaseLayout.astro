@@ -26,7 +26,7 @@ interface Props {
 const {
   title = '云山栖',
   description = '愿似飘飖五云影，从来从去九天间。',
-  keywords = '云影',
+  keywords = '抹茶',
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -41,7 +41,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
-    <meta name="author" content="云影" />
+    <meta name="author" content="抹茶" />
     <link rel="canonical" href={canonicalURL} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="云山栖" />
@@ -127,7 +127,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
   const nya = () => {
     const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
-    console.info(`%c 云影 %c`, labelStyle, '', 'https://www.yun37.me');
+    console.info(`%c 抹茶 %c`, labelStyle, '', 'https://www.yun37.me');
     console.info('%c 主题 %c', labelStyle, '', 'https://github.com/chanshiyucx/zero');
     console.info('~❀~ 发现控制台报错请务必联系博主 ~❀~');
   };

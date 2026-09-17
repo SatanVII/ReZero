@@ -10,6 +10,6 @@ const entries = (await getCollection('post'))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
-<BaseLayout title={`文字 - 云影`}>
+<BaseLayout title={`文字 - 抹茶`}>
   <PostList entries={entries} />
 </BaseLayout>
