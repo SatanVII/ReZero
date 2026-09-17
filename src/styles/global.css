@@ -176,8 +176,9 @@ svg[hidden] {
 
   /* 列表滚动入场：AOS 等价实现（原站 aos@2.3.4 + init{duration:500, easing:'ease', offset:0}）。
      变换值/时长/缓动逐字对照 aos.css：fade-left 从右侧 100px 滑入、fade-up 从下方滑入、
-     .aos-animate 归位 translateZ(0)；once 默认 false → 完全离开视口回退、重进重播
-     （触发逻辑在 BaseLayout 的 IntersectionObserver）。
+     .aos-animate 归位 translateZ(0)；once 默认 false → 元素整体落回视口下方才回退、下滚重播；
+     从顶部划出不撤销（AOS 判定 t > position 对上方元素恒真）→ 向上滚回直接静态展示
+     （触发逻辑在 BaseLayout 的两个 IntersectionObserver）。
      挂在 html.js 下：无 JS 时不隐藏内容（旧站 aos.css 由 JS 打包注入，天然同效）。
      曾用 CSS 滚动驱动动画（animation-timeline: view()）替代，但动画进度绑定滚动位置、
      观感与 AOS 的定时播放不同，且被 prefers-reduced-motion/@supports 双门槛静默禁用，已弃用。 */

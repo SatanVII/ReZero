@@ -251,23 +251,44 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
   /*
    * 列表滚动入场（对应旧站 AOS init{duration:500, easing:'ease', offset:0}，once 默认 false）
-   * 元素任意 1px 进入视口（等价 offset 0）加 .aos-animate，完全离开移除 → 重进重播；
+   * 判定式逐条对照 aos@2.3.4 源码（t = pageYOffset + innerHeight，e.position = 元素文档 top + offset）：
+   *   t > position ⇔ 元素顶边高于视口底边 → 加 .aos-animate 播放入场；
+   *   t <= position ⇔ 元素整体落回视口下方 → 移除，之后再次下滚会重播（once:false）；
+   *   元素从顶部划出（或被跳过到上方）时 t > position 恒成立 → 类永不撤销，
+   *   向上滚回视口时直接以最终态静态展示、不重播。AOS 没有显式的滚动方向判断，
+   *   方向语义完全由该判定式隐含，这里同样不需要。
+   * 用两个 IntersectionObserver 覆盖「上方 / 视口内 / 下方」三区间的全部迁移：
+   *   主观察器（视口）：上方↔视口内、视口内↔下方；
+   *   越顶观察器（rootMargin 只保留视口上方的带状区）：补捉「下方↔上方」的直接跳变——
+   *   滚动条快拖、换页恢复滚动位置等场景中不相交状态不变、主观察器不派发事件，
+   *   该观察器等价于 AOS 每次滚动触发的全量刷新。
    * 初始态/过渡参数由 global.css 的 [data-aos] 规则提供。
    * ClientRouter 换页会替换 body：astro:page-load 里重建观察器（旧节点 disconnect 丢弃）。
    */
-  let aosObserver: IntersectionObserver | null = null;
+  let aosObservers: IntersectionObserver[] = [];
   const setupAos = () => {
-    aosObserver?.disconnect();
-    aosObserver = null;
+    aosObservers.forEach((observer) => observer.disconnect());
+    aosObservers = [];
     const items = document.querySelectorAll<HTMLElement>('[data-aos]');
     if (!items.length) return;
-    aosObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) entry.target.classList.toggle('aos-animate', entry.isIntersecting);
-      },
-      { threshold: 0 },
-    );
-    items.forEach((item) => aosObserver!.observe(item));
+    // AOS 判定式的视口坐标等价形式：元素顶边（boundingClientRect.top）高于
+    // 视口底边（documentElement.clientHeight）→ 动画态，否则初始态。两个观察器共用同一判定。
+    const sync = (entry: IntersectionObserverEntry) => {
+      entry.target.classList.toggle(
+        'aos-animate',
+        entry.boundingClientRect.top < document.documentElement.clientHeight,
+      );
+    };
+    const main = new IntersectionObserver((entries) => entries.forEach(sync), { threshold: 0 });
+    // 顶边外扩 99999px、底边内收一个视口高（-100%）：观察区 ≈ 视口上方整条带
+    const past = new IntersectionObserver((entries) => entries.forEach(sync), {
+      rootMargin: '99999px 0px -100% 0px',
+    });
+    items.forEach((item) => {
+      main.observe(item);
+      past.observe(item);
+    });
+    aosObservers = [main, past];
   };
 
   document.addEventListener('astro:page-load', () => {
