@@ -2,7 +2,7 @@
 /**
  * 文章列表（对应旧站 article 的 React 列表页）
  * - 无限滚动改为构建期全量渲染（个人博客体量下 SEO 与体验更优）
- * - 保留悬浮 mask 跟随效果与 AOS 滚动动画
+ * - 悬浮 mask 跟随 + 进场定位到第一条文章（见页尾脚本）+ AOS 滚动动画
  */
 import type { CollectionEntry } from 'astro:content';
 import { format } from 'date-fns';
@@ -19,7 +19,11 @@ const { entries } = Astro.props;
 ---
 
 <div class="page px-0" data-list-container>
-  <div class="mask pointer-events-none absolute left-0 top-0 w-full transform rounded transition-all duration-300 ease-in-out" data-list-mask></div>
+  <!-- 悬停滑动遮罩：class 与旧站一致；初始 height:0 使进场前不可见，脚本执行后动画定位到第一条 -->
+  <div
+    class="mask pointer-events-none absolute left-0 top-0 w-full transform rounded transition-all duration-300 ease-in-out"
+    data-list-mask
+    style="height: 0px; transform: translateY(0px)"></div>
   <div class="relative space-y-4" data-post-list>
     {
       entries.map((entry) => (
@@ -48,19 +52,64 @@ const { entries } = Astro.props;
 </div>
 
 <script>
-  const calcMaskPos = (target: HTMLElement) => {
+  /**
+   * 文章列表悬停滑动遮罩
+   *
+   * 对应旧站 app/article/page.tsx 的 maskRef / calcMaskPos / handleMask / handleScroll。
+   * 只写内联 height / transform，滑动交给 CSS 的
+   * `transition-all duration-300 ease-in-out` —— 时长与缓动曲线因此天然与旧站相同。
+   *
+   * 进场定位（bug 修复）：旧站挂载后把 mask 定位到第一条文章
+   * （useEffect 里 maskHeight === 0 的 setTimeout(100) 分支），指示框随 CSS 过渡
+   * 动画滑入。此前迁移版只有 hover 跟随、漏掉了这段初始化，导致进入文字页时
+   * 指示框停在页面顶部、无动画。实现与 inspiration.astro 的遮罩保持同一模式：
+   *  - astro:page-load 进场定位第一条（含 ClientRouter 换页重进）
+   *  - 悬停跟随（事件委托，换页后随 setup 重新绑定）
+   *  - ResizeObserver：字体等异步资源改变条目高度时重新对齐（旧站只在 scroll 时重算）
+   */
+  let cleanup: (() => void) | null = null;
+
+  const setup = () => {
+    cleanup?.();
+    cleanup = null;
+
     const mask = document.querySelector<HTMLElement>('[data-list-mask]');
     const container = document.querySelector<HTMLElement>('[data-list-container]');
-    if (!mask || !container) return;
-    const { clientHeight, offsetTop } = target;
-    const paddingTop = document.documentElement.clientWidth > 1024 ? 4 * 16 : 6 * 16;
-    mask.style.height = `${clientHeight}px`;
-    mask.style.transform = `translateY(${offsetTop + paddingTop}px)`;
+    const list = document.querySelector<HTMLElement>('[data-post-list]');
+    if (!mask || !list || !container) return;
+
+    const items = () => [...list.querySelectorAll<HTMLElement>(':scope > [data-post-item]')];
+
+    // 遮罩是 .page 的绝对定位子元素（top:0 贴 .page 顶边），
+    // 而 a[data-post-item].offsetTop 相对 .relative 的列表容器 —— 故需补上 .page 的上内边距。
+    const paddingTop = Number.parseFloat(getComputedStyle(container).paddingTop) || 0;
+    const moveTo = (item: HTMLElement) => {
+      mask.style.height = `${item.offsetHeight}px`;
+      mask.style.transform = `translateY(${item.offsetTop + paddingTop}px)`;
+    };
+
+    // 进场：指示框动画滑向第一条文章（对应旧站挂载后的初始化）
+    let current = items()[0] ?? null;
+    if (current) moveTo(current);
+
+    const onOver = (event: Event) => {
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-post-item]');
+      if (!target || !list.contains(target)) return;
+      current = target;
+      moveTo(target);
+    };
+    list.addEventListener('mouseover', onOver);
+
+    const observer = new ResizeObserver(() => {
+      if (current) moveTo(current);
+    });
+    observer.observe(list);
+
+    cleanup = () => {
+      list.removeEventListener('mouseover', onOver);
+      observer.disconnect();
+    };
   };
 
-  // 悬浮 mask 跟随（事件委托，换页自动生效）
-  document.addEventListener('mouseover', (event) => {
-    const item = (event.target as HTMLElement).closest<HTMLElement>('[data-post-item]');
-    if (item) calcMaskPos(item);
-  });
+  document.addEventListener('astro:page-load', setup);
 </script>
