@@ -1,6 +1,6 @@
-# 云山栖 · Astro 版
+# Zero · Astro 版
 
-基于 [Astro](https://astro.build/) 重构的个人博客（原 Next.js + Contentlayer 版本见 zero-master）。
+基于 [Astro](https://astro.build/) 重构的个人博客（原 Next.js + Contentlayer）。
 
 ## 命令
 
