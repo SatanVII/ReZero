@@ -82,16 +82,27 @@
 
 /* data-name 悬浮提示（旧站 .nav a::after / .nya::after 定位值）
  * 不设置 color：旧站由继承决定 —— 普通项取 var(--font-color)，.active 项取主题色，.nya 取自身主题色 */
+/*
+ * 悬浮提示：文字与图标联动（2026-09-18 用户要求「文字随着图标一起交互」）
+ *
+ * 提示常驻渲染（opacity/visibility 控制显隐，替代 display 切换 + fade 动画），
+ * transform 与图标同参数过渡——悬浮时文字与图标一起右移 4px（0.3s 同步），
+ * 移开时一起回位。pointer-events: none 让提示不参与命中（命中区由 a 盒与
+ * 下方 ::before 扩展区构成），避免「移到文字上 → 脱离 a 盒 → 提示消失」死循环。
+ */
 .side .nav a::after,
 .nya::after {
   content: attr(data-name);
   position: absolute;
-  display: none;
+  display: block;
   width: fit-content;
   font-size: 0.875rem;
   line-height: 1.25rem;
   transform: translateX(-10px);
-  animation: fade 0.6s ease-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.3s, opacity 0.3s, visibility 0s linear 0.3s;
 }
 
 .side .nav a::after {
@@ -99,9 +110,29 @@
   top: 0.625rem;
 }
 
+/* 热区向左扩展覆盖提示文字：提示显隐只随 a 盒 :hover 变化，
+ * 鼠标在「图标+文字」整块区域内移动不会丢失 hover（同 zero-astro a3a4078 思路） */
+.side .nav-y > a::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 0;
+  width: 2.5rem;
+  height: 100%;
+}
+
 .side .nav-y > a:hover::after,
+.side .nav-y > a.hover-keep::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-6px);   /* 与图标同步：同为 +4px 位移 */
+  transition: transform 0.3s, opacity 0.3s, visibility 0s;
+}
+
 .nya:hover::after {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s, visibility 0s;
 }
 
 /*
@@ -123,13 +154,16 @@
 }
 
 .side .nav > a.hover-keep::after {
-  display: block;
-  animation: none;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-6px);
+  transition: none;
 }
 
 .nya.hover-keep::after {
-  display: block;
-  animation: none;
+  opacity: 1;
+  visibility: visible;
+  transition: none;
 }
 
 
