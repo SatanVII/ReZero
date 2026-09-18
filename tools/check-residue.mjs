@@ -26,13 +26,13 @@ const lsFiles = (repo) =>
       .filter(Boolean),
   );
 
-const walkDisk = (dir, rel, out, skipGit) => {
+const walkDisk = function walkDisk(dir, rel, out, skipGit) {
   for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
     if (skipGit && f.name === '.git') continue;
     if (SKIP.has(f.name)) continue;
     const r = rel ? rel + '/' + f.name : f.name;
     const p = path.join(dir, f.name);
-    if (f.isDirectory()) walk(p, r, out, skipGit);
+    if (f.isDirectory()) walkDisk(p, r, out, skipGit);
     else out.add(r);
   }
   return out;
