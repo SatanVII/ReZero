@@ -17,12 +17,12 @@ import Thunder from '@/components/icons/Thunder.astro';
 import Windy from '@/components/icons/Windy.astro';
 import '@/components/Weather.css';
 
-/** 郑州（二七区）坐标；timezone 固定东八区，返回摄氏度 */
+/** 上海坐标；timezone 固定东八区，返回摄氏度 */
 const OPEN_METEO_API =
-  'https://api.open-meteo.com/v1/forecast?latitude=34.7466&longitude=113.6254' +
+  'https://api.open-meteo.com/v1/forecast?latitude=31.2304&longitude=121.4737' +
   '&current=temperature_2m,weather_code&timezone=Asia%2FShanghai';
 
-const CITY = '郑州';
+const CITY = '上海';
 
 interface CloudData {
   wea: string;
