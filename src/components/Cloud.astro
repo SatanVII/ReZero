@@ -2,6 +2,7 @@
 /**
  * 桌面端右上角天气组件（对应旧站 components/Cloud）
  *
+ * 数据源：Open-Meteo（免费、无需 key），定位郑州。
  * 旧站在客户端 useEffect 里拉天气接口；这里改到**构建期**取一次：
  *   - 页面运行时零请求、零 JS（原来每次首访都要发一次 XHR）
  *   - 只渲染当天需要的那一个图标，不再把 9 个 SVG 全塞进 DOM 再靠 hidden 切换
@@ -16,18 +17,21 @@ import Thunder from '@/components/icons/Thunder.astro';
 import Windy from '@/components/icons/Windy.astro';
 import '@/components/Weather.css';
 
-const CLOUD_API =
-  'https://v0.yiketianqi.com/free/day?unescape=1&version=v61&appid=53266342&appsecret=mB1eOBjO';
+/** 郑州（二七区）坐标；timezone 固定东八区，返回摄氏度 */
+const OPEN_METEO_API =
+  'https://api.open-meteo.com/v1/forecast?latitude=34.7466&longitude=113.6254' +
+  '&current=temperature_2m,weather_code&timezone=Asia%2FShanghai';
+
+const CITY = '郑州';
 
 interface CloudData {
-  city: string;
   wea: string;
   wea_img: string;
   tem: string;
 }
 
 /** 旧站初始值，也是接口失败时的兜底值 */
-const FALLBACK: CloudData = { city: '', wea: '晴', wea_img: 'qing', tem: '26' };
+const FALLBACK: CloudData = { wea: '晴', wea_img: 'qing', tem: '26' };
 
 /** wea_img → 图标，与旧站 weatherComponents 的映射一致 */
 const ICONS: Record<string, typeof Sunshine> = {
@@ -42,6 +46,39 @@ const ICONS: Record<string, typeof Sunshine> = {
   bingbao: Windy,
 };
 
+/** WMO weather_code → 图标键 + 中文描述（与旧站 wea_img 图标体系对齐） */
+const WMO: Record<number, { img: string; wea: string }> = {
+  0: { img: 'qing', wea: '晴' },
+  1: { img: 'yun', wea: '多云' },
+  2: { img: 'yun', wea: '多云' },
+  3: { img: 'yin', wea: '阴' },
+  45: { img: 'wu', wea: '雾' },
+  48: { img: 'wu', wea: '雾' },
+  51: { img: 'yu', wea: '小雨' },
+  53: { img: 'yu', wea: '中雨' },
+  55: { img: 'yu', wea: '大雨' },
+  56: { img: 'yu', wea: '冻雨' },
+  57: { img: 'yu', wea: '冻雨' },
+  61: { img: 'yu', wea: '小雨' },
+  63: { img: 'yu', wea: '中雨' },
+  65: { img: 'yu', wea: '大雨' },
+  66: { img: 'yu', wea: '冻雨' },
+  67: { img: 'yu', wea: '冻雨' },
+  71: { img: 'xue', wea: '小雪' },
+  73: { img: 'xue', wea: '中雪' },
+  75: { img: 'xue', wea: '大雪' },
+  77: { img: 'xue', wea: '雪粒' },
+  80: { img: 'yu', wea: '阵雨' },
+  81: { img: 'yu', wea: '阵雨' },
+  82: { img: 'yu', wea: '强阵雨' },
+  85: { img: 'xue', wea: '阵雪' },
+  86: { img: 'xue', wea: '阵雪' },
+  95: { img: 'lei', wea: '雷阵雨' },
+  96: { img: 'lei', wea: '雷阵雨' },
+  99: { img: 'lei', wea: '雷阵雨' },
+};
+const wmo = (code: number) => WMO[code] ?? { img: 'yun', wea: '多云' };
+
 // dev 下每个请求都会跑一遍 frontmatter，加个 10 分钟内存缓存避免重复外呼
 let cache: { at: number; data: CloudData } | null = null;
 const TTL = 10 * 60 * 1000;
@@ -49,11 +86,16 @@ const TTL = 10 * 60 * 1000;
 const fetchWeather = async (): Promise<CloudData> => {
   if (cache && Date.now() - cache.at < TTL) return cache.data;
   try {
-    const res = await fetch(CLOUD_API, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(OPEN_METEO_API, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
-      const data = (await res.json()) as Partial<CloudData>;
-      if (data?.wea_img && ICONS[data.wea_img]) {
-        const merged = { ...FALLBACK, ...data } as CloudData;
+      const data = (await res.json()) as {
+        current?: { temperature_2m?: number; weather_code?: number };
+      };
+      const tem = data?.current?.temperature_2m;
+      const code = data?.current?.weather_code;
+      if (typeof tem === 'number' && typeof code === 'number') {
+        const { img, wea } = wmo(code);
+        const merged = { wea, wea_img: img, tem: Math.round(tem).toString() };
         cache = { at: Date.now(), data: merged };
         return merged;
       }
@@ -73,6 +115,6 @@ const Icon = ICONS[weather.wea_img] ?? Sunshine;
   <Icon />
   <div class="flex transform flex-col justify-center px-1.5">
     <span class="text-base leading-4">{weather.tem}℃</span>
-    <span class="text-xs">{weather.city ? `${weather.city}·` : ''}{weather.wea}</span>
+    <span class="text-xs">{CITY}·{weather.wea}</span>
   </div>
 </div>
