@@ -10,7 +10,7 @@
  * 用法：node tools/check-residue.mjs
  * 输出非零退出码 = 发现问题。
  */
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,10 +19,23 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SKIP = new Set(['.git', 'node_modules', 'dist', '.astro']);
 let problems = 0;
 
+// git 包装：-C 传仓库路径（不经 shell、不依赖 cwd），真身路径优先
+const GIT_CANDIDATES = [
+  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/current/mingw64/bin/git.exe',
+  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git.exe',
+  'git',
+];
+const gitBin = GIT_CANDIDATES.find((p) => p === 'git' || fs.existsSync(p));
+const git = (...args) => {
+  const r = spawnSync(gitBin, ['-C', ROOT, ...args], { encoding: 'utf8' });
+  if (r.error) throw r.error;
+  return r.stdout ?? '';
+};
+
 const lsFiles = (repo) =>
   new Set(
-    execSync(`git -c core.quotepath=false -C "${repo}" ls-files`, { encoding: 'utf8' })
-      .split('\n')
+    spawnSync(gitBin, ['-C', repo, '-c', 'core.quotepath=false', 'ls-files'], { encoding: 'utf8' })
+      .stdout.split('\n')
       .filter(Boolean),
   );
 
