@@ -42,7 +42,11 @@ const walkDisk = function walkDisk(dir, rel, out, skipGit) {
 const tracked = lsFiles(ROOT);
 const disk = walkDisk(ROOT, '', new Set(), true);
 const deleted = [...tracked].filter((f) => !disk.has(f));
-const untracked = [...disk].filter((f) => !tracked.has(f));
+// 未跟踪判定交给 git（自动应用 .gitignore——嵌套仓库与同步产物均已被忽略）
+const untracked = git('status', '--porcelain')
+  .split('\n')
+  .filter((l) => l.startsWith('??'))
+  .map((l) => l.slice(3).trim());
 if (deleted.length) {
   problems++;
   console.log(`✗ 主仓缺失文件 ${deleted.length} 个（可 git checkout -- 恢复）:`);
