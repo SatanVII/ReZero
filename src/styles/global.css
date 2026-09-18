@@ -10,10 +10,11 @@
   --font-sans: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* 站名手写体（旧站 next/font/local：assets/font/liuyunkuaizai.ttf） */
+/* 站名手写体（字嶼雲遊手書.ttf，按站点标题+副题 16 字子集化，41.7KB；
+ * 原始全量字体在用户桌面，重跑子集：python（fontTools subset，text=Site.astro 全部文字）） */
 @font-face {
-  font-family: 'LiuYunKuaiZai';
-  src: url('../assets/fonts/liuyunkuaizai.ttf') format('truetype');
+  font-family: 'ZiYuYunYou';
+  src: url('../assets/fonts/ziyu-yunyou.ttf') format('truetype');
   font-display: swap;
 }
 
@@ -43,7 +44,7 @@ svg[hidden] {
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
-    --font-site: 'LiuYunKuaiZai', serif;
+    --font-site: 'ZiYuYunYou', serif;
     scrollbar-gutter: stable both-edges;
   }
 

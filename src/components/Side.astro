@@ -9,7 +9,6 @@ import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
 import config from '@/utils/config';
 // 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
-import BookMarked from '@/components/icons/BookMarked.astro';
 import BookOpen from '@/components/icons/BookOpen.astro';
 import Codepen from '@/components/icons/Codepen.astro';
 import Ghost from '@/components/icons/Ghost.astro';
@@ -40,7 +39,6 @@ const socialItems = [
   { href: config.contact.telegram, Icon: Send },
   { href: config.contact.email, Icon: Mail },
   { href: config.contact.music, Icon: Music },
-  { href: config.contact.blog, Icon: BookMarked },
 ];
 
 const { pathname } = Astro.url;
@@ -100,5 +98,41 @@ const { pathname } = Astro.url;
       void main.offsetWidth;
       main.style.animation = '';
     }
+  });
+</script>
+
+<script>
+  /*
+   * ★ hover-keep（2026-09-18 自 zero-astro 移植）
+   *
+   * 行为：鼠标悬浮在侧边栏交互项上时，给该项加 .hover-keep（CSS 侧保持
+   * 图标位移态与文字提示显示）；换页重插 persist 节点时类随节点保留，
+   * 视觉零变化；鼠标真正移出（pointerout）才回落。
+   * 监听挂 document 上——换页保留、模块脚本不会重跑。
+   */
+  let keepEl: Element | null = null;
+  const KEEP_SELECTOR = '.side .nav a[data-name], .side .nya';
+
+  const setKeep = (el: Element | null) => {
+    if (el === keepEl) return;
+    keepEl?.classList.remove('hover-keep');
+    keepEl = el;
+    keepEl?.classList.add('hover-keep');
+  };
+
+  document.addEventListener('pointerover', (event) => {
+    setKeep((event.target as HTMLElement).closest(KEEP_SELECTOR));
+  });
+
+  document.addEventListener('pointerout', (event) => {
+    const el = (event.target as HTMLElement).closest(KEEP_SELECTOR);
+    if (el && el === keepEl && !(event.relatedTarget instanceof Node && el.contains(event.relatedTarget))) {
+      setKeep(null);
+    }
+  });
+
+  // 换页重插后浏览器不会重放 :hover 匹配：按当时的实际悬停位置校正一次
+  document.addEventListener('astro:after-swap', () => {
+    setKeep(document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover'));
   });
 </script>

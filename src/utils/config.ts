@@ -1,12 +1,11 @@
 /** 站点联系方式（对应旧站 utils/config.ts） */
 const config = {
   contact: {
-    github: 'https://github.com/JanetYin',
+    github: 'https://github.com/SatanVII',
     twitter: '',
     telegram: '',
-    email: 'mailto://yunyinger6@gmail.com',
+    email: '',
     music: '',
-    blog: 'https://www.yun37.me/note',
   },
 };
 

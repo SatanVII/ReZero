@@ -40,7 +40,8 @@
 }
 
 .side .nav > a {
-  @apply relative transform cursor-pointer p-2 duration-300;
+  @apply relative transform cursor-pointer p-2;
+  transition: none;
 }
 
 /*
@@ -102,6 +103,35 @@
 .nya:hover::after {
   display: block;
 }
+
+/*
+ * ★ hover-keep：换页期间保持悬浮态（2026-09-18 自 zero-astro 移植）
+ *
+ * 行为规格：只要鼠标悬浮在侧边栏交互项（导航/蝴蝶）上，点击换页后文字提示与
+ * 图标位移保持原样，直到鼠标真正移出该项为止。
+ *
+ * 为什么需要：ClientRouter 换页会重插 persist 节点，重插后浏览器不会为新插入的
+ * 元素重放 :hover 匹配（指针没动就没有新的 pointerover）——tooltip 随之消失、
+ * svg 回位，直到用户动一下鼠标才恢复，观感即「换页瞬间侧栏闪一下」。
+ */
+.side .nav-y > a.hover-keep svg {
+  transform: translateX(-6px);
+}
+
+.side .nav-x > a.hover-keep svg {
+  transform: translate(-10px, -4px);
+}
+
+.side .nav > a.hover-keep::after {
+  display: block;
+  animation: none;
+}
+
+.nya.hover-keep::after {
+  display: block;
+  animation: none;
+}
+
 
 .nya {
   @apply relative translate-y-3;
