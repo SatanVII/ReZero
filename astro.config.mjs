@@ -10,7 +10,7 @@ import { satteriEnhance } from './src/lib/satteriEnhance.ts';
 export default defineConfig({
   // 站点线上地址（sitemap / RSS / canonical 依赖此项）
   // 部署到 GitHub Pages 项目站时改为 'https://<用户名>.github.io' 并添加 base: '/<仓库名>'
-  site: 'https://www.yun37.me',
+  site: 'https://rezero.vercel.app',
 
   integrations: [mdx(), sitemap()],
 
