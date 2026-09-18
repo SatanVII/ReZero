@@ -105,21 +105,21 @@
 }
 
 /*
- * ★ hover-keep：换页期间保持悬浮态（2026-09-18 自 zero-astro 移植）
+ * ★ hover-keep：换页期间保持悬浮态（对齐 zero-astro 4a96118 原始实现）
  *
- * 行为规格：只要鼠标悬浮在侧边栏交互项（导航/蝴蝶）上，点击换页后文字提示与
- * 图标位移保持原样，直到鼠标真正移出该项为止。
- *
- * 为什么需要：ClientRouter 换页会重插 persist 节点，重插后浏览器不会为新插入的
- * 元素重放 :hover 匹配（指针没动就没有新的 pointerover）——tooltip 随之消失、
- * svg 回位，直到用户动一下鼠标才恢复，观感即「换页瞬间侧栏闪一下」。
+ * .hover-keep 与 :hover 样式等效，但 svg **transition: none**——keep 存续期间
+ * 图标钉在位移终态，重插后 :hover 短暂丢失也不会回跳或重播过渡；
+ * 提示 display: block 且不重播 fade。类由点击/before-swap/after-swap 三层
+ * 时机加上，pointermove 撤销——撤销后回位动画与常态一致。
  */
 .side .nav-y > a.hover-keep svg {
   transform: translateX(-6px);
+  transition: none;
 }
 
 .side .nav-x > a.hover-keep svg {
   transform: translate(-10px, -4px);
+  transition: none;
 }
 
 .side .nav > a.hover-keep::after {

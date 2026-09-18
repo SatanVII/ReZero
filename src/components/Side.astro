@@ -103,12 +103,24 @@ const { pathname } = Astro.url;
 
 <script>
   /*
-   * ★ hover-keep（2026-09-18 自 zero-astro 移植）
+   * ★ hover-keep（对齐 zero-astro 4a96118 原始实现）
    *
-   * 行为：鼠标悬浮在侧边栏交互项上时，给该项加 .hover-keep（CSS 侧保持
-   * 图标位移态与文字提示显示）；换页重插 persist 节点时类随节点保留，
-   * 视觉零变化；鼠标真正移出（pointerout）才回落。
-   * 监听挂 document 上——换页保留、模块脚本不会重跑。
+   * 行为：点击侧边栏交互项换页时，该项的文字提示与图标位移全程保持——
+   * 换页落地后 :hover 重新建立，样式恒定；鼠标移开交互区才回落（回位
+   * 动画与常态一致）。普通悬浮（未点击）仍由原生 :hover 表现，无需类。
+   *
+   * 诊断依据（真实点击 + 40ms 采样）：swap 会把 persist 的侧栏 DOM 移除重插，
+   * :hover 在 swap 起始瞬间即丢失（早于 astro:before-swap 事件），期间提示消失、
+   * 图标回跳基准位；重插后 :hover 恢复还会重播 0.3s 位移过渡。
+   *
+   * 三层加类时机 + pointermove 撤销：
+   *   1. click 委托（最早）——点击瞬间就把类加上，与 :hover 并存，swap 全程样式恒定
+   *   2. astro:before-swap 兜底键盘/程序化导航
+   *   3. astro:after-swap 按实际 :hover 校正（transition:persist 复用同一 DOM 节点，
+   *      类随节点进入新树，新树首次样式计算即终态）
+   *   4. pointermove 委托撤销——重插后 pointerout 可能缺失，移动即校验；
+   *      鼠标移出交互区才撤类
+   * 监听全挂 document 上——换页保留、模块脚本不会重跑。
    */
   let keepEl: Element | null = null;
   const KEEP_SELECTOR = '.side .nav a[data-name], .side .nya';
@@ -120,19 +132,29 @@ const { pathname } = Astro.url;
     keepEl?.classList.add('hover-keep');
   };
 
-  document.addEventListener('pointerover', (event) => {
-    setKeep((event.target as HTMLElement).closest(KEEP_SELECTOR));
-  });
-
-  document.addEventListener('pointerout', (event) => {
+  // 1. 点击瞬间（最早时机）
+  document.addEventListener('click', (event) => {
     const el = (event.target as HTMLElement).closest(KEEP_SELECTOR);
-    if (el && el === keepEl && !(event.relatedTarget instanceof Node && el.contains(event.relatedTarget))) {
-      setKeep(null);
-    }
+    if (el) setKeep(el);
   });
 
-  // 换页重插后浏览器不会重放 :hover 匹配：按当时的实际悬停位置校正一次
+  // 2. 换页前兜底（键盘/程序化导航无 click）：只加不清——撤销统一交给 pointermove，
+  //    避免 after-swap 瞬间 hit-test 未完成时清类造成一帧空窗
+  document.addEventListener('astro:before-swap', () => {
+    const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
+    if (el) setKeep(el);
+  });
+
+  // 3. 换页落地校正：:hover 已恢复则转移到该项；未恢复则保留现有 keep（pointermove 随后接管）
   document.addEventListener('astro:after-swap', () => {
-    setKeep(document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover'));
+    const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
+    if (el) setKeep(el);
+  });
+
+  // 4. 移出交互区撤销（指针每动一次就校验，重插后 pointerout 缺失也能撤）
+  document.addEventListener('pointermove', (event) => {
+    if (!keepEl) return;
+    const el = (event.target as HTMLElement).closest(KEEP_SELECTOR);
+    if (el !== keepEl) setKeep(el);
   });
 </script>
