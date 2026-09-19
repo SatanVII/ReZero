@@ -1,0 +1,39 @@
+name: Sync content submodule
+
+# blog-content 内容仓库更新后，这里定时把子模块指针推进到其最新提交并推送；
+# push 会触发 Vercel 重建（git 集成），无需 Deploy Hook。
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # 每 30 分钟（UTC）
+  workflow_dispatch: {}      # 支持手动触发
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-content
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Update submodule to latest
+        run: git submodule update --remote content
+
+      - name: Commit and push if changed
+        run: |
+          if [ -n "$(git status --porcelain -- content)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add content
+            git commit -m "chore: bump content submodule"
+            git push
+            echo "content updated -> vercel rebuild triggered by push"
+          else
+            echo "content unchanged, nothing to do"
+          fi
