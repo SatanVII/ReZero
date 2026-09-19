@@ -1,21 +1,22 @@
-name: Sync content submodule
+name: Content dispatch (bump submodule)
 
-# blog-content 内容仓库更新后，这里定时把子模块指针推进到其最新提交并推送；
-# push 会触发 Vercel 重建（git 集成），无需 Deploy Hook。
+# 收到 blog-content 仓库的 content-updated 事件后，
+# 立即把 content 子模块推进到其最新提交并推送；
+# push 触发 Vercel 重建（git 集成），无需 Deploy Hook。
 on:
-  schedule:
-    - cron: '*/30 * * * *'   # 每 30 分钟（UTC）
-  workflow_dispatch: {}      # 支持手动触发
+  repository_dispatch:
+    types: [content-updated]
+  workflow_dispatch: {}   # 保留手动触发便于调试
 
 permissions:
   contents: write
 
 concurrency:
-  group: sync-content
+  group: content-sync
   cancel-in-progress: false
 
 jobs:
-  sync:
+  bump:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
