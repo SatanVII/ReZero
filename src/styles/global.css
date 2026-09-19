@@ -101,7 +101,7 @@ svg[hidden] {
 @layer components {
   /* 旧站 app/template.tsx：内容容器（普通块级 flex 子项）+ 切页进场动画 */
   .page-wrap {
-    @apply max-w-[64rem] flex-1;
+    @apply max-w-[64rem] flex-1 min-w-0;
     animation: page-in 0.5s ease-out both;
   }
   @keyframes page-in {
