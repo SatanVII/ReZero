@@ -13,7 +13,7 @@ import Sparkles from '@/components/icons/Sparkles.astro';
 import '@/components/Header.css';
 
 const navItems = [
-  { href: '/article', name: '文章', Icon: ScrollText },
+  { href: '/', name: '文章', Icon: ScrollText },
   { href: '/inspiration', name: '靈感', Icon: Sparkles },
   { href: '/project', name: '項目', Icon: Codepen },
   { href: '/book', name: '書閣', Icon: BookOpen },
@@ -25,7 +25,7 @@ const { pathname } = Astro.url;
 ---
 
 <div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden" transition:persist="header">
-  <h3 class="title text-4xl tracking-wider">字嶼隅</h3>
+  <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">字嶼隅</a></h3>
 
   <nav class="nav hidden items-center sm:flex">
     {

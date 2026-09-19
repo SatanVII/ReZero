@@ -8,8 +8,9 @@ import { satteriEnhance } from './src/lib/satteriEnhance.ts';
 
 // https://astro.build/config
 export default defineConfig({
+  // 旧 /article 路由跳转到主页（主页即文章列表）
+  redirects: { '/article': '/' },
   // 站点线上地址（sitemap / RSS / canonical 依赖此项）
-  // 部署到 GitHub Pages 项目站时改为 'https://<用户名>.github.io' 并添加 base: '/<仓库名>'
   site: 'https://rezero-five.vercel.app',
 
   integrations: [mdx(), sitemap()],

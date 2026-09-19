@@ -1,23 +1,20 @@
 ---
 /**
- * 首页（对应旧站 app/page.tsx）：渲染「关于」分类的最新文章 + 评论
+ * 首页（2026-09-19 起为文章列表）
+ *
+ * 站点默认落地页即文章列表；旧 /article 路由经 astro.config redirects 跳转到 /，
+ * 导航「文章」的 href 也已指向 /。
  */
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Comment from '@/components/Comment.astro';
+import PostList from '@/components/PostList.astro';
 
-const home = (
-  await getCollection('post', ({ data }) => data.category === '关于')
-).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())[0];
-
-const { Content } = await render(home);
+const EXCLUDED = ['灵感', '关于'];
+const entries = (await getCollection('post'))
+  .filter(({ data }) => !EXCLUDED.includes(data.category))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
 <BaseLayout>
-  <div class="page prose max-w-full">
-    <article>
-      <Content />
-    </article>
-    <Comment term="空空" />
-  </div>
+  <PostList entries={entries} />
 </BaseLayout>
