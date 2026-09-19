@@ -34,8 +34,14 @@ const git = (...args) => {
 
 const lsFiles = (repo) =>
   new Set(
-    spawnSync(gitBin, ['-C', repo, '-c', 'core.quotepath=false', 'ls-files'], { encoding: 'utf8' })
+    spawnSync(gitBin, ['-C', repo, '-c', 'core.quotepath=false', 'ls-files', '-s'], { encoding: 'utf8' })
       .stdout.split('\n')
+      .filter(Boolean)
+      // 格式：<mode> <hash> <stage>\t<path>；跳过子模块 gitlink（160000，磁盘上是嵌套仓库目录，由 content 段单独校验）
+      .map((l) => {
+        const tab = l.indexOf('\t');
+        return l.slice(0, tab).startsWith('160000') ? null : l.slice(tab + 1);
+      })
       .filter(Boolean),
   );
 
