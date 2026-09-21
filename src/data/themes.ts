@@ -2,14 +2,14 @@
  * 主题背景图为 8% 透明度的全屏装饰图，无需 astro:assets 优化管线；
  * 用 Vite 原生 ?url 导入，保证 dev/build 都稳定产出资源 URL。
  */
-import Ayaka from '@/assets/images/Vertin.png?url';
-import Beelzebul from '@/assets/images/Night.jpg?url';
-import Ganyu from '@/assets/images/voyager2.jpg?url';
-import Hutao from '@/assets/images/qu2.jpg?url';
-import Kokomi from '@/assets/images/kaalaa3.jpg?url';
-import Nahida from '@/assets/images/Spring.jpg?url';
-import Nilou from '@/assets/images/37.jpg?url';
-import Yoimiya from '@/assets/images/Sonetto.jpg?url';
+import Ayaka from '@/assets/images/ayaka.webp?url';
+import Beelzebul from '@/assets/images/beelzebul.webp?url';
+import Ganyu from '@/assets/images/ganyu.webp?url';
+import Hutao from '@/assets/images/hutao.webp?url';
+import Kokomi from '@/assets/images/kokomi.webp?url';
+import Nahida from '@/assets/images/nahida.webp?url';
+import Nilou from '@/assets/images/nilou.webp?url';
+import Yoimiya from '@/assets/images/yoimiya.webp?url';
 
 export type ThemeType =
   | 'Hutao'
