@@ -10,7 +10,8 @@ import { ClientRouter } from 'astro:transitions';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
-import { themeTypes } from '@/data/themes';
+import themes, { themeTypes } from '@/data/themes';
+const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
 // 全站中文字体：霞鹜文楷（2026-09-17 由 Noto Serif SC 600 更换）。
 // 自托管分片走 public（正文 <link> 与评论区内联共用，见 head 内 link 标签），
 // lxgw-wenkai-webfont 包仅作为 prepare-fonts.mjs 的分片来源保留在 devDependencies。
@@ -50,6 +51,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <link rel="preconnect" href="https://giscus.app" crossorigin />
     <link rel="icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -64,7 +66,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       这里只做"选哪一套"：读缓存 → 过期或无效则按访问次数轮换（不落盘，对齐旧站）。
       必须 is:inline 且放在 head（同步执行、阻塞首绘），否则会闪一下默认主题。
     -->
-    <script is:inline define:vars={{ themeTypes }}>
+    <script is:inline define:vars={{ themeTypes, themeImages }}>
       (() => {
         // ClientRouter 换页会随新 head 重跑本脚本：完整加载（首访/刷新）才计数/定主题，
         // 换页时的主题由 astro:after-swap 补回机制维护（见下方模块脚本），
@@ -95,6 +97,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           /* localStorage 不可用（隐私模式等）：退回第一套主题 */
         }
         document.documentElement.dataset.theme = type || LIST[0];
+        // P0-2：首绘前预载当前主题背景图（比等 CSS 解析后再发现提前一轮 RTT）
+        const bg = themeImages[type || LIST[0]];
+        if (bg) document.head.insertAdjacentHTML('beforeend', '<link rel="preload" as="image" href="' + bg + '">');
         // 供 CSS 判断"脚本可用"：无 JS 时不做图片渐显，避免正文图片永久不可见
         document.documentElement.classList.add('js');
       })();

@@ -43,6 +43,19 @@ const current = themes[0];
 </div>
 
 <script>
+  // P1-4：悬停主题项时预热对应背景图（幂等）
+  document.addEventListener('mouseover', (event) => {
+    const item = (event.target as HTMLElement).closest('[data-theme-item]');
+    if (!item) return;
+    const url = item.getAttribute('data-theme-image');
+    if (!url || document.head.querySelector('link[rel="preload"][href="' + url + '"]')) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = url;
+    document.head.appendChild(link);
+  });
+
   document.addEventListener('click', (event) => {
     const item = (event.target as HTMLElement).closest('[data-theme-item]');
     if (!item) return;

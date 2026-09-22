@@ -64,9 +64,16 @@ svg[hidden] {
     -webkit-text-stroke: 0.2px;
     color: var(--font-color);
     background-color: var(--background-color);
+  }
+
+  /* P1-5：纸质纹理改为固定定位伪元素——滚动走合成层，消除 attachment:fixed 的重绘开销 */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
     background-image: url('../assets/images/texture.png');
     background-repeat: repeat;
-    background-attachment: fixed;
   }
 
   body::before {
@@ -76,6 +83,13 @@ svg[hidden] {
     opacity: 0.08;
     background-image: var(--background-image);
     transition: background-image 0.8s;
+  }
+
+  /* cra 参考：移动端不渲染主题插画——省 290KB 流量，避免插画干扰正文 */
+  @media (max-width: 640px) {
+    body::before {
+      background-image: unset;
+    }
   }
 
   /* custom scrollBar */

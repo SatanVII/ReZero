@@ -1,6 +1,11 @@
 @import url('./comment.css');
 
 main {
+    /* 实底画布：评论区不透明白纸底，保证可读性 */
+    --color-canvas-default: #e3dbed;
+    --color-canvas-overlay: #e3dbed;
+    --color-canvas-inset: #e3dbed;
+    --color-canvas-subtle: #e3dbed;
   --color-btn-primary-bg: var(--beelzebul-primary);
   --color-btn-primary-hover-bg: var(--beelzebul-primary);
   --color-btn-primary-hover-border: var(--beelzebul-primary);
