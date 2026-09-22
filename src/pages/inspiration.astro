@@ -1,6 +1,6 @@
 ---
 /**
- * 靈感流（对应旧站 app/inspiration/page.tsx）
+ * 隨想流（对应旧站 app/inspiration/page.tsx）
  * 「一心净土」按小节拆分的条目，按文章日期倒序 + 文内倒序
  * 条目头与旧站 cra 版一致：标题与日期同行（parseTime 默认格式「yyyy年MM月dd日」）
  */
@@ -17,7 +17,7 @@ const items = await Promise.all(
 );
 ---
 
-<BaseLayout title={`靈感 - 字嶼隅`}>
+<BaseLayout title={`隨想 - 字嶼隅`}>
   <div class="page px-0">
     <!-- 悬停滑动遮罩：class 与旧站一致；初始 height:0 使脚本未执行时不可见（见页尾脚本） -->
     <div
@@ -43,7 +43,7 @@ const items = await Promise.all(
 
 <script>
   /**
-   * 靈感流悬停滑动遮罩
+   * 隨想流悬停滑动遮罩
    *
    * 对应旧站 app/inspiration/page.tsx 的 maskRef / calcMaskPos / handleMask / handleScroll。
    * 这里只写内联的 height / transform，滑动交给 CSS 的

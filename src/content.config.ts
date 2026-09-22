@@ -21,7 +21,7 @@ const postSchema = z.object({
 });
 
 // 「 blog-post/ 」目录：文章按年份子目录归档（2024/、2025/…），
-// 分类体系：关于（首页/自述）、灵感（火花流）、日志、随笔（后两者进文字页）
+// 分类体系：关于（首页/自述）、随想（火花流）、日志、随笔（后两者进文字页）
 const post = defineCollection({
   loader: glob({
     pattern: '**/*.md',
@@ -31,7 +31,7 @@ const post = defineCollection({
   schema: postSchema,
 });
 
-// 「灵感」分类按一级小节（## 标题）拆成的火花流
+// 「随想」分类按一级小节（## 标题）拆成的火花流
 const inspiration = defineCollection({
   loader: inspirationLoader(),
   schema: z.object({
