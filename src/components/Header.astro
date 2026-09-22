@@ -25,6 +25,9 @@ const { pathname } = Astro.url;
 ---
 
 <div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden" transition:persist="header">
+  <!-- 移动端菜单遮罩：菜单弹出时覆盖全屏空白区（拦截下层点击），点遮罩收起 -->
+  <div class="nav-backdrop" data-nav-backdrop hidden></div>
+
   <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">字嶼隅</a></h3>
 
   <nav class="nav hidden items-center sm:flex">
@@ -46,11 +49,34 @@ const { pathname } = Astro.url;
 </div>
 
 <script>
-  // 移动端导航开合（事件委托：换页后自动生效）
+  // 移动端导航：开合 + 遮罩 + 换页同步（事件委托：换页后自动生效）
+  const closeNav = () => {
+    document.querySelector('.header .nav')?.classList.remove('over');
+    document.querySelector('.header [data-toggle-nav]')?.classList.remove('active');
+    document.querySelector('[data-nav-backdrop]')?.setAttribute('hidden', '');
+  };
+
+  const toggleNav = () => {
+    const opened = document.querySelector('.header .nav')?.classList.toggle('over');
+    document.querySelector('.header [data-toggle-nav]')?.classList.toggle('active', opened);
+    document.querySelector('[data-nav-backdrop]')?.toggleAttribute('hidden', !opened);
+  };
+
+  // 汉堡按钮：开合菜单 + 同步遮罩（保留原有上方交互区开关）
   document.addEventListener('click', (event) => {
-    const toggle = (event.target as HTMLElement).closest('[data-toggle-nav]');
-    if (!toggle) return;
-    toggle.classList.toggle('active');
-    toggle.parentElement?.querySelector('.nav')?.classList.toggle('over');
+    if ((event.target as HTMLElement).closest('[data-toggle-nav]')) toggleNav();
   });
+
+  // 点击遮罩空白：收起菜单与遮罩（遮罩本身拦截下层点击，不穿透）
+  document.addEventListener('click', (event) => {
+    if ((event.target as HTMLElement).closest('[data-nav-backdrop]')) closeNav();
+  });
+
+  // 点击菜单内链接：跳转前收起（同页点击与跨页跳转均覆盖）
+  document.addEventListener('click', (event) => {
+    if ((event.target as HTMLElement).closest('.header .nav a')) closeNav();
+  });
+
+  // 换页后自动收起：Header 带 transition:persist，不随换页重置，须主动同步
+  document.addEventListener('astro:after-swap', closeNav);
 </script>
