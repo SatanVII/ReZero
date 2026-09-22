@@ -30,7 +30,6 @@ const items = await Promise.all(
           <article class="cursor-pointer p-4" data-aos="fade-left">
             <div class="flex text-xl italic">
               <h2 class="mr-2 mb-2">{entry.data.title}</h2>
-              /<span class="ml-2">{format(entry.data.date, 'yyyy-MM-dd')}</span>
             </div>
             <div class="prose max-w-full">
               <Content />
