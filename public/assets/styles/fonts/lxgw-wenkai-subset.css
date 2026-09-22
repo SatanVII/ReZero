@@ -1,0 +1,10 @@
+/* P0-1 字体子集：全站已知用字（1327 字）单文件 281KB，一次请求替代首屏分片瀑布。
+ * 声明顺序关键：本 face 在 97 分片之后加载（见 BaseLayout），后声明者优先命中；
+ * 子集缺失的字形（未来新文章新字）由浏览器 per-character 回落到前面的分片 face。 */
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./lxgw-wenkai-subset.woff2') format('woff2');
+}

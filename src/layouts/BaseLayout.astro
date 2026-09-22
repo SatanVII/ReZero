@@ -59,6 +59,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- 霞鹜文楷（全站中文字体）：自托管分片，与评论区 data: URL 主题共用同一 css；
          换字体版本时 bump ?v（与 public/assets/styles/fonts/ 内容保持同步） -->
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai.css?v=1" />
+    <!-- P0-1 字体子集：preload 单文件（字体 preload 必须 crossorigin），声明在分片之后使常用字命中子集、新字回落分片 -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=1" />
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=1" />
     <ThemeStyles />
     <!--
       首屏防闪：在首次绘制前把 data-theme 写到 <html> 上。
