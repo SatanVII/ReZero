@@ -41,7 +41,7 @@
 
 .side .nav > a {
   @apply relative transform cursor-pointer p-2;
-  transition: none;
+  transition: color 0.3s; /* 对齐旧站 duration-300；位移/提示的过渡在 svg 与 ::after 上单独声明 */
 }
 
 /*

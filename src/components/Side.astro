@@ -151,10 +151,18 @@ const { pathname } = Astro.url;
     if (el) setKeep(el);
   });
 
-  // 4. 移出交互区撤销（指针每动一次就校验，重插后 pointerout 缺失也能撤）
-  document.addEventListener('pointermove', (event) => {
-    if (!keepEl) return;
+  // 4. 低频指针事件撤销：进入其他交互项时转移，离开交互区（relatedTarget 不在 keep 内）时撤销。
+  //    pointerover/out 仅在跨越元素边界时触发，取代 pointermove 的逐帧采样（原先每次
+  //    鼠标移动都会跑一次 closest，是侧栏交互迟缓的次要因素）。
+  document.addEventListener('pointerover', (event) => {
     const el = (event.target as HTMLElement).closest(KEEP_SELECTOR);
-    if (el !== keepEl) setKeep(el);
+    if (el && el !== keepEl) setKeep(el);
+  });
+  document.addEventListener('pointerout', (event) => {
+    if (!keepEl) return;
+    const related = (event as PointerEvent).relatedTarget as HTMLElement | null;
+    if (related && (keepEl === related || keepEl.contains(related))) return; // keep 内部子元素间移动
+    const next = related?.closest?.(KEEP_SELECTOR) ?? null;
+    if (next !== keepEl) setKeep(next);
   });
 </script>
