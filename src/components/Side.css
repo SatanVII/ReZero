@@ -143,33 +143,29 @@
  * 提示 display: block 且不重播 fade。类由点击/before-swap/after-swap 三层
  * 时机加上，pointermove 撤销——撤销后回位动画与常态一致。
  */
+/* keep 类只钉视觉态（transform/opacity），过渡交给常态规则——
+   换页窗口的零过渡由 .no-anim 冻结统一承担（hover-keep 自带 transition:none
+   会在 pointerover 时打断 hover 渐变、移出时又恢复，来回切换即抽搐） */
 .side .nav-y > a.hover-keep svg {
   transform: translateX(-6px);
-  transition: none;
-}
-
-.side .nav-x > a.hover-keep svg {
-  transform: translate(-10px, -4px);
-  transition: none;
 }
 
 .side .nav > a.hover-keep::after {
   opacity: 1;
   visibility: visible;
   transform: translateX(-6px);
-  transition: none;
 }
 
 .nya.hover-keep::after {
   opacity: 1;
   visibility: visible;
-  transition: none;
 }
 
 
 .nya {
   @apply relative translate-y-3;
   color: var(--theme-color);
+  cursor: pointer;
 }
 
 .nya::after {
@@ -190,10 +186,3 @@
 }
 
 /* 换页冻结态：active 切换瞬切，侧栏所有元素（含伪元素）零过渡 */
-.side.no-anim .nav > a,
-.side.no-anim .nav > a svg,
-.side.no-anim .nav a::after,
-.side.no-anim .nya,
-.side.no-anim .nya::after {
-  transition: none !important;
-}

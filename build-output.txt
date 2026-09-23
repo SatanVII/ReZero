@@ -1,0 +1,34 @@
+[2m18:42:38[22m [34m[content][39m Syncing content
+[2m18:42:38[22m [34m[content][39m Synced content
+[2m18:42:38[22m [34m[types][39m Generated [2m717ms[22m
+[2m18:42:38[22m [34m[build][39m output: [34m"static"[39m
+[2m18:42:38[22m [34m[build][39m mode: [34m"static"[39m
+[2m18:42:38[22m [34m[build][39m directory: [34mD:\ybeib\Desktop\ReZero\Rezero-astro\dist\[39m
+[2m18:42:38[22m [34m[build][39m Collecting build info...
+[2m18:42:38[22m [34m[build][39m [32m✓ Completed in 785ms.[39m
+[2m18:42:38[22m [34m[build][39m Building static entrypoints...
+[2m18:42:39[22m [34m[vite][39m [32m✓ built in 1.06s[39m
+[2m18:42:39[22m [34m[vite][39m [32m✓ built in 146ms[39m
+[2m18:42:39[22m [34m[build][39m Rearranging server assets...
+
+[42m[30m generating static routes [39m[49m
+[2m18:42:40[22m   [34m├─[39m [2m/404.html[22m [2m(+27ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/about/index.html[22m [2m(+5ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/article/index.html[22m [2m(+2ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/book/index.html[22m [2m(+4ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/friend/index.html[22m [2m(+4ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/inspiration/index.html[22m [2m(+3ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/posts/旅游/index.html[22m [2m(+5ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/posts/山中一夜/index.html[22m [2m(+3ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/posts/随想/index.html[22m [2m(+3ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/posts/星图手记/index.html[22m [2m(+3ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/posts/About/index.html[22m [2m(+3ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/project/index.html[22m [2m(+6ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/rss.xml[22m [2m(+72ms)[22m 
+[2m18:42:40[22m   [34m├─[39m [2m/index.html[22m [2m(+8ms)[22m 
+[2m18:42:40[22m [32m✓ Completed in 1.48s.
+[39m
+[2m18:42:41[22m [34m[build][39m [32m✓ Completed in 2.94s.[39m
+[2m18:42:41[22m [34m[@astrojs/sitemap][39m `sitemap-index.xml` created at `dist`
+[2m18:42:41[22m [34m[build][39m 12 page(s) built in [1m3.74s[22m
+[2m18:42:41[22m [34m[build][39m [1mComplete![22m
