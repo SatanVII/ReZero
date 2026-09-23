@@ -188,7 +188,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   document.addEventListener('astro:after-swap', (event) => {
     /* 彻底跳过 View Transition：截图层即使只有 ~55ms 也会遮蔽进度条造成闪现，
        进度条本身就是换页反馈，无需任何整页过渡 */
-    event.viewTransition?.skipTransition();
+    (event as unknown as { viewTransition?: { skipTransition(): void } }).viewTransition?.skipTransition();
     document.documentElement.classList.add('js');
     if (currentTheme) document.documentElement.dataset.theme = currentTheme;
   });
