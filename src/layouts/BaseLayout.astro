@@ -7,6 +7,7 @@
  * - 正文图片/外链的增强在构建期由 satteri hast 插件完成（见 astro.config.mjs）
  */
 import { ClientRouter } from 'astro:transitions';
+import TopProgress from '@/components/TopProgress.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
@@ -107,6 +108,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         document.documentElement.classList.add('js');
       })();
     </script>
+    <TopProgress />
     <ClientRouter />
   </head>
   <body>

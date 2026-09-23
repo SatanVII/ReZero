@@ -1,0 +1,93 @@
+---
+/**
+ * 顶部加载进度条（方案 A：YouTube 式三段模拟进度）
+ *
+ * 生命周期挂在 ClientRouter 换页事件上：
+ *   astro:before-preparation → 起步（快速推到 6%）+ rAF 缓慢爬向 80%
+ *   astro:page-load          → 冲刺 100% → 停留 180ms → 280ms 淡出 → 归零待命
+ *
+ * 设计细节：
+ *   - 爬行阶段 rAF 逐帧设 width（transition 关闭，避免 CSS 过渡拖尾）；
+ *     冲刺阶段交给 CSS width 过渡（150ms ease-out）
+ *   - 颜色 var(--theme-color)：跟随 8 套主题自动切换，明暗由 CSS 变量机制天然适配
+ *   - loading 单例防重入：快速连续导航不会叠加或重置动画
+ *   - z-index 60：压过侧栏(10)/面板(30)/移动菜单(30)
+ */
+const noop = undefined;
+---
+
+<div id="top-progress"></div>
+
+<style>
+  #top-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background: var(--theme-color);
+    z-index: 60;
+    opacity: 1;
+    pointer-events: none;
+    transition: width 150ms ease-out, opacity 280ms ease;
+  }
+</style>
+
+<script>
+  const bar = () => document.getElementById('top-progress');
+  let loading = false;
+  let progress = 0;
+  let raf = 0;
+  let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const set = (w: number) => {
+    const b = bar();
+    if (b) b.style.width = w + '%';
+  };
+
+  const crawl = () => {
+    progress += (80 - progress) * 0.09;
+    set(progress);
+    if (loading) raf = requestAnimationFrame(crawl);
+  };
+
+  const start = () => {
+    if (loading) return;
+    loading = true;
+    clearTimeout(hideTimer);
+    const b = bar();
+    if (!b) return;
+    b.style.transition = 'none';
+    b.style.opacity = '1';
+    progress = 6;
+    set(progress);
+    raf = requestAnimationFrame(crawl);
+  };
+
+  const done = () => {
+    if (!loading) return;
+    cancelAnimationFrame(raf);
+    const b = bar();
+    if (!b) return;
+    b.style.transition = 'width 150ms ease-out';
+    progress = 100;
+    set(progress);
+    hideTimer = setTimeout(() => {
+      b.style.opacity = '0';
+      hideTimer = setTimeout(() => {
+        b.style.transition = 'none';
+        set(0);
+        b.style.opacity = '1';
+        b.style.transition = '';
+        loading = false;
+      }, 320);
+    }, 180);
+  };
+
+  document.addEventListener('astro:before-preparation', start);
+  document.addEventListener('astro:page-load', done);
+  // 兜底：部分浏览器在 bfcache 回退时 page-load 不触发，直接静默收尾
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) done();
+  });
+</script>
