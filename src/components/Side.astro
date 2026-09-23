@@ -151,6 +151,30 @@ const { pathname } = Astro.url;
     if (el) setKeep(el);
   });
 
+  // ★ 换页冻结：active 切换的瞬间侧栏必须完全静止（对齐 yun37.me 观感——
+  //   旧站 layout 常驻，active 切换与页面替换同帧、零动画）。侧栏是 persist 元素，
+  //   会被移入新树；在移动前冻结其全部过渡，落地双帧后恢复 hover 渐变。
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelector('.side')?.classList.add('no-anim');
+  });
+  document.addEventListener('astro:after-swap', () => {
+    const side = document.querySelector('.side');
+    if (!side) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => side.classList.remove('no-anim')));
+  });
+
+  // ★ 换页冻结：active 切换的瞬间侧栏必须完全静止（对齐 yun37.me 观感——
+  //   旧站 layout 常驻，active 切换与页面替换同帧、零动画）。侧栏是 persist 元素，
+  //   会被移入新树；在移动前冻结其全部过渡，落地双帧后恢复 hover 渐变。
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelector('.side')?.classList.add('no-anim');
+  });
+  document.addEventListener('astro:after-swap', () => {
+    const side = document.querySelector('.side');
+    if (!side) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => side.classList.remove('no-anim')));
+  });
+
   // 4. 低频指针事件撤销：进入其他交互项时转移，离开交互区（relatedTarget 不在 keep 内）时撤销。
   //    pointerover/out 仅在跨越元素边界时触发，取代 pointermove 的逐帧采样（原先每次
   //    鼠标移动都会跑一次 closest，是侧栏交互迟缓的次要因素）。

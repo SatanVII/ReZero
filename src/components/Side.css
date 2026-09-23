@@ -179,3 +179,21 @@
   margin: 0 auto;
   white-space: nowrap;
 }
+
+/* 换页冻结态：active 切换瞬切，侧栏所有元素（含伪元素）零过渡 */
+.side.no-anim .nav > a,
+.side.no-anim .nav > a svg,
+.side.no-anim .nav a::after,
+.side.no-anim .nya,
+.side.no-anim .nya::after {
+  transition: none !important;
+}
+
+/* 换页冻结态：active 切换瞬切，侧栏所有元素（含伪元素）零过渡 */
+.side.no-anim .nav > a,
+.side.no-anim .nav > a svg,
+.side.no-anim .nav a::after,
+.side.no-anim .nya,
+.side.no-anim .nya::after {
+  transition: none !important;
+}
