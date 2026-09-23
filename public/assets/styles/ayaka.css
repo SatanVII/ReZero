@@ -2,10 +2,10 @@
 
 main {
     /* 实底画布：评论区不透明白纸底，保证可读性 */
-    --color-canvas-default: #d8e2ec;
-    --color-canvas-overlay: #d8e2ec;
-    --color-canvas-inset: #d8e2ec;
-    --color-canvas-subtle: #d8e2ec;
+    --color-canvas-default: rgba(216, 226, 236, 0.85);
+    --color-canvas-overlay: rgba(216, 226, 236, 0.85);
+    --color-canvas-inset: rgba(216, 226, 236, 0.85);
+    --color-canvas-subtle: rgba(216, 226, 236, 0.85);
   --color-btn-primary-bg: var(--ayaka-primary);
   --color-btn-primary-hover-bg: var(--ayaka-primary);
   --color-btn-primary-selected-bg: var(--ayaka-primary);
