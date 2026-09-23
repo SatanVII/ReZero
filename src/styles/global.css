@@ -25,9 +25,10 @@ svg[hidden] {
 
 /* 旧 tailwind.config.js typography 定制：全部是 CSS 变量，直接覆盖插件的 .prose 默认值 */
 .prose {
-  /* 正文整体字号 +2px（typography 默认 16px；18px 为文楷易读性实测下限，
-     用户反馈 17px 偏小）；标题/段距为 em 相对值，随 base 同步放大 */
-  font-size: 18px;
+  /* 正文字号：2026-09-23 用户要求 17px（-1px） */
+  font-size: 17px;
+  /* 正文色加深至 gray-900：解决文楷细笔画「发浅」观感（侧栏/标题仍用 --font-color） */
+  color: #111827;
   --tw-prose-headings: var(--font-color);
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
