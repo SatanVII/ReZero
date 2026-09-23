@@ -1,11 +1,6 @@
 @import url('./comment.css');
 
 main {
-    /* 实底画布：评论区不透明白纸底，保证可读性 */
-    --color-canvas-default: rgba(242, 225, 220, 0.85);
-    --color-canvas-overlay: rgba(242, 225, 220, 0.85);
-    --color-canvas-inset: rgba(242, 225, 220, 0.85);
-    --color-canvas-subtle: rgba(242, 225, 220, 0.85);
   --color-btn-primary-bg: var(--kokomi-primary);
   --color-btn-primary-hover-bg: var(--kokomi-primary);
   --color-btn-primary-selected-bg: var(--kokomi-primary);
