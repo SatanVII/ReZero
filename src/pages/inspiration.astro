@@ -1,103 +1,107 @@
 ---
 /**
- * 顶部加载进度条（方案 A：YouTube 式三段模拟进度）
- *
- * 生命周期挂在 ClientRouter 换页事件上：
- *   astro:before-preparation → 起步（快速推到 6%）+ rAF 缓慢爬向 80%
- *   astro:page-load          → 从当前位置冲刺 100% → 停留 180ms → 280ms 淡出 → 归零待命
- *
- * ★ 关键修复（2026-09-23）：进度条元素由 JS 动态创建并挂载在 <html> 直下。
- *   此前静态渲染在 BaseLayout 内，ClientRouter 换页 swap 会销毁重建该节点——
- *   换页中爬行到一半的条随 swap 消失，page-load 后 JS 重新 querySelector 拿到
- *   新节点并从 0 冲刺 100%，表现为「换页完成后进度条再次闪现一次」。
- *   html 直下子节点不受 swap 影响，节点与爬行状态跨换页保持。
- *
- * 其他细节：
- *   - 爬行阶段 rAF 逐帧设 width（transition 关闭，避免 CSS 过渡拖尾）；
- *     冲刺阶段交给 CSS width 过渡（150ms ease-out）
- *   - 颜色 var(--theme-color)：跟随 8 套主题自动切换，明暗由 CSS 变量机制天然适配
- *   - loading 单例防重入：快速连续导航不会叠加或重置动画
- *   - z-index 60：压过侧栏(10)/面板(30)/移动菜单(30)
+ * 隨想流（对应旧站 app/inspiration/page.tsx）
+ * 「一心净土」按小节拆分的条目，按文章日期倒序 + 文内倒序
+ * 条目头与旧站 cra 版一致：标题与日期同行（parseTime 默认格式「yyyy年MM月dd日」）
  */
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const entries = (await getCollection('inspiration')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime() || b.data.order - a.data.order,
+);
+
+const items = await Promise.all(
+  entries.map(async (entry) => ({ entry, Content: (await render(entry)).Content })),
+);
 ---
 
-<style is:global>
-  #top-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    width: 0;
-    background: var(--theme-color);
-    z-index: 60;
-    opacity: 1;
-    pointer-events: none;
-    transition: width 150ms ease-out, opacity 280ms ease;
-  }
-</style>
+<BaseLayout title={`隨想 - 字嶼隅`}>
+  <div class="page px-0 inspiration">
+    <!-- 悬停滑动遮罩：class 与旧站一致；初始 height:0 使脚本未执行时不可见（见页尾脚本） -->
+    <div
+      class="mask pointer-events-none absolute left-0 top-0 w-full transform rounded transition-all duration-300 ease-in-out"
+      data-inspiration-mask
+      style="height: 0px; transform: translateY(0px)"></div>
+    <div class="relative space-y-4" data-inspiration-list>
+      {
+        items.map(({ entry, Content }) => (
+          <article class="cursor-pointer p-4" data-aos="fade-left">
+            <div class="flex text-xl italic">
+              <h2 class="mr-2 mb-2">{entry.data.title}</h2>
+            </div>
+            <div class="prose max-w-full">
+              <Content />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>
 
 <script>
-  const ensureBar = () => {
-    let b = document.getElementById('top-progress');
-    if (!b) {
-      b = document.createElement('div');
-      b.id = 'top-progress';
-      // 挂在 <html> 直下：ClientRouter swap 只替换 head diff 与 body，永不触碰这里
-      document.documentElement.appendChild(b);
-    }
-    return b;
+  /**
+   * 隨想流悬停滑动遮罩
+   *
+   * 对应旧站 app/inspiration/page.tsx 的 maskRef / calcMaskPos / handleMask / handleScroll。
+   * 这里只写内联的 height / transform，滑动交给 CSS 的
+   * `transition-all duration-300 ease-in-out` —— 时长与缓动曲线因此天然与旧站相同。
+   *
+   * 另比旧站多两处稳健性处理（不改变可见行为）：
+   *  - ResizeObserver：条目因图片/字体延迟加载变高时重新对齐（旧站只在 scroll 时重算）
+   *  - 初始化前先解绑上一轮监听：换页后 DOM 已替换，挂在旧节点上的监听会累积
+   */
+  const MASK_SELECTOR = '[data-inspiration-mask]';
+  const LIST_SELECTOR = '[data-inspiration-list]';
+
+  let cleanup: (() => void) | null = null;
+
+  const setup = () => {
+    cleanup?.();
+    cleanup = null;
+
+    const mask = document.querySelector<HTMLElement>(MASK_SELECTOR);
+    const list = document.querySelector<HTMLElement>(LIST_SELECTOR);
+    const page = list?.closest<HTMLElement>('.page') ?? null;
+    if (!mask || !list || !page) return;
+
+    const items = () => [...list.querySelectorAll<HTMLElement>(':scope > article')];
+
+    // 遮罩是 .page 的绝对定位子元素（top:0 贴 .page 顶边），
+    // 而 article.offsetTop 相对 .relative 的列表容器 —— 故需补上 .page 的上内边距。
+    // 上内边距是响应式的（py-24 → lg:py-16），在 moveTo 内现读，避免跨 lg 断口缩放后用到旧值。
+    const moveTo = (item: HTMLElement) => {
+      const paddingTop = Number.parseFloat(getComputedStyle(page).paddingTop) || 0;
+      const height = `${item.offsetHeight}px`;
+      const transform = `translateY(${item.offsetTop + paddingTop}px)`;
+      // 早退守卫：位置不变不重复写样式（mouseover 高频触发）
+      if (mask.style.height === height && mask.style.transform === transform) return;
+      mask.style.height = height;
+      mask.style.transform = transform;
+    };
+
+    let current = items()[0] ?? null;
+    if (current) moveTo(current);
+
+    const onOver = (event: Event) => {
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('article');
+      if (!target || !list.contains(target)) return;
+      current = target;
+      moveTo(target);
+    };
+    list.addEventListener('mouseover', onOver);
+
+    const observer = new ResizeObserver(() => {
+      if (current) moveTo(current);
+    });
+    observer.observe(list);
+
+    cleanup = () => {
+      list.removeEventListener('mouseover', onOver);
+      observer.disconnect();
+    };
   };
 
-  let loading = false;
-  let progress = 0;
-  let raf = 0;
-  let hideTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const set = (w: number) => {
-    ensureBar().style.width = w + '%';
-  };
-
-  const crawl = () => {
-    progress += (80 - progress) * 0.09;
-    set(progress);
-    if (loading) raf = requestAnimationFrame(crawl);
-  };
-
-  const start = () => {
-    if (loading) return;
-    loading = true;
-    clearTimeout(hideTimer);
-    const b = ensureBar();
-    b.style.transition = 'none';
-    b.style.opacity = '1';
-    progress = 6;
-    set(progress);
-    raf = requestAnimationFrame(crawl);
-  };
-
-  const done = () => {
-    if (!loading) return;
-    cancelAnimationFrame(raf);
-    const b = ensureBar();
-    b.style.transition = 'width 150ms ease-out';
-    progress = 100;
-    set(progress);
-    hideTimer = setTimeout(() => {
-      b.style.opacity = '0';
-      hideTimer = setTimeout(() => {
-        b.style.transition = 'none';
-        set(0);
-        b.style.opacity = '1';
-        b.style.transition = '';
-        loading = false;
-      }, 320);
-    }, 180);
-  };
-
-  document.addEventListener('astro:before-preparation', start);
-  document.addEventListener('astro:page-load', done);
-  // 兜底：bfcache 回退时 page-load 不触发，直接静默收尾
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) done();
-  });
+  document.addEventListener('astro:page-load', setup);
 </script>
