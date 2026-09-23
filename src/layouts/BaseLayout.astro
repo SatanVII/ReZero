@@ -61,7 +61,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          换字体版本时 bump ?v（与 public/assets/styles/fonts/ 内容保持同步） -->
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai.css?v=1" />
     <!-- P0-1 字体子集：preload 单文件（字体 preload 必须 crossorigin），声明在分片之后使常用字命中子集、新字回落分片 -->
-    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=1" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2" />
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=1" />
     <ThemeStyles />
     <!--
@@ -135,8 +135,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
   const nya = () => {
     const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
-    console.info(`%c 字嶼隅 %c`, labelStyle, '', 'https://github.com/SatanVII');
-    console.info('%c 主题 %c', labelStyle, '', 'https://github.com/chanshiyucx/zero');
+    console.info(`%c 字嶼隅 %c`, labelStyle, '', '基于 zero 主题重构');
+    console.info('%c 主题 %c', labelStyle, '', 'Astro + ClientRouter');
     console.info('~❀~ 发现控制台报错请务必联系博主 ~❀~');
   };
 
@@ -185,7 +185,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
    * 所以交换完成后要立刻补回 —— 否则每一页都会闪一下 global.css 里的兜底默认主题，
    * 图片渐显的 .js 开关也会失效。这是最早可用的时机（早于 astro:page-load）。
    */
-  document.addEventListener('astro:after-swap', () => {
+  document.addEventListener('astro:after-swap', (event) => {
+    /* 彻底跳过 View Transition：截图层即使只有 ~55ms 也会遮蔽进度条造成闪现，
+       进度条本身就是换页反馈，无需任何整页过渡 */
+    event.viewTransition?.skipTransition();
     document.documentElement.classList.add('js');
     if (currentTheme) document.documentElement.dataset.theme = currentTheme;
   });
