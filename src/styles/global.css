@@ -31,6 +31,19 @@ svg[hidden] {
   --tw-prose-code: var(--theme-color);
   --tw-prose-quote-borders: var(--theme-color);
   --tw-prose-pre-bg: rgba(0, 0, 0, 0.04);
+  /* P4-A：补齐 typography 默认的 oklch 变量（Firefox <113 对 oklch 整条失效），
+     统一回退为墨色——同时消除各内核的正文颜色微差 */
+  --tw-prose-body: var(--font-color);
+  --tw-prose-lead: var(--font-color);
+  --tw-prose-captions: var(--font-color);
+  --tw-prose-quotes: var(--font-color);
+}
+
+/* P3-A：:has() 需 Firefox 121+；旧版降级——图片段落退化为普通定位上下文 */
+@supports not (selector(:has(*))) {
+  .prose p {
+    position: relative;
+  }
 }
 
 /* 隨想页正文 17px：与文章列表摘要字号一致（仅随想页，文章页保持 18px） */
@@ -49,6 +62,9 @@ svg[hidden] {
     --background-image: none;
     --font-site: 'ZiYuYunYou', serif;
     scrollbar-gutter: stable both-edges;
+    /* P2-A：统一 Firefox 滚动条视觉与宽度，缩小与 Chromium 的排版基准差 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--font-color) transparent;
   }
 
   html {
