@@ -65,6 +65,9 @@ svg[hidden] {
     /* P2-A：统一 Firefox 滚动条视觉与宽度，缩小与 Chromium 的排版基准差 */
     scrollbar-width: thin;
     scrollbar-color: var(--font-color) transparent;
+    /* P2-A：统一 Firefox 滚动条视觉与宽度，缩小与 Chromium 的排版基准差 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--font-color) transparent;
   }
 
   html {
