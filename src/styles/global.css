@@ -61,7 +61,7 @@ svg[hidden] {
     --background-color: #fcfaf2;
     --background-image: none;
     --font-site: 'ZiYuYunYou', serif;
-    scrollbar-gutter: stable both-edges;
+    scrollbar-gutter: stable; /* 保留右侧滚动条占位，左侧无占位（用户需求） */
     /* P2-A：统一 Firefox 滚动条视觉与宽度，缩小与 Chromium 的排版基准差 */
     scrollbar-width: thin;
     scrollbar-color: var(--font-color) transparent;
