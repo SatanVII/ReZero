@@ -1,7 +1,7 @@
 {
-  "name": "zero-astro",
+  "name": "rezero",
   "version": "1.0.0",
-  "description": "文心雕龙 · Astro 版",
+  "description": "字嶼隅 · Astro 版",
   "private": true,
   "type": "module",
   "scripts": {
