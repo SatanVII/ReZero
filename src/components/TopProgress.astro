@@ -87,8 +87,9 @@
       hideTimer = setTimeout(() => {
         b.style.transition = 'none';
         set(0);
-        b.style.opacity = '1';
-        b.style.transition = '';
+        /* 保持 opacity 0（隐藏待命）：若在此恢复 1，浏览器会把「冲刺/淡出态 -> 归零」
+           的变化套用恢复后的 CSS 过渡，播放一段可见的收缩残影（二次闪烁）。
+           可见性由 start() 恢复（此时同样先关过渡，天然无过渡播放） */
         loading = false;
       }, 320);
     }, 180);
