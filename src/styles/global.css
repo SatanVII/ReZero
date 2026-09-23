@@ -35,6 +35,11 @@ svg[hidden] {
   --tw-prose-pre-bg: rgba(0, 0, 0, 0.04);
 }
 
+/* 隨想页正文 17px：与文章列表摘要字号一致（仅随想页，文章页保持 18px） */
+.inspiration .prose {
+  font-size: 17px;
+}
+
 @layer base {
   :root {
     /* 主题变量的兜底默认值（胡桃主题）；真实值由客户端主题脚本写入。
