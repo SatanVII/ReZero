@@ -14,6 +14,10 @@
 .nav svg {
   width: 1.25rem;
   height: 1.5rem;
+}
+
+/* 位移基准只作用于侧栏：全局 -10px 会波及 Header 图标，把图标-文字间距从 4px 撑到 14px */
+.side .nav svg {
   transform: translateX(-10px);
 }
 
@@ -123,46 +127,38 @@
   height: 100%;
 }
 
-.side .nav-y > a:hover::after,
-.side .nav-y > a.hover-keep::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-6px);   /* 与图标同步：同为 +4px 位移 */
-  transition: transform 0.3s, opacity 0.3s, visibility 0s;
-}
+/* R3：悬浮态显示仅悬停设备启用——触屏 tap 的 :hover 粘滞不再触发 tooltip/位移
+   （平板横屏抽搐的根源），桌面悬停行为不变（渐变过渡保留） */
+@media (hover: hover) {
+  .side .nav-y > a:hover::after,
+  .side .nav-y > a.hover-keep::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-6px);   /* 与图标同步：同为 +4px 位移 */
+    transition: transform 0.3s, opacity 0.3s, visibility 0s;
+  }
 
-.nya:hover::after {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.3s, visibility 0s;
-}
+  .nya:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s, visibility 0s;
+  }
 
-/*
- * ★ hover-keep：换页期间保持悬浮态（对齐 zero-astro 4a96118 原始实现）
- *
- * .hover-keep 与 :hover 样式等效，但 svg **transition: none**——keep 存续期间
- * 图标钉在位移终态，重插后 :hover 短暂丢失也不会回跳或重播过渡；
- * 提示 display: block 且不重播 fade。类由点击/before-swap/after-swap 三层
- * 时机加上，pointermove 撤销——撤销后回位动画与常态一致。
- */
-/* keep 类只钉视觉态（transform/opacity），过渡交给常态规则——
-   换页窗口的零过渡由 .no-anim 冻结统一承担（hover-keep 自带 transition:none
-   会在 pointerover 时打断 hover 渐变、移出时又恢复，来回切换即抽搐） */
-.side .nav-y > a.hover-keep svg {
-  transform: translateX(-6px);
-}
+  .side .nav-y > a.hover-keep svg {
+    transform: translateX(-6px);
+  }
 
-.side .nav > a.hover-keep::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-6px);
-}
+  .side .nav > a.hover-keep::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-6px);
+  }
 
-.nya.hover-keep::after {
-  opacity: 1;
-  visibility: visible;
+  .nya.hover-keep::after {
+    opacity: 1;
+    visibility: visible;
+  }
 }
-
 
 .nya {
   @apply relative translate-y-3;
@@ -177,14 +173,3 @@
   margin: 0 auto;
   white-space: nowrap;
 }
-
-/* 换页冻结态：active 切换瞬切，侧栏所有元素（含伪元素）零过渡 */
-.side.no-anim .nav > a,
-.side.no-anim .nav > a svg,
-.side.no-anim .nav a::after,
-.side.no-anim .nya,
-.side.no-anim .nya::after {
-  transition: none !important;
-}
-
-/* 换页冻结态：active 切换瞬切，侧栏所有元素（含伪元素）零过渡 */
