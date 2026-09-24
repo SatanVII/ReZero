@@ -113,13 +113,13 @@ const { pathname } = Astro.url;
    * :hover 在 swap 起始瞬间即丢失（早于 astro:before-swap 事件），期间提示消失、
    * 图标回跳基准位；重插后 :hover 恢复还会重播 0.3s 位移过渡。
    *
-   * 三层加类时机 + pointermove 撤销：
+   * 四层加类/撤销时机 + pointerover/out 撤销：
    *   1. click 委托（最早）——点击瞬间就把类加上，与 :hover 并存，swap 全程样式恒定
    *   2. astro:before-swap 兜底键盘/程序化导航
    *   3. astro:after-swap 按实际 :hover 校正（transition:persist 复用同一 DOM 节点，
    *      类随节点进入新树，新树首次样式计算即终态）
-   *   4. pointermove 委托撤销——重插后 pointerout 可能缺失，移动即校验；
-   *      鼠标移出交互区才撤类
+   *   4. pointerover/out 委托撤销——跨入其他交互项时转移，离开交互区时撤销；
+   *      取代 pointermove 的逐帧采样（原先每次鼠标移动都会跑一次 closest）
    * 监听全挂 document 上——换页保留、模块脚本不会重跑。
    */
   let keepEl: Element | null = null;
@@ -138,14 +138,14 @@ const { pathname } = Astro.url;
     if (el) setKeep(el);
   });
 
-  // 2. 换页前兜底（键盘/程序化导航无 click）：只加不清——撤销统一交给 pointermove，
+  // 2. 换页前兜底（键盘/程序化导航无 click）：只加不清——撤销统一交给 pointerover/out，
   //    避免 after-swap 瞬间 hit-test 未完成时清类造成一帧空窗
   document.addEventListener('astro:before-swap', () => {
     const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
     if (el) setKeep(el);
   });
 
-  // 3. 换页落地校正：:hover 已恢复则转移到该项；未恢复则保留现有 keep（pointermove 随后接管）
+  // 3. 换页落地校正：:hover 已恢复则转移到该项；未恢复则保留现有 keep（pointerover/out 随后接管）
   document.addEventListener('astro:after-swap', () => {
     const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
     if (el) setKeep(el);
@@ -162,11 +162,6 @@ const { pathname } = Astro.url;
     if (!side) return;
     requestAnimationFrame(() => requestAnimationFrame(() => side.classList.remove('no-anim')));
   });
-
-  // ★ 换页冻结：active 切换的瞬间侧栏必须完全静止（对齐 yun37.me 观感——
-  //   旧站 layout 常驻，active 切换与页面替换同帧、零动画）。侧栏是 persist 元素，
-  //   会被移入新树；在移动前冻结其全部过渡，落地双帧后恢复 hover 渐变。
-
 
   // 4. 低频指针事件撤销：进入其他交互项时转移，离开交互区（relatedTarget 不在 keep 内）时撤销。
   //    pointerover/out 仅在跨越元素边界时触发，取代 pointermove 的逐帧采样（原先每次

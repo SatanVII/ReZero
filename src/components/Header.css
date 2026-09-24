@@ -32,13 +32,6 @@ html.booted .header .nav:not(.over) {
   animation: none;
 }
 
-/* 换页时 Header DOM 会重插，浏览器会重启 CSS 动画（persist 也无法阻止）——
-   首载完成后标记 html.booted，此后非弹出态一律禁用 zoomIn，
-   消除竖屏换页时顶部导航图标的缩放闪现；.over 弹出态保留动画 */
-html.booted .header .nav:not(.over) {
-  animation: none;
-}
-
 .nav > a {
   @apply flex transform cursor-pointer p-2 duration-300;
 }
