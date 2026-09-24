@@ -29,12 +29,10 @@
 .side .nav {
   animation: none;
   /*
-   * 导航列整体手型指针：侧栏导航列内只有链接，鼠标落在列内任何位置
-   * （含图标间的空隙、padding）都应显示手型。仅给 a 设 cursor 时，
-   * 落在空隙上会得到 cursor:auto —— DOM 重插后指针恰好落在空隙的那几帧
-   * 指针就会闪成箭头。整列设为手型即可根治。
+   * 注意：不要在这里设 cursor:pointer。nav 列占满侧栏高度、图标靠 justify-end 沉底，
+   * 整列手型会让图标**上方的空白**也变成交互区（用户实测反馈）。
+   * 手型只由 `.nav > a`（图标盒）与导航期间的 html.navigating 提供。
    */
-  cursor: pointer;
 }
 
 /* 唯一的过渡：颜色（0.3s——对齐旧站 duration-300） */
