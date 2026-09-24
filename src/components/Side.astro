@@ -138,17 +138,36 @@ const { pathname } = Astro.url;
     if (el) setKeep(el);
   });
 
-  // 2. 换页前兜底（键盘/程序化导航无 click）：只加不清——撤销统一交给 pointerover/out，
-  //    避免 after-swap 瞬间 hit-test 未完成时清类造成一帧空窗
+  /*
+   * 无条件恢复 hover-keep：Astro 重插 persist 元素时会清除运行时添加的类，
+   * 且此刻 :hover 尚未重算（实测仍为 false），因此**不能依赖 :hover 查询**——
+   * 否则 hover-keep 丢失 → tooltip 隐藏 → 恢复后再淡入（文字闪一下）。
+   */
+  const restoreKeep = () => {
+    keepEl?.classList.add('hover-keep');
+    // 节点被替换时按 href 兜底定位
+    const href = keepEl?.getAttribute('href');
+    if (href) {
+      const found = document.querySelector(`.side .nav a[href="${href}"]`);
+      if (found && found !== keepEl) {
+        keepEl = found;
+        found.classList.add('hover-keep');
+      }
+    }
+  };
+
+  // 2. 换页前兜底（键盘/程序化导航无 click）
   document.addEventListener('astro:before-swap', () => {
+    restoreKeep();
     const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
-    if (el) setKeep(el);
+    if (el && el !== keepEl) setKeep(el);
   });
 
-  // 3. 换页落地校正：:hover 已恢复则转移到该项；未恢复则保留现有 keep（pointerover/out 随后接管）
+  // 3. 换页落地校正
   document.addEventListener('astro:after-swap', () => {
+    restoreKeep();
     const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
-    if (el) setKeep(el);
+    if (el && el !== keepEl) setKeep(el);
   });
 
   // ★ 换页冻结：active 切换的瞬间侧栏必须完全静止（对齐 yun37.me 观感——
@@ -166,14 +185,31 @@ const { pathname } = Astro.url;
   // 4. 低频指针事件撤销：进入其他交互项时转移，离开交互区（relatedTarget 不在 keep 内）时撤销。
   //    pointerover/out 仅在跨越元素边界时触发，取代 pointermove 的逐帧采样（原先每次
   //    鼠标移动都会跑一次 closest，是侧栏交互迟缓的次要因素）。
+  //    ★ 导航期间（html.navigating）跳过：DOM swap 会派发伪 pointerout（元素被移出文档），
+  //      若在此撤销 hover-keep，tooltip 会隐藏并在重插后再淡入 → 文字闪一下。
+  const isNavigating = () => document.documentElement.classList.contains('navigating');
+
   document.addEventListener('pointerover', (event) => {
+    if (isNavigating()) return;
     const el = (event.target as HTMLElement).closest(KEEP_SELECTOR);
     if (el && el !== keepEl) setKeep(el);
   });
   document.addEventListener('pointerout', (event) => {
+    if (isNavigating()) return;
     if (!keepEl) return;
-    const related = (event as PointerEvent).relatedTarget as HTMLElement | null;
+    const pe = event as PointerEvent;
+    const related = pe.relatedTarget as HTMLElement | null;
     if (related && (keepEl === related || keepEl.contains(related))) return; // keep 内部子元素间移动
+    /*
+     * ★ 用指针坐标判定是否真的离开侧栏区域。
+     *   DOM swap 会派发伪 pointerout（相关目标为空 / 坐标归零），若据此撤销
+     *   hover-keep，tooltip 会隐藏并在重插后再淡入（文字闪一下）。
+     */
+    if (!pe.clientX && !pe.clientY) return; // 坐标归零 ⇒ 非真实指针移动
+    const side = document.querySelector('.side')?.getBoundingClientRect();
+    if (side && pe.clientX >= side.left && pe.clientX <= side.right && pe.clientY >= side.top && pe.clientY <= side.bottom) {
+      return; // 指针仍在侧栏内 ⇒ 不是真的离开
+    }
     const next = related?.closest?.(KEEP_SELECTOR) ?? null;
     if (next !== keepEl) setKeep(next);
   });

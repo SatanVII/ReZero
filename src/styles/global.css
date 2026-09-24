@@ -54,9 +54,8 @@ svg[hidden] {
 @layer base {
   :root {
     /* 主题变量的兜底默认值（胡桃主题）；真实值由客户端主题脚本写入。
-       正文字色取 gray-800：旧站 gray-700 偏灰，宋体 17px 下笔画对比不足，
-       易读性差（用户实测反馈）；加深后所有主题统一受益 */
-    --font-color: #1f2937;
+       正文字色对齐 yun37.me（gray-700）——2026-09-25 用户要求颜色过渡起点色与原站一致 */
+    --font-color: #374151;
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
