@@ -128,12 +128,6 @@ svg[hidden] {
   .page-wrap {
     @apply max-w-[64rem] flex-1 min-w-0;
     animation: page-in 0.5s ease-out both;
-    /* R1：横向溢出（AOS 初始态等）会触发移动浏览器 shrink-to-fit 扩大布局视口，
-       导致平板/手机整页被缩小。clip 裁掉溢出且不产生滚动上下文（Firefox 81+）；
-       clip-margin 放行 8px 溢出：列表悬浮高亮条左侧的主题色装饰竖线（突出 2.6px）
-       不被裁掉（方案 C，2026-09-24）——Safari 不支持该属性，优雅回退为纯 clip */
-    overflow-x: clip;
-    overflow-clip-margin: 8px;
   }
   @keyframes page-in {
     0% {
