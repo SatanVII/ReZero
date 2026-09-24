@@ -3,64 +3,37 @@
 /*
  * 侧栏样式（对应旧站 components/Side/index.css）
  *
- * 交互模式（2026-09-24 方案 1）：恢复 0.2s 轻量过渡（替代 0.3s），配合
- * will-change 合成层提升 + translate3d GPU 路径 + contain 渲染隔离，
- * 使 Firefox 的悬浮动画流畅度对齐 Chromium 系浏览器。
+ * ★ 交互原则（2026-09-25 用户裁定）：点击后**只有颜色过渡**（active 高亮 0.3s 渐变），
+ *   元素位置完全静止。
  *
- * 结构保留：图标尺寸与旧站一致（20×24，`.nav svg` 全局共享给 Header）、
- * active 高亮、cursor 指针、hover:hover 触屏隔离、换页瞬切。
+ *   因此不使用任何 transform / translate3d / will-change：
+ *   - will-change + translate3d 会创建 GPU 合成层，Astro 换页 DOM swap 重插时
+ *     合成层销毁重建 → 图标"闪出伸缩"
+ *   - hover 的 transform 变化在换页瞬间 :hover 丢失 → 图标从 -6px 回跳 -10px
+ *     再跳回 → 位移抖动
+ *   两者共同造成点击后的伸缩/闪动。
+ *
+ *   位移基准 -10px 同时移除（与旧站 zero-D 一致：图标取自然居中位置）。
  */
+
 .nav svg {
   width: 1.25rem;
   height: 1.5rem;
 }
 
-/* 位移基准只作用于侧栏：全局 -10px 会波及 Header 图标，把图标-文字间距从 4px 撑到 14px */
-.side .nav svg {
-  /* translate3d 强制 GPU 合成路径（Firefox 主线程动画的关键优化） */
-  transform: translate3d(-10px, 0, 0);
-  /* 提示 Firefox 为图标创建合成层，transform 过渡走 GPU 而非主线程 */
-  will-change: transform;
-}
-
 .side {
   @apply z-10;
-  /* 注意：不可使用 contain: paint——它会裁剪超出 .side 边界的后代内容，
-     导致 tooltip（定位在 .side 左缘外）完全不可见。
-     Firefox 的合成优化由子元素的 will-change + translate3d 承担 */
 }
 
-/*
- * 入场动画禁用：换页重插会重启 CSS 动画，常驻导航保持静止
- */
+/* 入场动画禁用：换页重插会重启 CSS 动画，常驻导航保持静止 */
 .side .nav {
   animation: none;
 }
 
+/* 唯一的过渡：颜色（0.3s——对齐旧站 duration-300） */
 .side .nav > a {
-  @apply relative transform cursor-pointer p-2;
-  transition: color 0.2s; /* 0.2s 轻量过渡（比 0.3s 更轻快，比瞬切更自然） */
-}
-
-/*
- * hover 位移作用于内层 svg 而不是 a 盒子（原站 a 盒子位移有盒缘 hover 死循环缺陷）。
- * svg pointer-events:none 退出命中，命中区恒为静止的 a 盒子矩形。
- * translate3d 强制 GPU 合成路径；will-change 提示 Firefox 预建合成层。
- */
-.side .nav > a svg {
-  transition: transform 0.2s;
-  pointer-events: none;
-  will-change: transform;
-}
-
-@media (hover: hover) {
-  .side .nav-y > a:hover svg {
-    transform: translate3d(-6px, 0, 0);
-  }
-
-  .side .nav-x > a:hover svg {
-    transform: translate3d(-10px, -4px, 0);
-  }
+  @apply relative cursor-pointer p-2;
+  transition: color 0.3s;
 }
 
 .side .nav > a.active {
@@ -68,9 +41,8 @@
 }
 
 /*
- * 悬浮提示（::after 伪元素，0.2s 轻量过渡——Firefox 渐显渐隐自然）
- * 常驻渲染 + opacity/visibility 控制 + will-change 合成层提升。
- * pointer-events: none 不参与命中。
+ * 悬浮提示：常驻渲染，仅 opacity/visibility 控制显隐
+ * 无 transform（不位移）→ 换页时不会抖动
  */
 .side .nav a::after,
 .nya::after {
@@ -80,12 +52,10 @@
   width: fit-content;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  transform: translate3d(-10px, 0, 0);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: transform 0.2s, opacity 0.2s, visibility 0s linear 0.2s;
-  will-change: transform, opacity;
+  transition: opacity 0.2s, visibility 0s linear 0.2s;
 }
 
 .side .nav a::after {
@@ -103,14 +73,13 @@
   height: 100%;
 }
 
-/* 悬浮态显示（0.2s 轻量过渡）——仅悬停设备，触屏无粘滞 */
+/* 悬浮态显示（仅淡入，无位移）——仅悬停设备，触屏无粘滞 */
 @media (hover: hover) {
   .side .nav-y > a:hover::after,
   .side .nav-y > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
-    transform: translate3d(-6px, 0, 0);
-    transition: transform 0.2s, opacity 0.2s, visibility 0s;
+    transition: opacity 0.2s, visibility 0s;
   }
 
   .nya:hover::after {
@@ -119,14 +88,9 @@
     transition: opacity 0.2s, visibility 0s;
   }
 
-  .side .nav-y > a.hover-keep svg {
-    transform: translate3d(-6px, 0, 0);
-  }
-
   .side .nav > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
-    transform: translate3d(-6px, 0, 0);
   }
 
   .nya.hover-keep::after {
@@ -135,11 +99,12 @@
   }
 }
 
-/* 换页冻结态：active 切换瞬切，侧栏所有元素零过渡 */
-.side.no-anim .nav > a,
-.side.no-anim .nav > a svg,
+/*
+ * 换页冻结态：**仅冻结 tooltip 的显隐过渡**（防止 DOM swap 重插时重播淡入淡出）。
+ * 不冻结 `.nav > a` 的 color 过渡——点击后 active 高亮的颜色需要 0.3s 渐变，
+ * 这正是用户要求的「点击后只有颜色过渡变化」。
+ */
 .side.no-anim .nav a::after,
-.side.no-anim .nya,
 .side.no-anim .nya::after {
   transition: none !important;
 }
