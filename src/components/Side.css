@@ -44,17 +44,38 @@
 }
 
 /*
- * ★ 图标退出 hit-testing（此 bug 的原始修复，2026-09-25 重写时被误删后恢复）
+ * 图标退出 hit-testing（此 bug 的原始修复，2026-09-25 重写时被误删后恢复）
  *
  * SVG 默认 pointer-events: visiblePainted —— 只有**描边/填充的着色区域**参与命中，
  * 图标内部的空隙不命中。鼠标在图标区域移动时命中目标在 path / svg / a 之间反复
- * 切换，叠加 ::after 提示显隐，光标与提示会来回翻转（指针抽搐）。
+ * 切换，光标与提示会来回翻转（指针抽搐）。
  *
  * pointer-events: none 让 svg 完全退出命中 → 命中区恒为静止的 a 盒子矩形
  * （+ ::before 热区），任何时刻命中结果不随图标形状/状态变化，循环无从发生。
  */
 .side .nav > a svg {
   pointer-events: none;
+  /* 位移过渡与颜色一致（旧站 duration-300）；仅 2D translate，不用 will-change/translate3d
+     —— 后者会创建合成层，DOM swap 重插时销毁重建会「闪出伸缩」 */
+  transition: transform 0.3s;
+}
+
+/*
+ * hover 位移：图标右移 4px（对齐旧站 .nav-y > a { hover:translate-x-1 }）。
+ * 作用在 svg 而非 a 盒子上——a 盒子位移会造成盒缘 hover 死循环。
+ * 换页期间由 .hover-keep 钉住同一终态，不会回跳、不会重播过渡。
+ */
+@media (hover: hover) {
+  .side .nav-y > a:hover svg,
+  .side .nav-y > a.hover-keep svg {
+    transform: translateX(4px);
+  }
+
+  /* 底部社交图标列：上移 4px（对齐旧站 hover:-translate-y-1） */
+  .side .nav-x > a:hover svg,
+  .side .nav-x > a.hover-keep svg {
+    transform: translateY(-4px);
+  }
 }
 
 .side .nav > a.active {
