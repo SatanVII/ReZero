@@ -303,6 +303,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   };
 
   document.addEventListener('astro:page-load', () => {
+    document.documentElement.classList.add('booted'); // 首载完成标记：此后 .nav 的入场动画不再随换页重播
     updateActiveNav();
     if (currentTheme) syncThemePanel(currentTheme);
     setupAos();

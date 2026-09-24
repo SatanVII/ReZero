@@ -68,12 +68,14 @@
   pointer-events: none;
 }
 
-.side .nav-y > a:hover svg {
-  transform: translateX(-6px);
-}
+@media (hover: hover) {
+  .side .nav-y > a:hover svg {
+    transform: translateX(-6px);
+  }
 
-.side .nav-x > a:hover svg {
-  transform: translate(-10px, -4px);
+  .side .nav-x > a:hover svg {
+    transform: translate(-10px, -4px);
+  }
 }
 
 .side .nav > a.active {
