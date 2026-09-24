@@ -195,7 +195,12 @@ const { pathname } = Astro.url;
     if (el && el !== keepEl) setKeep(el);
   });
   document.addEventListener('pointerout', (event) => {
-    if (isNavigating()) return;
+    /*
+     * 注意：**不能**在这里用 isNavigating() 提前 return。navigating 会持锁 600ms，
+     * 用户点击后通常在这段时间内就移开鼠标——一旦整体忽略，hover-keep 永不撤销，
+     * 文字就再也收不回去了（实测反复出现的 bug）。
+     * 伪 pointerout 的过滤交给下面的坐标判定即可（伪事件的指针仍在图标盒内）。
+     */
     if (!keepEl) return;
     const pe = event as PointerEvent;
     const related = pe.relatedTarget as HTMLElement | null;

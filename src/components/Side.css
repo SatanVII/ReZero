@@ -111,7 +111,9 @@
   .side .nav-y > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.2s, visibility 0s, color 0.3s;
+    /* 文字与图标同步右移 4px（用户要求文字跟随图标一起平移） */
+    transform: translateX(4px);
+    transition: opacity 0.2s, visibility 0s, color 0.3s, transform 0.3s;
   }
 
   .nya:hover::after {
@@ -123,6 +125,7 @@
   .side .nav > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
+    transform: translateX(4px);
   }
 
   .nya.hover-keep::after {
