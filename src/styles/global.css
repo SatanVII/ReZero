@@ -103,13 +103,6 @@ svg[hidden] {
     transition: background-image 0.8s;
   }
 
-  /* cra 参考：移动端不渲染主题插画——省 290KB 流量，避免插画干扰正文 */
-  @media (max-width: 640px) {
-    body::before {
-      background-image: unset;
-    }
-  }
-
   /* custom scrollBar */
   ::-webkit-scrollbar {
     width: 5px;
