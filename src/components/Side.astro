@@ -177,4 +177,53 @@ const { pathname } = Astro.url;
     const next = related?.closest?.(KEEP_SELECTOR) ?? null;
     if (next !== keepEl) setKeep(next);
   });
+
+  /*
+   * ★ 导航锁（html.navigating）：DOM swap 会把 persist 的侧栏**暂时移出文档**，
+   * 那一瞬间鼠标下方没有任何命中元素 → cursor 回落到默认箭头（点击时指针抽搐一下）。
+   * 整个导航期间在 html 层强制维持手型指针，page-load 后释放。
+   */
+  document.addEventListener('click', (event) => {
+    if ((event.target as HTMLElement).closest('.side .nav a[href]')) {
+      document.documentElement.classList.add('navigating');
+    }
+  });
+  document.addEventListener('astro:before-swap', () => {
+    document.documentElement.classList.add('navigating');
+  });
+  document.addEventListener('astro:page-load', () => {
+    document.documentElement.classList.remove('navigating');
+  });
+
+  /*
+   * ★ active 颜色过渡重放（对齐 yun37.me 的 0.3s 平滑渐变）
+   *
+   * 问题：Astro 的 DOM swap 会把 persist 的侧栏子树**移出文档再插入**。
+   * 元素重插时浏览器重新计算样式，**没有"上一个值"可比较** → active 的颜色变化
+   * 直接以终态渲染（瞬切），transition 不触发。yun37.me（Next.js layout 常驻、
+   * 无 DOM 搬移）因此能平滑渐变，我们的差异就在于此。
+   *
+   * 修复：换页前把每项**当前颜色冻结成 inline**（transition:none + color），
+   * 重插后视觉保持原样；待 active 类更新完毕，再释放 inline → 浏览器看到
+   * 「冻结色 → 类色」的真实变化 → 0.3s 过渡正常播放。
+   */
+  const releaseColor = (a: HTMLElement) => {
+    a.style.transition = '';
+    void a.offsetWidth; // 强制 reflow：确保 transition 已恢复后再改 color
+    a.style.color = '';
+  };
+
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll<HTMLElement>('.side .nav a').forEach((a) => {
+      a.style.transition = 'none';
+      a.style.color = getComputedStyle(a).color;
+    });
+  });
+
+  document.addEventListener('astro:page-load', () => {
+    // 等一帧，确保 updateActiveNav() 已改完 active 类
+    requestAnimationFrame(() => {
+      document.querySelectorAll<HTMLElement>('.side .nav a').forEach(releaseColor);
+    });
+  });
 </script>

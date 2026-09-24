@@ -114,6 +114,16 @@
 }
 
 /*
+ * 导航锁：Astro 换页 DOM swap 会把 persist 的侧栏**暂时移出文档**，
+ * 那一瞬间鼠标下方没有命中元素 → cursor 回落到默认箭头（点击时指针抽搐一下）。
+ * .navigating 由 click / astro:before-swap 添加、astro:page-load 移除，
+ * 期间在 html 层强制维持手型指针，指针全程无变化。
+ */
+html.navigating {
+  cursor: pointer;
+}
+
+/*
  * 换页冻结态：**仅冻结 tooltip 的显隐过渡**（防止 DOM swap 重插时重播淡入淡出）。
  * 不冻结 `.nav > a` 的 color 过渡——点击后 active 高亮的颜色需要 0.3s 渐变，
  * 这正是用户要求的「点击后只有颜色过渡变化」。
