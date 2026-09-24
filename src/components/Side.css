@@ -1,15 +1,14 @@
 @reference "../styles/global.css";
 
 /*
- * 对应旧站 components/Side/index.css
+ * 侧栏样式（对应旧站 components/Side/index.css）
  *
- * 注意：旧站该文件里的 `.nav svg` 规则是「全局」的（Next.js 中组件级 CSS 不做作用域隔离），
- * 因此桌面侧栏（.nav-y / .nav-x）与移动端顶栏（Header 的 .nav）共用同一套图标尺寸。
- * 这里刻意不加 `.side` 前缀，否则 Header 的导航图标会退回 <svg> 的 24px 属性值而偏大。
- * 旧站实测（www.yun37.me，1440×900）：svg 盒子 20×24、transform translateX(-10px)。
- *   宽 20px  = 旧站 `@apply w-5`（1.25rem）
- *   高 24px  = 旧站未显式设置，由 <svg height="24"> 属性生效；图形按 xMidYMid 在盒内居中，
- *              上下各留 2px —— 正是这 2px 让下方的 ::after 提示（top: 0.625rem）与图标对齐。
+ * 交互模式（2026-09-24 方案 1）：恢复 0.2s 轻量过渡（替代 0.3s），配合
+ * will-change 合成层提升 + translate3d GPU 路径 + contain 渲染隔离，
+ * 使 Firefox 的悬浮动画流畅度对齐 Chromium 系浏览器。
+ *
+ * 结构保留：图标尺寸与旧站一致（20×24，`.nav svg` 全局共享给 Header）、
+ * active 高亮、cursor 指针、hover:hover 触屏隔离、换页瞬切。
  */
 .nav svg {
   width: 1.25rem;
@@ -18,26 +17,21 @@
 
 /* 位移基准只作用于侧栏：全局 -10px 会波及 Header 图标，把图标-文字间距从 4px 撑到 14px */
 .side .nav svg {
-  transform: translateX(-10px);
+  /* translate3d 强制 GPU 合成路径（Firefox 主线程动画的关键优化） */
+  transform: translate3d(-10px, 0, 0);
+  /* 提示 Firefox 为图标创建合成层，transform 过渡走 GPU 而非主线程 */
+  will-change: transform;
 }
 
 .side {
   @apply z-10;
+  /* 渲染隔离：侧栏内部的布局/绘制变化不波及页面其他区域，
+     减少 Firefox 主线程动画的掉帧范围 */
+  contain: layout paint;
 }
 
 /*
- * 关掉侧栏竖排导航与底栏社交导航的入场动画。
- *
- * 旧站 Header/index.css 里 `.nav { animation: zoomIn }` 是全局规则，桌面侧栏也会命中；
- * 但旧站用的是 Next App Router，layout 常驻、侧栏 DOM 从不重建，所以那个 zoomIn
- * 只在整页首次加载时播一次，之后换页不会重放。
- * Astro 的 ClientRouter 每次换页都会整体替换 <body>，标了 transition:persist 的元素
- * 也要被搬进新 DOM —— 元素被重新插入时浏览器会重启其 CSS 动画（官方文档
- * "Maintaining State" 明确写了：CSS 动画的重启在 view transition 期间无法避免）。
- * 结果就是每次换页 6 个导航图标 + 7 个底栏图标都会缩放闪现一次。
- * 这两处是常驻导航，按要求保持静止，故在此显式关掉；
- * Header 的 .nav 动画保留（移动端下拉菜单靠 display 切换重放它来实现缩放弹出）。
- * 选择器 (0,2,0) 优先级高于 Header.css 的 `.nav` (0,1,0)，不受文件加载顺序影响。
+ * 入场动画禁用：换页重插会重启 CSS 动画，常驻导航保持静止
  */
 .side .nav {
   animation: none;
@@ -45,40 +39,27 @@
 
 .side .nav > a {
   @apply relative transform cursor-pointer p-2;
-  transition: color 0.3s; /* 对齐旧站 duration-300；位移/提示的过渡在 svg 与 ::after 上单独声明 */
+  transition: color 0.2s; /* 0.2s 轻量过渡（比 0.3s 更轻快，比瞬切更自然） */
 }
 
 /*
- * hover 位移作用于内层 svg 而不是 a 盒子（视觉动效与旧站 a 位移完全一致）。
- * 原实现 `.nav-y > a:hover { translate-x-1 }` 移动整个链接盒子：鼠标停在盒子
- * 左边缘附近时进入 "hover→盒子右移→鼠标脱出→回位→再 hover" 的死循环。
- *
- * 但仅把位移挪到 svg 还不够：svg 基准 translateX(-10px) 使其视觉左缘突出
- * a 盒子左缘约 2px（svg@-10px 从 x=82 起，a 从 x=84 起），而 svg 仍参与
- * hit-testing —— 鼠标停在这 2px 上时依旧死循环：
- *   命中 svg → hover → svg 移到 -6px（视觉从 86 起）且 ::after 提示自带
- *   translateX(-10px) 只覆盖到 x≈78 → 鼠标下方无任何元素 → 脱 hover →
- *   svg 回位 → 再命中 → 光标 pointer/default 反复翻转（实测 bug）。
- *
- * 根除：pointer-events:none 让 svg 退出 hit-testing，hover 命中区恒为
- * 静止的 a 盒子矩形，任何时刻命中结果不随动效变化，循环无从发生。
- * 动效、颜色、::after 提示均不受影响；代价仅是图标视觉突出 a 盒子的
- * 那 2px 不再触发 hover（原站该区域正是闪烁区，行为上只会更好）。
- *   nav-y: translateX(-10px) → translateX(-6px)   （等效 translate-x-1 右移）
- *   nav-x: translateX(-10px) → translate(-10px, -4px)（等效 -translate-y-1 上移）
+ * hover 位移作用于内层 svg 而不是 a 盒子（原站 a 盒子位移有盒缘 hover 死循环缺陷）。
+ * svg pointer-events:none 退出命中，命中区恒为静止的 a 盒子矩形。
+ * translate3d 强制 GPU 合成路径；will-change 提示 Firefox 预建合成层。
  */
 .side .nav > a svg {
-  transition: transform 0.3s;
+  transition: transform 0.2s;
   pointer-events: none;
+  will-change: transform;
 }
 
 @media (hover: hover) {
   .side .nav-y > a:hover svg {
-    transform: translateX(-6px);
+    transform: translate3d(-6px, 0, 0);
   }
 
   .side .nav-x > a:hover svg {
-    transform: translate(-10px, -4px);
+    transform: translate3d(-10px, -4px, 0);
   }
 }
 
@@ -86,15 +67,10 @@
   color: var(--theme-color);
 }
 
-/* data-name 悬浮提示（旧站 .nav a::after / .nya::after 定位值）
- * 不设置 color：旧站由继承决定 —— 普通项取 var(--font-color)，.active 项取主题色，.nya 取自身主题色 */
 /*
- * 悬浮提示：文字与图标联动（2026-09-18 用户要求「文字随着图标一起交互」）
- *
- * 提示常驻渲染（opacity/visibility 控制显隐，替代 display 切换 + fade 动画），
- * transform 与图标同参数过渡——悬浮时文字与图标一起右移 4px（0.3s 同步），
- * 移开时一起回位。pointer-events: none 让提示不参与命中（命中区由 a 盒与
- * 下方 ::before 扩展区构成），避免「移到文字上 → 脱离 a 盒 → 提示消失」死循环。
+ * 悬浮提示（::after 伪元素，0.2s 轻量过渡——Firefox 渐显渐隐自然）
+ * 常驻渲染 + opacity/visibility 控制 + will-change 合成层提升。
+ * pointer-events: none 不参与命中。
  */
 .side .nav a::after,
 .nya::after {
@@ -104,11 +80,12 @@
   width: fit-content;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  transform: translateX(-10px);
+  transform: translate3d(-10px, 0, 0);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: transform 0.3s, opacity 0.3s, visibility 0s linear 0.3s;
+  transition: transform 0.2s, opacity 0.2s, visibility 0s linear 0.2s;
+  will-change: transform, opacity;
 }
 
 .side .nav a::after {
@@ -116,8 +93,7 @@
   top: 0.625rem;
 }
 
-/* 热区向左扩展覆盖提示文字：提示显隐只随 a 盒 :hover 变化，
- * 鼠标在「图标+文字」整块区域内移动不会丢失 hover（同 zero-astro a3a4078 思路） */
+/* 热区向左扩展覆盖提示文字 */
 .side .nav-y > a::before {
   content: '';
   position: absolute;
@@ -127,31 +103,30 @@
   height: 100%;
 }
 
-/* R3：悬浮态显示仅悬停设备启用——触屏 tap 的 :hover 粘滞不再触发 tooltip/位移
-   （平板横屏抽搐的根源），桌面悬停行为不变（渐变过渡保留） */
+/* 悬浮态显示（0.2s 轻量过渡）——仅悬停设备，触屏无粘滞 */
 @media (hover: hover) {
   .side .nav-y > a:hover::after,
   .side .nav-y > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-6px);   /* 与图标同步：同为 +4px 位移 */
-    transition: transform 0.3s, opacity 0.3s, visibility 0s;
+    transform: translate3d(-6px, 0, 0);
+    transition: transform 0.2s, opacity 0.2s, visibility 0s;
   }
 
   .nya:hover::after {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.3s, visibility 0s;
+    transition: opacity 0.2s, visibility 0s;
   }
 
   .side .nav-y > a.hover-keep svg {
-    transform: translateX(-6px);
+    transform: translate3d(-6px, 0, 0);
   }
 
   .side .nav > a.hover-keep::after {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-6px);
+    transform: translate3d(-6px, 0, 0);
   }
 
   .nya.hover-keep::after {
