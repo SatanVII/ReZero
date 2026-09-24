@@ -111,7 +111,7 @@ const { pathname } = Astro.url;
    *
    * 诊断依据（真实点击 + 40ms 采样）：swap 会把 persist 的侧栏 DOM 移除重插，
    * :hover 在 swap 起始瞬间即丢失（早于 astro:before-swap 事件），期间提示消失、
-   * 图标回跳基准位；重插后 :hover 恢复还会重播 0.3s 位移过渡。
+   * 图标回到常态位置；重插后 :hover 恢复还会重播 0.3s 位移过渡。
    *
    * 四层加类/撤销时机 + pointerover/out 撤销：
    *   1. click 委托（最早）——点击瞬间就把类加上，与 :hover 并存，swap 全程样式恒定
@@ -156,18 +156,22 @@ const { pathname } = Astro.url;
     }
   };
 
+  /* 把 hover-keep 同步到当前 :hover 的那一项（换页前后各调一次） */
+  const syncKeepToHover = () => {
+    const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
+    if (el && el !== keepEl) setKeep(el);
+  };
+
   // 2. 换页前兜底（键盘/程序化导航无 click）
   document.addEventListener('astro:before-swap', () => {
     restoreKeep();
-    const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
-    if (el && el !== keepEl) setKeep(el);
+    syncKeepToHover();
   });
 
   // 3. 换页落地校正
   document.addEventListener('astro:after-swap', () => {
     restoreKeep();
-    const el = document.querySelector('.side .nav a[data-name]:hover, .side .nya:hover');
-    if (el && el !== keepEl) setKeep(el);
+    syncKeepToHover();
   });
 
   /*
@@ -179,8 +183,9 @@ const { pathname } = Astro.url;
   // 4. 低频指针事件撤销：进入其他交互项时转移，离开交互区（relatedTarget 不在 keep 内）时撤销。
   //    pointerover/out 仅在跨越元素边界时触发，取代 pointermove 的逐帧采样（原先每次
   //    鼠标移动都会跑一次 closest，是侧栏交互迟缓的次要因素）。
-  //    ★ 导航期间（html.navigating）跳过：DOM swap 会派发伪 pointerout（元素被移出文档），
-  //      若在此撤销 hover-keep，tooltip 会隐藏并在重插后再淡入 → 文字闪一下。
+  //    ★ 导航期间（html.navigating）只跳过 **pointerover**：DOM swap 重插会派发伪
+  //      pointerover，据此转移 hover-keep 会把提示转到错误项上。
+  //      （pointerout 刻意不用此守卫——见下方说明。）
   const isNavigating = () => document.documentElement.classList.contains('navigating');
 
   document.addEventListener('pointerover', (event) => {

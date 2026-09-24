@@ -3,17 +3,14 @@
 /*
  * 侧栏样式（对应旧站 components/Side/index.css）
  *
- * ★ 交互原则（2026-09-25 用户裁定）：点击后**只有颜色过渡**（active 高亮 0.3s 渐变），
- *   元素位置完全静止。
+ * ★ 交互原则（2026-09-25 用户裁定）：
+ *   · 悬浮：图标与提示文字**同步右移 4px**（位移只用于悬浮反馈）
+ *   · 点击换页：只剩**颜色过渡**（active 高亮 0.3s 渐变），位置全程静止
  *
- *   因此不使用任何 transform / translate3d / will-change：
- *   - will-change + translate3d 会创建 GPU 合成层，Astro 换页 DOM swap 重插时
- *     合成层销毁重建 → 图标"闪出伸缩"
- *   - hover 的 transform 变化在换页瞬间 :hover 丢失 → 图标从 -6px 回跳 -10px
- *     再跳回 → 位移抖动
- *   两者共同造成点击后的伸缩/闪动。
- *
- *   位移基准 -10px 同时移除（与旧站 zero-D 一致：图标取自然居中位置）。
+ * ❌ 禁用 will-change: transform / translate3d —— 二者会创建 GPU 合成层，
+ *    Astro 换页 DOM swap 重插时合成层销毁重建 → 图标「闪出伸缩」。统一用 2D translate。
+ * ✅ 已移除 -10px 基准位移（与旧站 zero-D 一致：图标取自然居中位置），
+ *    因此不存在「换页时位移回跳」的问题。
  */
 
 .nav svg {
@@ -35,31 +32,29 @@
    */
 }
 
-/* 唯一的过渡：颜色（0.3s——对齐旧站 duration-300） */
+/* 颜色过渡：0.3s（对齐旧站 duration-300） */
 .side .nav > a {
   @apply relative cursor-pointer p-2;
   transition: color 0.3s;
 }
 
 /*
- * 图标退出 hit-testing（此 bug 的原始修复，2026-09-25 重写时被误删后恢复）
+ * 图标退出 hit-testing
  *
  * SVG 默认 pointer-events: visiblePainted —— 只有**描边/填充的着色区域**参与命中，
  * 图标内部的空隙不命中。鼠标在图标区域移动时命中目标在 path / svg / a 之间反复
  * 切换，光标与提示会来回翻转（指针抽搐）。
  *
- * pointer-events: none 让 svg 完全退出命中 → 命中区恒为静止的 a 盒子矩形
- * （+ ::before 热区），任何时刻命中结果不随图标形状/状态变化，循环无从发生。
+ * pointer-events: none 让 svg 完全退出命中 → 命中区恒为静止的 a 盒子矩形，
+ * 任何时刻命中结果不随图标形状/状态变化，循环无从发生。
  */
 .side .nav > a svg {
   pointer-events: none;
-  /* 位移过渡与颜色一致（旧站 duration-300）；仅 2D translate，不用 will-change/translate3d
-     —— 后者会创建合成层，DOM swap 重插时销毁重建会「闪出伸缩」 */
   transition: transform 0.3s;
 }
 
 /*
- * hover 位移：图标右移 4px（对齐旧站 .nav-y > a { hover:translate-x-1 }）。
+ * 悬浮位移：图标右移 4px（对齐旧站 .nav-y > a { hover:translate-x-1 }）。
  * 作用在 svg 而非 a 盒子上——a 盒子位移会造成盒缘 hover 死循环。
  * 换页期间由 .hover-keep 钉住同一终态，不会回跳、不会重播过渡。
  */
@@ -69,9 +64,12 @@
     transform: translateX(4px);
   }
 
-  /* 底部社交图标列：上移 4px（对齐旧站 hover:-translate-y-1） */
-  .side .nav-x > a:hover svg,
-  .side .nav-x > a.hover-keep svg {
+  /*
+   * 底部社交图标列：上移 4px（对齐旧站 hover:-translate-y-1）。
+   * 只写 :hover 分支——nav-x 项无 data-name、不在 KEEP_SELECTOR 内，
+   * 永远不会被加 .hover-keep。
+   */
+  .side .nav-x > a:hover svg {
     transform: translateY(-4px);
   }
 }
@@ -81,8 +79,8 @@
 }
 
 /*
- * 悬浮提示：常驻渲染，仅 opacity/visibility 控制显隐
- * 无 transform（不位移）→ 换页时不会抖动
+ * 悬浮提示：常驻渲染，仅 opacity/visibility 控制显隐。
+ * 基准位置固定（left/top），位移只由下方 :hover 规则统一施加（与图标同步右移 4px）。
  */
 .side .nav a::after,
 .nya::after {
@@ -98,14 +96,14 @@
   transition: opacity 0.2s, visibility 0s linear 0.2s, color 0.3s;
 }
 
-/* 提示文字：定位在图标左侧（悬浮仅由图标本身触发，故无左侧热区——
+/* 提示文字：定位在图标左侧（悬浮仅由图标本身触发，无左侧热区——
    指针一旦离开图标元素，提示立即开始收起） */
 .side .nav a::after {
   left: -1.5rem;
   top: 0.625rem;
 }
 
-/* 悬浮态显示（仅淡入，无位移）——仅悬停设备，触屏无粘滞 */
+/* 悬浮态显示——仅悬停设备，触屏无粘滞 */
 @media (hover: hover) {
   .side .nav-y > a:hover::after,
   .side .nav-y > a.hover-keep::after {
@@ -122,12 +120,6 @@
     transition: opacity 0.2s, visibility 0s, color 0.3s;
   }
 
-  .side .nav > a.hover-keep::after {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(4px);
-  }
-
   .nya.hover-keep::after {
     opacity: 1;
     visibility: visible;
@@ -136,7 +128,7 @@
 
 /*
  * 导航锁：Astro 换页 DOM swap 会把 persist 的侧栏**暂时移出文档**，
- * 那一瞬间鼠标下方没有命中元素 → cursor 回落到默认箭头（点击时指针抽搐一下）。
+ * 那一瞬间鼠标下方没有命中元素 → cursor 回落到默认箭头（点击时指针闪烁一下）。
  * .navigating 由 click / astro:before-swap 添加、astro:page-load 移除，
  * 期间在 html 层强制维持手型指针，指针全程无变化。
  */
