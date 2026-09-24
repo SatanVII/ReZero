@@ -25,3 +25,4 @@ pnpm-debug.log*
 
 # content 以 git 子模块方式入库（仓库: SatanVII/blog-content），本地更新走 scripts/sync-content.mjs
 /public/IMAGES
+preview-4354.log
