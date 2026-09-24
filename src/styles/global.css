@@ -133,7 +133,6 @@ svg[hidden] {
        clip-margin 放行 8px 溢出：列表悬浮高亮条左侧的主题色装饰竖线（突出 2.6px）
        不被裁掉（方案 C，2026-09-24）——Safari 不支持该属性，优雅回退为纯 clip */
     overflow-x: clip;
-    overflow-clip-margin: 8px;
   }
   @keyframes page-in {
     0% {
@@ -259,7 +258,7 @@ svg[hidden] {
     content: '';
     position: absolute;
     top: 50%;
-    left: -0.16rem;
+    left: 0.16rem;
     width: 0.32rem;
     height: 70%;
     border-radius: 0.1rem;
