@@ -243,17 +243,59 @@ const { pathname } = Astro.url;
     document.querySelectorAll<HTMLElement>('.side .nav a').forEach(releaseColor);
   };
 
+  /* ---------- 指针锁（html.navigating）三件套 ---------- */
+  let navLockActive = false;
+  /** 指针锁是否在等「用户第一次真实移动」（见 page-load 说明） */
+  let awaitingPointerMove = false;
+  /** 最近一次指针位置（用于判断指针是否仍停在侧栏交互项上） */
+  let lastPX = 0;
+  let lastPY = 0;
+  /** 导航序号：每次上锁自增，供延迟回调判断「期间是否又开始了新导航」 */
+  let navSeq = 0;
+
+  const applyNavLock = () => {
+    navSeq++;
+    navLockActive = true;
+    document.documentElement.classList.add('navigating');
+  };
+  const dropNavLock = () => {
+    navLockActive = false;
+    document.documentElement.classList.remove('navigating');
+  };
+
+  /*
+   * ClientRouter 在 swap 中会重建 <html> 的属性（class 被一并抹掉）。原先只依赖
+   * astro:after-swap 补回，但「被抹掉 → after-swap」之间存在数帧空窗，期间指针会
+   * 从手型回落成箭头（逐帧采样可见 cursor 出现 auto）。用 MutationObserver 在 class
+   * 变动的当下立即补回，彻底消除该空窗。
+   */
+  new MutationObserver(() => {
+    if (navLockActive && !document.documentElement.classList.contains('navigating')) {
+      document.documentElement.classList.add('navigating');
+    }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  // 跟踪指针位置（供 page-load 判断指针是否仍在侧栏交互项上）
+  const trackPointer = (event: Event) => {
+    const pe = event as PointerEvent;
+    lastPX = pe.clientX;
+    lastPY = pe.clientY;
+  };
+  document.addEventListener('pointermove', trackPointer, true);
+  document.addEventListener('pointerdown', trackPointer, true);
+
   /** 统一清理：把侧栏恢复到常态（导航结束或被取消时都走这里） */
   const cleanupNavState = () => {
-    document.documentElement.classList.remove('navigating');
+    awaitingPointerMove = false;
+    dropNavLock();
     document.querySelector('.side')?.classList.remove('no-anim');
     releaseAllColors();
   };
 
   /*
    * 兜底看门狗：每次施加导航状态时重置。
-   * 无论导航以何种方式中断（同址、新标签、fetch 失败、用户中止），
-   * 2.5s 内必定把侧栏恢复到常态——杜绝永久残留。
+   * 无论导航以何种方式中断（修饰键/新窗口点击未触发导航、fetch 失败、用户中止、
+   * 或指针始终静止导致 awaitingPointerMove 一直挂着），2.5s 内必定把侧栏恢复到常态。
    */
   let navWatchdog = 0;
   const armWatchdog = () => {
@@ -261,7 +303,16 @@ const { pathname } = Astro.url;
     navWatchdog = window.setTimeout(cleanupNavState, 2500);
   };
 
-  /** 该次点击是否会导航当前页？（修饰键 / 新窗口目标都算「不导航当前页」） */
+  /**
+   * 该次点击是否会**导航当前页**？只有「修饰键」与「新窗口目标」算「不会导航」。
+   *
+   * ★ 切勿再加「同址点击不换页」的判据（这是曾经写下的错误假设）。
+   *   实测探针 visual-audit/probe-same-url.mjs 已证明：ClientRouter 对**同址点击**
+   *   同样走完整流程 —— before-preparation → after-preparation → before-swap →
+   *   after-swap → page-load（to=/）。既然同址点击真的会换页，就必须照常加指针锁；
+   *   否则该次 swap 期间 persist 的侧栏暂时离场、指针命中不到任何元素，
+   *   光标从手型回落成箭头（回归断言「换页期间指针恒为 pointer」里出现的 auto）。
+   */
   const willNavigateSelf = (event: MouseEvent, link: HTMLAnchorElement) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return false;
     const target = link.getAttribute('target');
@@ -271,36 +322,25 @@ const { pathname } = Astro.url;
 
   /*
    * 点击：只在「确实会导航当前页」时加指针锁。
-   * 若不加此判断，Ctrl+点击 / target=_blank（底部社交图标）会让 .navigating
-   * 永久残留 —— 全站鼠标恒为手型（实测缺陷 B1/B2）。
+   * 若不加此判断，Ctrl+点击 / target=_blank（底部社交图标）不会换页，
+   * 一次 astro:page-load 都没有，指针锁只能等看门狗解除（实测缺陷 B1/B2）。
    */
   document.addEventListener('click', (event) => {
     const me = event as MouseEvent;
     const a = (me.target as HTMLElement).closest('.side .nav a[href]') as HTMLAnchorElement | null;
     if (!a || !willNavigateSelf(me, a)) return;
-    document.documentElement.classList.add('navigating');
+    applyNavLock();
     armWatchdog();
   });
 
   /* 换页开始：加锁 + 冻结颜色 + 上表看门狗 */
-  document.addEventListener('astro:before-swap', (event) => {
+  document.addEventListener('astro:before-swap', () => {
     /*
-     * ★ 同址导航（首页点站名等）只会触发 before-swap，不会走到 after-swap/page-load
-     *   —— 此时**不要施加任何副作用**，否则永远没人清理（实测缺陷 B3）。
-     *   判定用事件的 `to`（目标 URL）——实测 `newDocument.location` 不可用。
+     * 注意：不要在这里做「同址导航跳过」的优化。实测同址点击同样会 swap
+     * （见 willNavigateSelf 说明），跳过会让该次 swap 全程没有指针锁。
+     * 若导航异常中断，看门狗会在 2.5s 内把状态清干净。
      */
-    const to = (event as unknown as { to?: string | URL }).to;
-    let toPath: string | null = null;
-    if (to) {
-      try {
-        toPath = new URL(String(to), location.href).pathname;
-      } catch {
-        toPath = null;
-      }
-    }
-    if (toPath && toPath === location.pathname) return;
-
-    document.documentElement.classList.add('navigating');
+    applyNavLock();
     document.querySelector('.side')?.classList.add('no-anim');
     /*
      * active 颜色过渡重放（对齐 yun37.me 的 0.3s 平滑渐变）：
@@ -316,21 +356,61 @@ const { pathname } = Astro.url;
     armWatchdog();
   });
 
-  /* 换页落地：ClientRouter 会重建 <html> 属性（class 被清）→ 必须补回 .navigating */
+  /*
+   * 换页落地：ClientRouter 会重建 <html> 属性（class 被一并抹掉）。
+   * 补回交给 applyNavLock()；「被抹掉 → after-swap」之间的空窗由上面的
+   * MutationObserver 即时补回（那才是指针回落成箭头的真正窗口）。
+   */
   document.addEventListener('astro:after-swap', () => {
-    document.documentElement.classList.add('navigating');
+    applyNavLock();
     const side = document.querySelector('.side');
     if (!side) return;
     requestAnimationFrame(() => requestAnimationFrame(() => side.classList.remove('no-anim')));
   });
 
-  /* 落地后：尽早释放颜色冻结（颜色过渡要立刻开始）；指针锁再多持 600ms */
+  /* 落地后：尽早释放颜色冻结（颜色过渡要立刻开始）；指针锁见下 */
   document.addEventListener('astro:page-load', () => {
     requestAnimationFrame(releaseAllColors); // 等一帧，确保 updateActiveNav() 已改完 active 类
     /*
-     * 指针锁持 600ms：逐帧实测 DOM 重插后指针下的命中结果会在 cursor:auto 与
-     * pointer 之间抖动数十毫秒（布局重排 + 浏览器 hover 重算），必须覆盖该窗口。
+     * ★ 指针锁不按固定时长解除，也**不在落地瞬间做命中判定**。
+     *
+     * 固定时长（曾用 600ms）在真实浏览器/较慢网络下可能早于「布局完成 + 浏览器重算
+     * hover」，解锁瞬间指针会从手型回落成箭头（用户实测：点击項目/書閣/自述后变箭头）。
+     *
+     * 实测依据一：导航期间**零个合成 pointermove**（只有 pointerover/out 等），
+     *   pointermove 仅在用户真实移动时触发 —— 等首次 pointermove 既覆盖布局与 hover
+     *   重算窗口，又能在用户静止时把手型保持住。
+     * 实测依据二（probe-efp.mjs）：page-load 那一刻布局尚未重算，
+     *   elementFromPoint(指针坐标) 返回的是 <html> 而不是图标（t=33ms → HTML，
+     *   t=217ms → A）。若在此刻用命中结果判断「指针不在交互项上」就会**误解锁**，
+     *   而那一刻正是指针需要被兜住的窗口 —— 这正是「点击后指针变箭头」的成因。
+     *
+     * 故：落地后一律保持锁，只由「首次真实移动」或 2.5s 看门狗解除。
      */
-    window.setTimeout(() => document.documentElement.classList.remove('navigating'), 600);
+    awaitingPointerMove = true;
+    /*
+     * 但若指针根本不在侧栏交互项上（页面内链点击等），让全局 html 手型多留毫无意义。
+     * 布局稳定后再复查一次（延迟是因为上面那条实测：落地瞬间的命中结果不可信），
+     * 仍不在交互项上就立即解除。指针若已真实移动过，awaitingPointerMove 已复位，直接跳过。
+     * navSeq 判定：复查窗口内若用户又点了另一项（新导航已开始），本次复查必须让位，
+     * 否则会把新导航的锁解掉。
+     */
+    const mySeq = navSeq;
+    window.setTimeout(() => {
+      if (navSeq !== mySeq || !awaitingPointerMove) return;
+      const at = document.elementFromPoint(lastPX, lastPY);
+      if (!at || !at.closest(KEEP_SELECTOR)) dropNavLock();
+    }, 400);
   });
+
+  /* 真实移动一次即解锁（静止时保持手型） */
+  document.addEventListener(
+    'pointermove',
+    () => {
+      if (!awaitingPointerMove) return;
+      awaitingPointerMove = false;
+      dropNavLock();
+    },
+    true,
+  );
 </script>
