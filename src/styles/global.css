@@ -134,7 +134,6 @@ svg[hidden] {
        不被裁掉（方案 C，2026-09-24）——Safari 不支持该属性，优雅回退为纯 clip */
     overflow-x: clip;
     overflow-clip-margin: 8px;
-    overflow-clip-margin: 8px;
   }
   @keyframes page-in {
     0% {
