@@ -36,6 +36,20 @@
   transition: color 0.3s;
 }
 
+/*
+ * ★ 图标退出 hit-testing（此 bug 的原始修复，2026-09-25 重写时被误删后恢复）
+ *
+ * SVG 默认 pointer-events: visiblePainted —— 只有**描边/填充的着色区域**参与命中，
+ * 图标内部的空隙不命中。鼠标在图标区域移动时命中目标在 path / svg / a 之间反复
+ * 切换，叠加 ::after 提示显隐，光标与提示会来回翻转（指针抽搐）。
+ *
+ * pointer-events: none 让 svg 完全退出命中 → 命中区恒为静止的 a 盒子矩形
+ * （+ ::before 热区），任何时刻命中结果不随图标形状/状态变化，循环无从发生。
+ */
+.side .nav > a svg {
+  pointer-events: none;
+}
+
 .side .nav > a.active {
   color: var(--theme-color);
 }
