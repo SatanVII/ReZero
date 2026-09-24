@@ -254,7 +254,7 @@ svg[hidden] {
     position: absolute;
     top: 50%;
     left: -0.16rem;
-    width: 0.3125rem;
+    width: 0.25rem;
     height: 70%;
     border-radius: 0.1rem;
     background-color: var(--theme-color);
