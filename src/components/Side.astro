@@ -216,8 +216,12 @@ const { pathname } = Astro.url;
 
   /*
    * ★ 导航锁（html.navigating）：DOM swap 会把 persist 的侧栏**暂时移出文档**，
-   * 那一瞬间鼠标下方没有任何命中元素 → cursor 回落到默认箭头（点击时指针抽搐一下）。
-   * 整个导航期间在 html 层强制维持手型指针，page-load 后释放。
+   * 那一瞬间鼠标下方没有任何命中元素 → cursor 回落到默认箭头（点击时指针闪烁一下）。
+   * 整个导航期间在 html 层强制维持手型指针。
+   *
+   * ★ 解除时机：不能一收到 astro:page-load 就解除——实测 DOM 重插后布局还要
+   *   ~2-3 帧才稳定，期间指针下的元素尚非交互项（cursor:auto），过早解除会让
+   *   指针闪一下。改为「指针重新命中侧栏」或超时（10 帧）后解除。
    */
   document.addEventListener('click', (event) => {
     if ((event.target as HTMLElement).closest('.side .nav a[href]')) {
@@ -227,8 +231,22 @@ const { pathname } = Astro.url;
   document.addEventListener('astro:before-swap', () => {
     document.documentElement.classList.add('navigating');
   });
+  document.addEventListener('astro:after-swap', () => {
+    /*
+     * ★ 必须补回：ClientRouter 换页会用新页面属性**重置 <html>**（class 一并被清），
+     *   加在 <html> 上的 .navigating 会被 swap 抹掉 → 指针锁失效 → 闪烁。
+     *   （BaseLayout 同样在 after-swap 补回 .js 与 data-theme。）
+     */
+    document.documentElement.classList.add('navigating');
+  });
   document.addEventListener('astro:page-load', () => {
-    document.documentElement.classList.remove('navigating');
+    /*
+     * 解锁时机：固定 600ms。
+     * 逐帧实测：DOM 重插后指针下的命中结果会在 cursor:auto 与 pointer 之间抖动
+     * 数十毫秒（布局重排 + 浏览器 hover 重算），元素探测/短延时都无法稳定覆盖。
+     * 600ms 覆盖该窗口；用户刚点完侧栏链接，指针本就在侧栏内，手型符合预期。
+     */
+    window.setTimeout(() => document.documentElement.classList.remove('navigating'), 600);
   });
 
   /*
