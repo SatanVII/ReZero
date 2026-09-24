@@ -100,19 +100,11 @@
   transition: opacity 0.2s, visibility 0s linear 0.2s, color 0.3s;
 }
 
+/* 提示文字：定位在图标左侧（悬浮仅由图标本身触发，故无左侧热区——
+   指针一旦离开图标元素，提示立即开始收起） */
 .side .nav a::after {
   left: -1.5rem;
   top: 0.625rem;
-}
-
-/* 热区向左扩展覆盖提示文字 */
-.side .nav-y > a::before {
-  content: '';
-  position: absolute;
-  right: 100%;
-  top: 0;
-  width: 2.5rem;
-  height: 100%;
 }
 
 /* 悬浮态显示（仅淡入，无位移）——仅悬停设备，触屏无粘滞 */

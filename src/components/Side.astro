@@ -202,17 +202,13 @@ const { pathname } = Astro.url;
     if (related && (keepEl === related || keepEl.contains(related))) return; // keep 内部子元素间移动
     /*
      * ★ 伪 pointerout 过滤：DOM swap 移出元素时会派发一次 pointerout，但指针
-     *   实际仍停在原处。判据是「指针当前坐标是否仍在**该项的悬停区**内」
-     *   （a 盒 + 左侧 2.5rem 热区）——在则视为伪事件，不撤销；不在则正常撤销。
-     *   注意：不能用整个侧栏范围做判据，否则移到侧栏内空隙时文字不会收回。
+     *   实际仍停在原处。判据是「指针当前坐标是否仍在**该项图标盒**内」——
+     *   在则视为伪事件，不撤销；不在则立即撤销（指针离开图标即收起文字）。
+     *   注意不要用侧栏/热区等更大范围，否则离开图标后文字不收回。
      */
-    const HOT_ZONE = 40; // 2.5rem 热区
     const r = keepEl.getBoundingClientRect();
     const stillOnItem =
-      pe.clientX >= r.left - HOT_ZONE &&
-      pe.clientX <= r.right &&
-      pe.clientY >= r.top &&
-      pe.clientY <= r.bottom;
+      pe.clientX >= r.left && pe.clientX <= r.right && pe.clientY >= r.top && pe.clientY <= r.bottom;
     if (stillOnItem) return;
     const next = related?.closest?.(KEEP_SELECTOR) ?? null;
     if (next !== keepEl) setKeep(next);
