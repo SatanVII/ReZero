@@ -25,9 +25,9 @@
 
 .side {
   @apply z-10;
-  /* 渲染隔离：侧栏内部的布局/绘制变化不波及页面其他区域，
-     减少 Firefox 主线程动画的掉帧范围 */
-  contain: layout paint;
+  /* 注意：不可使用 contain: paint——它会裁剪超出 .side 边界的后代内容，
+     导致 tooltip（定位在 .side 左缘外）完全不可见。
+     Firefox 的合成优化由子元素的 will-change + translate3d 承担 */
 }
 
 /*
@@ -133,6 +133,15 @@
     opacity: 1;
     visibility: visible;
   }
+}
+
+/* 换页冻结态：active 切换瞬切，侧栏所有元素零过渡 */
+.side.no-anim .nav > a,
+.side.no-anim .nav > a svg,
+.side.no-anim .nav a::after,
+.side.no-anim .nya,
+.side.no-anim .nya::after {
+  transition: none !important;
 }
 
 .nya {
