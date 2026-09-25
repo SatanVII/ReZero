@@ -212,9 +212,68 @@ const { term } = Astro.props;
     upgradeWhenReady();
   };
 
-  const mountAll = () => {
-    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach((el) => void mount(el));
+  // ---------------------------------------------------------------------------
+  // 懒挂载（2026-09-25）：换页瞬间不挂 giscus，等「评论区可见 + 用户有真实输入」才挂。
+  //
+  // 原因：客户端换页会让 Chromium 把显示光标锁存成默认箭头（换页时 hover 链塌缩，
+  // 而 Chromium 的光标只在鼠标事件时重算），通常几十毫秒内随下一次重算自愈、不可
+  // 感知；但 giscus 的 script/iframe 注入会在换页后 ~450ms 再次触发同样的锁存，
+  // 把箭头拉长到肉眼可见的 ~1s（真实 OS 级点击 + GetCursorInfo 实测：仅挂载评论的
+  // 页面 書閣/友鄰/自述 出现，文章/隨想/項目 不出现）。
+  //
+  // 条件设计：评论区进入视口（IntersectionObserver）**且** 用户有真实输入
+  // （pointermove / wheel / keydown，信任事件才计入）——指针在图标上静止不动就
+  // 永不注入，手型得以保持；一旦用户移动鼠标，注入发生在连续的输入事件流里，
+  // 即使有瞬时重置也会被下一个移动事件立即纠正，不可感知。评论区在页面底部，
+  // 此策略对功能零影响，且每次换页省去 97 个字体分片请求。
+  // ---------------------------------------------------------------------------
+  const visibleContainers = new Set<HTMLElement>();
+  let commentObserver: IntersectionObserver | null = null;
+  let hasInputSinceLoad = false;
+
+  const flushVisibleContainers = () => {
+    if (!hasInputSinceLoad) return;
+    for (const el of visibleContainers) {
+      commentObserver?.unobserve(el);
+      void mount(el);
+    }
+    visibleContainers.clear();
   };
+  const markRealInput = () => {
+    hasInputSinceLoad = true;
+    flushVisibleContainers();
+  };
+
+  const mountAll = () => {
+    hasInputSinceLoad = false; // 每次换页重新等待真实输入
+    visibleContainers.clear();
+    commentObserver ??= new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const el = entry.target as HTMLElement;
+          if (entry.isIntersecting) visibleContainers.add(el);
+          else visibleContainers.delete(el);
+        }
+        flushVisibleContainers();
+      },
+      // 严格进入视口才算（部分页面评论区就在折叠线下几像素，正 margin 会让挂载
+      // 提前到换页瞬间，等于没修）
+      { rootMargin: '0px 0px' },
+    );
+    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach((el) => {
+      if (commentObserver) commentObserver.observe(el);
+    });
+  };
+
+  // 真实用户输入（信任事件才计入）：指针移动 / 滚轮 / 键盘
+  document.addEventListener('pointermove', markRealInput, { passive: true, capture: true });
+  document.addEventListener('wheel', markRealInput, { passive: true, capture: true });
+  document.addEventListener('keydown', markRealInput, { capture: true });
+  // 换页会替换整个 body：旧容器随旧文档销毁，换页前断开观察并清空
+  document.addEventListener('astro:before-swap', () => {
+    commentObserver?.disconnect();
+    visibleContainers.clear();
+  });
 
   // 主题切换时同步 giscus iframe 配色（完整主题已缓存，切换即时生效）
   window.addEventListener('theme:changed', (event) => {
