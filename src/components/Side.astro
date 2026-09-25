@@ -209,10 +209,18 @@ const { pathname } = Astro.url;
      *   实际仍停在原处。判据是「指针当前坐标是否仍在**该项图标盒**内」——
      *   在则视为伪事件，不撤销；不在则立即撤销（指针离开图标即收起文字）。
      *   注意不要用侧栏/热区等更大范围，否则离开图标后文字不收回。
+     *
+     * ★ 边界用 1px 内缩（开区间）：相邻两项的图标盒垂直相接，直接从上一项
+     *   移入下一项时，边界处 pointerout 的坐标恰好等于 keepEl 的 bottom——
+     *   闭区间判定会把它误判为「仍在图标内」而吞掉；而导航锁期间 pointerover
+     *   又被刻意跳过（防伪事件）→ keep 永不转移，上一项的文字提示残留
+     *   （真实连续移动实测复现：点击文章后滑到隨想，文章提示不收回）。
+     *   内缩 1px 后边界处的 pointerout 正常触发转移；swap 期间的伪事件
+     *   （指针在图标中心，远离边界）仍被正确过滤。
      */
     const r = keepEl.getBoundingClientRect();
     const stillOnItem =
-      pe.clientX >= r.left && pe.clientX <= r.right && pe.clientY >= r.top && pe.clientY <= r.bottom;
+      pe.clientX > r.left + 1 && pe.clientX < r.right - 1 && pe.clientY > r.top + 1 && pe.clientY < r.bottom - 1;
     if (stillOnItem) return;
     const next = related?.closest?.(KEEP_SELECTOR) ?? null;
     if (next !== keepEl) setKeep(next);
