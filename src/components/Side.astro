@@ -243,11 +243,11 @@ const { pathname } = Astro.url;
     document.querySelectorAll<HTMLElement>('.side .nav a').forEach(releaseColor);
   };
 
-  /* ---------- 指针锁（html.navigating）三件套 ---------- */
+  /* ---------- 指针锁（html.navigating） ---------- */
   let navLockActive = false;
-  /** 指针锁是否在等「用户第一次真实移动」（见 page-load 说明） */
-  let awaitingPointerMove = false;
-  /** 最近一次指针位置（用于判断指针是否仍停在侧栏交互项上） */
+  /** 锁定状态已交给「指针是否还在侧栏交互项内」判定（见 releaseIfPointerLeftSide） */
+  let awaitingPointerRelease = false;
+  /** 最近一次指针位置（几何判定的输入；由 trackPointer 维护） */
   let lastPX = 0;
   let lastPY = 0;
   /** 导航序号：每次上锁自增，供延迟回调判断「期间是否又开始了新导航」 */
@@ -275,7 +275,7 @@ const { pathname } = Astro.url;
     }
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-  // 跟踪指针位置（供 page-load 判断指针是否仍在侧栏交互项上）
+  // 跟踪指针位置（供下面的几何判定与 hover-keep 撤销使用）
   const trackPointer = (event: Event) => {
     const pe = event as PointerEvent;
     lastPX = pe.clientX;
@@ -284,9 +284,36 @@ const { pathname } = Astro.url;
   document.addEventListener('pointermove', trackPointer, true);
   document.addEventListener('pointerdown', trackPointer, true);
 
+  /*
+   * 指针是否仍压在某个侧栏交互项（导航图标盒 / 蝴蝶）的矩形内？
+   *
+   * ★ 必须用 getBoundingClientRect() 做**几何判定**，绝不能用 document.elementFromPoint()。
+   *   实测（visual-audit/probe-nav-geometry.mjs；CPU 节流 x8 / x20 复现）：
+   *   换页 swap 期间侧栏 persist 子树正在被搬移，**短暂不可命中** ——
+   *   `elementFromPoint(图标坐标)` 会返回 <html>，而同一时刻该项的 rect 完全正确。
+   *   若用 elementFromPoint 当解锁判据，就会在该窗口内误判「指针已不在交互项上」而撤锁；
+   *   撤锁那一瞬间浏览器把光标定为箭头，而**光标要等下一次鼠标移动才会重算**
+   *   → 用户看到「点击后指针一直变成箭头」（本项目反复出现、且只在部分页面复现的 bug）。
+   */
+  const pointerInSideItem = () => {
+    const items = document.querySelectorAll<HTMLElement>('.side .nav a[data-name], .side .nya');
+    for (const el of items) {
+      const r = el.getBoundingClientRect();
+      if (lastPX >= r.left && lastPX <= r.right && lastPY >= r.top && lastPY <= r.bottom) return true;
+    }
+    return false;
+  };
+
+  /** 指针已离开侧栏交互项 → 解锁；仍在项内 → 保持锁（这就是「点击后保持手型」） */
+  const releaseIfPointerLeftSide = () => {
+    if (!navLockActive || pointerInSideItem()) return;
+    awaitingPointerRelease = false;
+    dropNavLock();
+  };
+
   /** 统一清理：把侧栏恢复到常态（导航结束或被取消时都走这里） */
   const cleanupNavState = () => {
-    awaitingPointerMove = false;
+    awaitingPointerRelease = false;
     dropNavLock();
     document.querySelector('.side')?.classList.remove('no-anim');
     releaseAllColors();
@@ -295,7 +322,7 @@ const { pathname } = Astro.url;
   /*
    * 兜底看门狗：每次施加导航状态时重置。
    * 无论导航以何种方式中断（修饰键/新窗口点击未触发导航、fetch 失败、用户中止、
-   * 或指针始终静止导致 awaitingPointerMove 一直挂着），2.5s 内必定把侧栏恢复到常态。
+   * 或指针始终静止导致 awaitingPointerRelease 一直挂着），2.5s 内必定把侧栏恢复到常态。
    */
   let navWatchdog = 0;
   const armWatchdog = () => {
@@ -372,44 +399,53 @@ const { pathname } = Astro.url;
   document.addEventListener('astro:page-load', () => {
     requestAnimationFrame(releaseAllColors); // 等一帧，确保 updateActiveNav() 已改完 active 类
     /*
-     * ★ 指针锁不按固定时长解除，也**不在落地瞬间做命中判定**。
+     * ★ 指针锁的解锁判据：**只在「指针确实不在侧栏交互项上」时解锁**，且用几何判定。
      *
-     * 固定时长（曾用 600ms）在真实浏览器/较慢网络下可能早于「布局完成 + 浏览器重算
-     * hover」，解锁瞬间指针会从手型回落成箭头（用户实测：点击項目/書閣/自述后变箭头）。
+     * 不要按固定时长解锁（曾用 600ms），也不要用 document.elementFromPoint 判定
+     * （曾被这个问题坑两次）：换页 swap 期间侧栏短暂不可命中，elementFromPoint 会答
+     * 「指针下什么都没有」→ 误判 → 在指针仍压在图标上时撤锁 → 箭头。
+     * 详见 pointerInSideItem() 的说明与 probe-nav-geometry.mjs 的实测数据。
      *
-     * 实测依据一：导航期间**零个合成 pointermove**（只有 pointerover/out 等），
-     *   pointermove 仅在用户真实移动时触发 —— 等首次 pointermove 既覆盖布局与 hover
-     *   重算窗口，又能在用户静止时把手型保持住。
-     * 实测依据二（probe-efp.mjs）：page-load 那一刻布局尚未重算，
-     *   elementFromPoint(指针坐标) 返回的是 <html> 而不是图标（t=33ms → HTML，
-     *   t=217ms → A）。若在此刻用命中结果判断「指针不在交互项上」就会**误解锁**，
-     *   而那一刻正是指针需要被兜住的窗口 —— 这正是「点击后指针变箭头」的成因。
-     *
-     * 故：落地后一律保持锁，只由「首次真实移动」或 2.5s 看门狗解除。
+     * 多次复查是为了兼顾「页面内链点击」这类指针本来就在正文上的场景，
+     * 让全局 html 手型不必无谓地留到看门狗超时；指针在项内则一直保持锁。
+     * navSeq 判定：复查窗口内若用户又点了另一项（新导航已开始），本次复查让位。
      */
-    awaitingPointerMove = true;
-    /*
-     * 但若指针根本不在侧栏交互项上（页面内链点击等），让全局 html 手型多留毫无意义。
-     * 布局稳定后再复查一次（延迟是因为上面那条实测：落地瞬间的命中结果不可信），
-     * 仍不在交互项上就立即解除。指针若已真实移动过，awaitingPointerMove 已复位，直接跳过。
-     * navSeq 判定：复查窗口内若用户又点了另一项（新导航已开始），本次复查必须让位，
-     * 否则会把新导航的锁解掉。
-     */
+    awaitingPointerRelease = true;
     const mySeq = navSeq;
-    window.setTimeout(() => {
-      if (navSeq !== mySeq || !awaitingPointerMove) return;
-      const at = document.elementFromPoint(lastPX, lastPY);
-      if (!at || !at.closest(KEEP_SELECTOR)) dropNavLock();
-    }, 400);
+    for (const delay of [400, 900, 1500]) {
+      window.setTimeout(() => {
+        if (navSeq !== mySeq || !awaitingPointerRelease) return;
+        releaseIfPointerLeftSide();
+      }, delay);
+    }
   });
 
-  /* 真实移动一次即解锁（静止时保持手型） */
+  /*
+   * 指针移动：仍压在侧栏交互项内 → 继续保持手型（含点击后在图标上小幅移动）；
+   * 一旦离开交互项 → 立即解锁，让页面自己的光标生效。
+   */
   document.addEventListener(
     'pointermove',
     () => {
-      if (!awaitingPointerMove) return;
-      awaitingPointerMove = false;
-      dropNavLock();
+      if (!awaitingPointerRelease) return;
+      releaseIfPointerLeftSide();
+    },
+    true,
+  );
+
+  /*
+   * 补充触发点：pointerout。
+   *
+   * 指针移出**父文档**（例如落到页面里的 <iframe> 上、或移出窗口）时，父文档不会再收到
+   * pointermove，只会有一次 pointerout —— 只靠 pointermove 会让锁一直挂到看门狗超时。
+   * 这里可以安全复用 pointerout：判据是**几何**（指针坐标是否仍在项盒内），不依赖
+   * relatedTarget，因此 DOM swap 派发的伪 pointerout 不会造成误解锁（那时指针仍在项内）。
+   */
+  document.addEventListener(
+    'pointerout',
+    () => {
+      if (!awaitingPointerRelease) return;
+      releaseIfPointerLeftSide();
     },
     true,
   );
