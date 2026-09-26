@@ -9,11 +9,11 @@ import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
 import config from '@/utils/config';
 // 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
+import BookBookmark from '@/components/icons/BookBookmark.astro';
 import BookOpen from '@/components/icons/BookOpen.astro';
 import Codepen from '@/components/icons/Codepen.astro';
 import Ghost from '@/components/icons/Ghost.astro';
 import Github from '@/components/icons/Github.astro';
-import Globe from '@/components/icons/Globe.astro';
 import HeartPulse from '@/components/icons/HeartPulse.astro';
 import Mail from '@/components/icons/Mail.astro';
 import Music from '@/components/icons/Music.astro';
@@ -32,13 +32,15 @@ const navItems = [
   { href: '/about', name: '自述', Icon: Ghost },
 ];
 
-// 与旧站一致：全部渲染（含空链接的 twitter/telegram/music）
+// 与旧站一致：全部渲染（含空链接的 twitter/telegram/music）；
+// 末尾「书签」项（book-bookmark）对应 config.contact.bookmark，留空即不跳转
 const socialItems = [
   { href: config.contact.github, Icon: Github },
   { href: config.contact.twitter, Icon: Twitter },
   { href: config.contact.telegram, Icon: Send },
   { href: config.contact.email, Icon: Mail },
   { href: config.contact.music, Icon: Music },
+  { href: config.contact.bookmark, Icon: BookBookmark },
 ];
 
 const { pathname } = Astro.url;
@@ -76,9 +78,6 @@ const { pathname } = Astro.url;
           </a>
         ))
       }
-      <a>
-        <Globe />
-      </a>
     </div>
   </div>
 </div>

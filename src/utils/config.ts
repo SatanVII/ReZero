@@ -6,6 +6,8 @@ const config = {
     telegram: '',
     email: '',
     music: '',
+    // 底栏末尾「书签」图标（book-bookmark）的目标地址；留空则点击不跳转
+    bookmark: '',
   },
 };
 
