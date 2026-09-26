@@ -148,6 +148,17 @@ html.navigating {
 }
 
 /*
+ * 换页期间的第二重保险：data-astro-transition 是 Astro 的「不可覆盖属性」——
+ * swap 重建 <html> 属性时被原样保留（swap-functions.js NON_OVERRIDABLE_ASTRO_ATTRS），
+ * 由路由器在导航开始时设置、动画结束后移除（成功/失败都在 finished.finally 清理）。
+ * 整段换页期间该属性从不缺席：即使 html 的 class 被清空重建（navigating 短暂缺席，
+ * Chromium 会把显示光标锁存成默认箭头——点击瞬间闪烁的根因），指针锁也不出现空窗。
+ */
+html[data-astro-transition] {
+  cursor: pointer;
+}
+
+/*
  * 换页冻结态：**仅冻结 tooltip 的显隐过渡**（防止 DOM swap 重插时重播淡入淡出）。
  * 不冻结 `.nav > a` 的 color 过渡——点击后 active 高亮的颜色需要 0.3s 渐变，
  * 这正是用户要求的「点击后只有颜色过渡变化」。

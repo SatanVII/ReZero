@@ -369,13 +369,22 @@ const { pathname } = Astro.url;
   });
 
   /* 换页开始：加锁 + 冻结颜色 + 上表看门狗 */
-  document.addEventListener('astro:before-swap', () => {
+  document.addEventListener('astro:before-swap', (event) => {
     /*
      * 注意：不要在这里做「同址导航跳过」的优化。实测同址点击同样会 swap
      * （见 willNavigateSelf 说明），跳过会让该次 swap 全程没有指针锁。
      * 若导航异常中断，看门狗会在 2.5s 内把状态清干净。
      */
     applyNavLock();
+    /*
+     * ★ 关键：把 navigating **预写进「新文档」的 <html>**。
+     * Astro 换页（swap-functions.js swapRootAttributes）会把 <html> 属性逐个
+     * removeAttribute，再从新文档逐个 setAttribute 回来 —— 这段同步窗口内
+     * html.navigating 短暂缺席。配合 Side.css 的 html[data-astro-transition]
+     * 兜底规则，换页全程指针锁无空窗（点击瞬间闪烁的修复，2026-09-25）。
+     */
+    const newDoc = (event as unknown as { newDocument?: Document }).newDocument;
+    newDoc?.documentElement?.classList.add('navigating');
     document.querySelector('.side')?.classList.add('no-anim');
     /*
      * active 颜色过渡重放（对齐 yun37.me 的 0.3s 平滑渐变）：

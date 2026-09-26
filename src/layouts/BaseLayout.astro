@@ -109,6 +109,45 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       })();
     </script>
     <TopProgress />
+    <script is:inline>
+      /*
+       * 禁用 View Transition（2026-09-25）：Astro 换页在 Chromium 里走
+       * document.startViewTransition——快照+伪元素渲染管线会让显示光标在换页
+       * 瞬间被锁存成默认箭头（点击图标时指针闪烁的根源，Firefox/无 VT 引擎无此
+       * 现象）。此垫片把换页改为直连 DOM 更新并返回兼容的过渡对象，ClientRouter
+       * 功能（after-swap/page-load 事件、动画结束清理）不受影响；页面视觉过渡仍
+       * 由 .page-wrap 的 page-in 动画承担（原站 yun37.me 同样没有 VT）。
+       */
+      (function () {
+        var orig = document.startViewTransition;
+        if (!orig) return;
+        document.startViewTransition = function (callback) {
+          var updateDone = Promise.resolve().then(function () {
+            if (callback) callback();
+          });
+          var settled = updateDone.then(
+            function () {},
+            function () {}
+          );
+          return {
+            updateCallbackDone: updateDone,
+            ready: settled,
+            finished: settled,
+            skipTransition: function () {},
+            types: {
+              size: 0,
+              add: function () {},
+              delete: function () {},
+              has: function () {
+                return false;
+              },
+              clear: function () {},
+              forEach: function () {}
+            }
+          };
+        };
+      })();
+    </script>
     <ClientRouter />
   </head>
   <body>
