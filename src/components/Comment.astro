@@ -212,14 +212,68 @@ const { term } = Astro.props;
     upgradeWhenReady();
   };
 
-  // 换页后立即挂载所有评论区（2026-09-27 按用户要求恢复为**不懒加载**）。
+  // ---------------------------------------------------------------------------
+  // 懒挂载（2026-09-27 重新启用）：换页瞬间不挂 giscus，等「评论区可见 + 用户有真实输入」才挂。
   //
-  // 历史：2026-09-25 曾改为「评论区可见 + 用户有真实输入」才挂载，用于缓解 Chrome 系
-  // 点击側栏圖標后的光标闪烁（giscus 注入会把换页光标窗口拉长）。现按用户要求改回
-  // 立即挂载；相关排查与备选方案见 光标闪烁跨浏览器差异排查说明.md。
-  const mountAll = () => {
-    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach((el) => void mount(el));
+  // 首次引入（2026-09-25）是为了缓解 Chrome 系点击側栏圖標后的光标闪烁（giscus 的
+  // script/iframe 注入会把换页后的光标窗口拉长）。中途曾按用户要求改回立即挂载，随后
+  // 用户实测确认：导致「右侧空白带」的两个源头均已修复，故重新启用：
+  //   ① 评论容器已做横向隔离 [data-giscus]{overflow-x:hidden}（16cb1f1）——iframe 注入
+  //      无法再撑宽文档；
+  //   ② 换页入场动画不再产生横向溢出（ac7a813，逐帧实测溢出帧 33→0）。
+  //
+  // 条件：评论区进入视口（IntersectionObserver，rootMargin 0）+ 用户有真实输入
+  // （pointermove / wheel / keydown，信任事件才计入）；指针静止在图标上时永不注入，
+  // 手型得以保持；一旦移动鼠标，注入落在连续输入事件流里，瞬时重置会被下一个移动
+  // 事件立即纠正。附带收益：每次换页省去 97 个字体分片请求。
+  // ---------------------------------------------------------------------------
+  const visibleContainers = new Set<HTMLElement>();
+  let commentObserver: IntersectionObserver | null = null;
+  let hasInputSinceLoad = false;
+
+  const flushVisibleContainers = () => {
+    if (!hasInputSinceLoad) return;
+    for (const el of visibleContainers) {
+      commentObserver?.unobserve(el);
+      void mount(el);
+    }
+    visibleContainers.clear();
   };
+  const markRealInput = () => {
+    hasInputSinceLoad = true;
+    flushVisibleContainers();
+  };
+
+  const mountAll = () => {
+    hasInputSinceLoad = false; // 每次换页重新等待真实输入
+    visibleContainers.clear();
+    commentObserver ??= new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const el = entry.target as HTMLElement;
+          if (entry.isIntersecting) visibleContainers.add(el);
+          else visibleContainers.delete(el);
+        }
+        flushVisibleContainers();
+      },
+      // 严格进入视口才算（部分页面评论区就在折叠线下几像素，正 margin 会让挂载
+      // 提前到换页瞬间，等于没修）
+      { rootMargin: '0px 0px' },
+    );
+    document.querySelectorAll<HTMLElement>('[data-giscus]').forEach((el) => {
+      if (commentObserver) commentObserver.observe(el);
+    });
+  };
+
+  // 真实用户输入（信任事件才计入）：指针移动 / 滚轮 / 键盘
+  document.addEventListener('pointermove', markRealInput, { passive: true, capture: true });
+  document.addEventListener('wheel', markRealInput, { passive: true, capture: true });
+  document.addEventListener('keydown', markRealInput, { capture: true });
+  // 换页会替换整个 body：旧容器随旧文档销毁，换页前断开观察并清空
+  document.addEventListener('astro:before-swap', () => {
+    commentObserver?.disconnect();
+    visibleContainers.clear();
+  });
 
   // 主题切换时同步 giscus iframe 配色（完整主题已缓存，切换即时生效）
   window.addEventListener('theme:changed', (event) => {
