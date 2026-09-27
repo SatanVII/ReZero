@@ -102,6 +102,30 @@ svg[hidden] {
     transition: background-image 0.8s;
   }
 
+  /*
+   * 评论区（giscus）横向兜底隔离（2026-09-27）
+   *
+   * 实测关系（用户 Android 内核浏览器）：右侧空白带 = 文档/布局视口被撑得比可见宽度更宽。
+   * 触发点是 **giscus iframe 的注入**——取消懒挂载时仅瞬时出现（注入发生在页面加载期，
+   * 之后视口重新收敛），保留懒挂载时持久（注入发生在页面稳定之后，该浏览器的视口重算
+   * 就停在放大后的宽度）。桌面/无头 Chromium 下同页同 iframe 均无此现象（实测文档宽
+   * 不变、iframe 宽 = 容器宽），属该浏览器的视口行为。
+   *
+   * 对策：把评论容器变成横向滚动容器——其内部任何宽度异常（iframe 默认 300px 宽、
+   * 库按挂载瞬间宽度写死、内容最小宽等）都不再参与文档宽度计算；iframe 仍为容器宽，
+   * 纵向高度可正常增长（overflow-y 计算为 auto 但容器高度自动，不出现滚动条）。
+   */
+  [data-giscus] {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .giscus-frame,
+  iframe.giscus-frame {
+    max-width: 100% !important;
+  }
+
   /* custom scrollBar */
   ::-webkit-scrollbar {
     width: 5px;
