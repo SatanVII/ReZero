@@ -30,6 +30,9 @@ svg[hidden] {
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
   --tw-prose-quote-borders: var(--theme-color);
+  /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
+     typography 插件的 hr 颜色由 --tw-prose-hr 控制，此处按项目约定用变量覆盖 */
+  --tw-prose-hr: rgb(0 0 0 / 0.45);
   --tw-prose-pre-bg: rgba(0, 0, 0, 0.04);
   /* P4-A：补齐 typography 默认的 oklch 变量（Firefox <113 对 oklch 整条失效），
      统一回退为墨色——同时消除各内核的正文颜色微差 */
