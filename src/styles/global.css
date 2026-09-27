@@ -67,6 +67,20 @@ svg[hidden] {
 
   html {
     @apply overflow-x-hidden;
+    /*
+     * 裁掉「换页入场动画」的横向瞬时溢出（2026-09-27）
+     *
+     * .page-wrap 的 page-in 动画起始为 translateX(1.5rem)（+24px 右移），动画期间
+     * 内容瞬时超出右边缘——本地实测：换页后 33 帧出现横向溢出（最大 8px，
+     * html.scrollWidth 803 > clientWidth 795），动画结束即回落。
+     * 在多数浏览器里这被 overflow-x:hidden 静默裁掉、无感；但在部分 Android 内核
+     * 浏览器上会变成可横向平移的一段「右侧空白」（用户实机反馈的瞬时空白的来源）。
+     *
+     * 用 clip 而非 hidden：clip 直接裁掉溢出且**不生成滚动容器**，因此不影响
+     * sticky 侧栏与 fixed 顶栏的定位（hidden 会成为滚动容器）。不支持 clip 的
+     * 浏览器自动回落到上一行的 overflow-x:hidden。
+     */
+    overflow-x: clip;
   }
 
   body {
@@ -155,7 +169,15 @@ svg[hidden] {
   @keyframes page-in {
     0% {
       opacity: 0;
-      transform: translateX(1.5rem);
+      /*
+       * 起始位移用 **-1.5rem（向左）**而非 +1.5rem（2026-09-27）。
+       * 右向起始位移会让内容在动画期间瞬时超出右边缘（本地实测 33 帧、最大 8px，
+       * html.scrollWidth 803 > clientWidth 795），在部分 Android 内核浏览器上会
+       * 变成可横向平移的一段「右侧空白」（用户反馈的进入文章正文瞬间空白）。
+       * 左向位移不产生可平移区域、也不增大 scrollWidth；视觉上仍是 24px 的滑入
+       * （方向由右改为左），时长与缓动不变。
+       */
+      transform: translateX(-1.5rem);
     }
     100% {
       opacity: 1;
