@@ -25,6 +25,14 @@ const run = (command) => {
 const copyImages = () => {
   if (!fs.existsSync(imagesDir)) return
   const dest = path.join(root, 'public', 'IMAGES')
+  /*
+   * 先清空目标目录再拷贝（2026-09-27）：
+   * fs.cpSync 只做「拷贝/覆盖」，**不会删除**源里已不存在的文件——于是在 vault 中
+   * 删除或改名的图片会以旧文件形式残留在 public/IMAGES（实测：源里删了 sample.jpg，
+   * 目标里仍留着 Sep 18 的旧件）。先 rmSync 再 cpSync 可保证目标目录始终与
+   * content/IMAGES 完全一致。
+   */
+  fs.rmSync(dest, { recursive: true, force: true })
   fs.cpSync(imagesDir, dest, { recursive: true })
   console.log(`[sync] IMAGES → public/IMAGES（${fs.readdirSync(dest).length} 个文件）`)
 }
