@@ -24,7 +24,9 @@ const postSchema = z.object({
 // 分类体系：关于（首页/自述）、随想（火花流）、日志、随笔（后两者进文字页）
 const post = defineCollection({
   loader: glob({
-    pattern: '**/*.md',
+    // 排除模板目录：`content/blog-post/templates/**` 里的 Obsidian 模板含 `<% tp.date.now() %>`
+    // 之类占位符，被当文章读取会因日期校验失败而中断构建（2026-09-28）
+    pattern: ['**/*.md', '!**/templates/**'],
     base: './content/blog-post',
     generateId: generateIdFromTitle,
   }),
