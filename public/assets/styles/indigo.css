@@ -1,0 +1,17 @@
+@import url('./comment.css');
+
+main {
+  --color-btn-primary-bg: var(--indigo-primary);
+  --color-btn-primary-hover-bg: var(--indigo-primary);
+  --color-btn-primary-selected-bg: var(--indigo-primary);
+  --color-btn-primary-disabled-bg: var(--indigo-primary);
+  --color-segmented-control-button-bg: var(--indigo-background);
+  --color-accent-fg: var(--indigo-primary);
+  --color-accent-emphasis: var(--indigo-primary);
+  --color-success-fg: var(--indigo-primary);
+}
+
+main .gsc-pagination-button,
+main .gsc-reactions-popover {
+  background-color: var(--indigo-background);
+}

@@ -22,7 +22,8 @@ const { term } = Astro.props;
   };
 
   // 主题 CSS 版本号：改 public/assets/styles/*.css 后手动 bump，用于破坏缓存
-  const THEME_V = '2026092301';
+  // 2026-10-01：主题标识由角色名改为色名（hutao.css → coral.css 等），文件名与变量名全变，必须 bump
+  const THEME_V = '2026100101';
 
   // ---------------------------------------------------------------------------
   // 主题注入方式说明（重要）：
@@ -164,7 +165,7 @@ const { term } = Astro.props;
 
   // 当前期望的完整主题（data URL）；iframe 就绪探测与主题切换共用，
   // 每次重试都取"当下"的主题，避免慢就绪的旧主题覆盖新切换
-  let currentThemeName = document.documentElement.dataset.theme ?? 'Hutao';
+  let currentThemeName = document.documentElement.dataset.theme ?? 'Coral';
 
   // iframe 就绪后把完整主题（含字体）推过去；giscus 初始化存在竞态，故多次重试
   function upgradeWhenReady() {
@@ -183,7 +184,7 @@ const { term } = Astro.props;
 
   const mount = async (container: HTMLElement) => {
     if (container.querySelector('iframe')) return;
-    currentThemeName = document.documentElement.dataset.theme ?? 'Hutao';
+    currentThemeName = document.documentElement.dataset.theme ?? 'Coral';
     const theme = currentThemeName;
     // 完整主题（含字体分片内联）预构建：与 giscus 脚本网络加载、引导版构建并行。
     // 此前要等 iframe 就绪探测循环首次触发才开始抓 97 个分片，字体应用总是

@@ -1,0 +1,17 @@
+@import url('./comment.css');
+
+main {
+  --color-btn-primary-bg: var(--coral-primary);
+  --color-btn-primary-hover-bg: var(--coral-primary);
+  --color-btn-primary-selected-bg: var(--coral-primary);
+  --color-btn-primary-disabled-bg: var(--coral-primary);
+  --color-segmented-control-button-bg: var(--coral-background);
+  --color-accent-fg: var(--coral-primary);
+  --color-accent-emphasis: var(--coral-primary);
+  --color-success-fg: var(--coral-primary);
+}
+
+main .gsc-pagination-button,
+main .gsc-reactions-popover {
+  background-color: var(--coral-background);
+}

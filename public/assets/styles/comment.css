@@ -19,24 +19,22 @@ main {
   -webkit-text-stroke: 0.2px;
 
   /* theme color */
-  --hutao-primary: #e06458;
-  --hutao-background: #fcfaf2;
-  --keqing-primary: #827595;
-  --keqing-background: #e6e3f6;
-  --nahida-primary: #7ea08a;
-  --nahida-background: #f3f7f2;
-  --ganyu-primary: #5260a6;
-  --ganyu-background: #e2e5f5;
-  --kokomi-primary: #bf9997;
-  --kokomi-background: #f2e1dc;
-  --ayaka-primary: #8996b2;
-  --ayaka-background: #d8e2ec;
-  --yoimiya-primary: #c15c42;
-  --yoimiya-background: #f3e8db;
-  --beelzebul-primary: #8c78b0;
-  --beelzebul-background: #e3dbed;
-  --nilou-primary: #74b5db;
-  --nilou-background: #dbeaf1;
+  --coral-primary: #e06458;
+  --coral-background: #fcfaf2;
+  --sage-primary: #7ea08a;
+  --sage-background: #f3f7f2;
+  --indigo-primary: #5260a6;
+  --indigo-background: #e2e5f5;
+  --mauve-primary: #bf9997;
+  --mauve-background: #f2e1dc;
+  --slate-primary: #8996b2;
+  --slate-background: #d8e2ec;
+  --terracotta-primary: #c15c42;
+  --terracotta-background: #f3e8db;
+  --lilac-primary: #8c78b0;
+  --lilac-background: #e3dbed;
+  --azure-primary: #74b5db;
+  --azure-background: #dbeaf1;
 
   /* default color */
   --color-prettylights-syntax-comment: #6e7781;

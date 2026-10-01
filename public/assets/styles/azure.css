@@ -1,0 +1,17 @@
+@import url('./comment.css');
+
+main {
+  --color-btn-primary-bg: var(--azure-primary);
+  --color-btn-primary-hover-bg: var(--azure-primary);
+  --color-btn-primary-selected-bg: var(--azure-primary);
+  --color-btn-primary-disabled-bg: var(--azure-primary);
+  --color-segmented-control-button-bg: var(--azure-background);
+  --color-accent-fg: var(--azure-primary);
+  --color-accent-emphasis: var(--azure-primary);
+  --color-success-fg: var(--azure-primary);
+}
+
+main .gsc-pagination-button,
+main .gsc-reactions-popover {
+  background-color: var(--azure-background);
+}
