@@ -3,6 +3,7 @@
 main {
   --color-btn-primary-bg: var(--lilac-primary);
   --color-btn-primary-hover-bg: var(--lilac-primary);
+  --color-btn-primary-selected-bg: var(--lilac-primary);
   --color-btn-primary-hover-border: var(--lilac-primary);
   --color-btn-primary-disabled-bg: var(--lilac-primary);
   --color-segmented-control-button-bg: var(--lilac-background);
