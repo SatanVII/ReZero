@@ -11,11 +11,20 @@ main {
   --color-success-fg: var(--azure-primary);
 
   /* 评论区线条 → 主题配色（2026-10-02）。
+     --color-border-default 不在此定义：由 comment.css 默认置为 transparent
+     （评论内容区透明），仅在编辑区子树内恢复主题色（见下方规则）。
      按钮边框有意不覆盖：主按钮背景即主题色，边框改同色会失去描边。 */
-  --color-border-default: var(--azure-primary);
   --color-border-muted: var(--azure-primary);
   --color-accent-muted: var(--azure-primary);
   --color-segmented-control-button-selected-border: var(--azure-primary);
+}
+
+/* 编辑区线条 → 主题色（2026-10-02，方案 C）
+   comment.css 把 --color-border-default 默认置为 transparent，
+   这里仅在编辑器子树内恢复主题色；评论内容区保持透明。 */
+.gsc-comment-box,
+.gsc-reply-box {
+  --color-border-default: var(--azure-primary);
 }
 
 main .gsc-pagination-button,

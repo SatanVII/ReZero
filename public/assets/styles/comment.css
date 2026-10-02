@@ -100,7 +100,12 @@ main {
   --color-canvas-overlay: transparent;
   --color-canvas-inset: transparent;
   --color-canvas-subtle: transparent;
-  --color-border-default: #d0d7de;
+  /* ── 评论区线条的区域划分（2026-10-02，方案 C）────────────────────────
+     giscus 自身样式表有全局兜底 `*{border-color:var(--color-border-default)}`，
+     所有默认边框都取此变量。这里默认置为透明 = 评论内容区的结构线条透明。
+     编辑区（.gsc-comment-box / .gsc-reply-box）由各主题文件恢复为主题色；
+     评论正文里的 markdown 线条见本文件末尾的 `main .markdown` 规则。 */
+  --color-border-default: transparent;
   --color-border-muted: #d0d7de;
   --color-neutral-muted: rgb(175 184 193 / 20%);
   --color-accent-fg: #8996b2;
@@ -158,4 +163,13 @@ main .gsc-tl-line {
 }
 ::-webkit-scrollbar-track {
   background-color: transparent;
+}
+
+/* 评论正文里的 markdown 线条 → 柔和黑（2026-10-02，方案 C）
+   与主站正文的 `---` 分隔线同款。`.markdown` 的边框消费者是其后代
+   （hr / table th,td / kbd / blockquote / h1,h2 / .footnotes），
+   用 `main .markdown`(0,1,1) 高于 `.gsc-comment-box`(0,1,0)，
+   故编辑器内的预览区（同带 .markdown 类）也按 markdown 处理。 */
+main .markdown {
+  --color-border-default: rgb(0 0 0 / 0.45);
 }
