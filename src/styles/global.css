@@ -33,6 +33,12 @@ svg[hidden] {
   /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
      typography 插件的 hr 颜色由 --tw-prose-hr 控制，此处按项目约定用变量覆盖 */
   --tw-prose-hr: rgb(0 0 0 / 0.45);
+  /* 表格线条（2026-10-02）：与上面的 `---` 分割线统一为柔和黑。
+     typography 默认是两档灰（表头 oklch(87.2%…) ≈#d1d5db、行 oklch(92.8%…) ≈#e5e7eb），
+     这里一并覆盖。thead 下边框与 tfoot 上边框共用 th-borders，行下边框用 td-borders。
+     注：插件把 tbody tr:last-child 的 border-bottom-width 置 0，最后一行本就没有底线。 */
+  --tw-prose-th-borders: rgb(0 0 0 / 0.45);
+  --tw-prose-td-borders: rgb(0 0 0 / 0.45);
   --tw-prose-pre-bg: rgba(0, 0, 0, 0.04);
   /* P4-A：补齐 typography 默认的 oklch 变量（Firefox <113 对 oklch 整条失效），
      统一回退为墨色——同时消除各内核的正文颜色微差 */

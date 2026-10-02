@@ -9,6 +9,13 @@ main {
   --color-accent-fg: var(--azure-primary);
   --color-accent-emphasis: var(--azure-primary);
   --color-success-fg: var(--azure-primary);
+
+  /* 评论区线条 → 主题配色（2026-10-02）。
+     按钮边框有意不覆盖：主按钮背景即主题色，边框改同色会失去描边。 */
+  --color-border-default: var(--azure-primary);
+  --color-border-muted: var(--azure-primary);
+  --color-accent-muted: var(--azure-primary);
+  --color-segmented-control-button-selected-border: var(--azure-primary);
 }
 
 main .gsc-pagination-button,

@@ -9,6 +9,13 @@ main {
   --color-accent-fg: var(--lilac-primary);
   --color-accent-emphasis: var(--lilac-primary);
   --color-success-fg: var(--lilac-primary);
+
+  /* 评论区线条 → 主题配色（2026-10-02）。
+     按钮边框有意不覆盖：主按钮背景即主题色，边框改同色会失去描边。 */
+  --color-border-default: var(--lilac-primary);
+  --color-border-muted: var(--lilac-primary);
+  --color-accent-muted: var(--lilac-primary);
+  --color-segmented-control-button-selected-border: var(--lilac-primary);
 }
 
 main .gsc-pagination-button,

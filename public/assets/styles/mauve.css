@@ -9,6 +9,13 @@ main {
   --color-accent-fg: var(--mauve-primary);
   --color-accent-emphasis: var(--mauve-primary);
   --color-success-fg: var(--mauve-primary);
+
+  /* 评论区线条 → 主题配色（2026-10-02）。
+     按钮边框有意不覆盖：主按钮背景即主题色，边框改同色会失去描边。 */
+  --color-border-default: var(--mauve-primary);
+  --color-border-muted: var(--mauve-primary);
+  --color-accent-muted: var(--mauve-primary);
+  --color-segmented-control-button-selected-border: var(--mauve-primary);
 }
 
 main .gsc-pagination-button,
