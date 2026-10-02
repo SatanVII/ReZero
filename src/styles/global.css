@@ -54,6 +54,25 @@ svg[hidden] {
   font-size: 17px;
 }
 
+/* 首元素归零补齐（2026-10-02）
+ *
+ * typography 插件的归零规则写作 `.prose :where(.prose > :first-child){margin-top:0}`，
+ * 只认 .prose 的**直接**子元素。自述页结构是 .prose > article > 内容，
+ * 多包一层 <article> 后该规则不命中——<article> 自身的 margin 被归零，
+ * 但里面的首个 <h2> 仍保留插件默认的 margin-top:2em（h2 字号 27px → 54px），
+ * 叠在 .page 的 padding-top 之上，导致标题上方空白过大。
+ *
+ * 实测（headless Edge + CDP，2026-10-02）：
+ *   /about 桌面 64+54=118px、移动 96+54=150px
+ *   其它页（/friend 等）64px / 96px
+ * 补齐本规则后 /about 回落至 64px / 96px，与全站一致。
+ *
+ * 特异性 0,2,1 > 插件的 0,1,0，且同为无层声明，故无需 !important。
+ * 仅影响 .prose 下直接包 article 的页面（当前只有自述页）。 */
+.prose > article > :first-child {
+  margin-top: 0;
+}
+
 @layer base {
   :root {
     /* 主题变量的兜底默认值（胡桃主题）；真实值由客户端主题脚本写入。
