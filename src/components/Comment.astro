@@ -24,7 +24,8 @@ const { term } = Astro.props;
   // 主题 CSS 版本号：改 public/assets/styles/*.css 后手动 bump，用于破坏缓存
   // 2026-10-01：主题标识由角色名改为色名（hutao.css → coral.css 等），文件名与变量名全变，必须 bump
   // 2026-10-02：8 个主题 CSS 补充 border 变量（评论区线条改主题配色），内容变更，再次 bump
-  const THEME_V = '2026100201';
+  // 2026-10-02b：滚动条钉回灰、lilac 补齐 selected-bg、terracotta 补 var()
+  const THEME_V = '2026100202';
 
   // ---------------------------------------------------------------------------
   // 主题注入方式说明（重要）：

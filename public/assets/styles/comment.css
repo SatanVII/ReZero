@@ -152,7 +152,9 @@ main .gsc-tl-line {
 }
 ::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background-color: var(--color-border-default);
+  /* 固定灰色（2026-10-02）：此处原引用 --color-border-default，
+     该变量改为主题色后滚动条会跟着变色；用户要求保持灰，故钉为原值。 */
+  background-color: #d0d7de;
 }
 ::-webkit-scrollbar-track {
   background-color: transparent;

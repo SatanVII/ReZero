@@ -5,7 +5,7 @@ main {
   --color-btn-primary-hover-bg: var(--terracotta-primary);
   --color-btn-primary-selected-bg: var(--terracotta-primary);
   --color-btn-primary-disabled-bg: var(--terracotta-primary);
-  --color-segmented-control-button-bg: --terracotta-background;
+  --color-segmented-control-button-bg: var(--terracotta-background);
   --color-accent-fg: var(--terracotta-primary);
   --color-accent-emphasis: var(--terracotta-primary);
   --color-success-fg: var(--terracotta-primary);
@@ -20,5 +20,5 @@ main {
 
 main .gsc-pagination-button,
 main .gsc-reactions-popover {
-  background-color: --terracotta-background;
+  background-color: var(--terracotta-background);
 }
