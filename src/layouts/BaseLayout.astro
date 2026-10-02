@@ -27,7 +27,7 @@ interface Props {
 const {
   title = '字嶼隅',
   description = '愿似飘飖五云影，从来从去九天间。',
-  keywords = '抹茶',
+  keywords = 'Matcha',
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -42,7 +42,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
-    <meta name="author" content="抹茶" />
+    <meta name="author" content="Matcha" />
     <link rel="canonical" href={canonicalURL} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="字嶼隅" />
