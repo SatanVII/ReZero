@@ -6,9 +6,21 @@
    主题共用同一文件，分片只下载一次）；换字体版本时 bump 该文件引用的 ?v 参数。
    回退栈接系统楷体：文楷分片加载完成前（font-display: swap）先以楷体渲染，
    避免先见无衬线再跳楷体的明显闪变（评论区 iframe 内同理，见 comment.css） */
-@theme {
-  --font-sans: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', ui-sans-serif, system-ui, sans-serif;
-}
+  @theme {
+    --font-sans: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', ui-sans-serif, system-ui, sans-serif;
+    /* 代码等宽字体（2026-10-06）：改用霞鹜文楷 Mono。
+       理由：此前的 ui-monospace 落到 Consolas，而 Consolas **没有 CJK 字形**，
+       代码块里的中文会由系统回落字体接管 → 一个代码块出现两种字体
+       （实测：中文代码块里 Consolas 只覆盖到 `->` 与空格，共 4 个字形）。
+       文楷 Mono 拉丁等宽且 CJK 恰好为其 **2 倍宽**，中英混排严格对齐。
+       ★ 必须拉丁也用它 —— 那套 2:1 对齐基于它自己的拉丁宽度，
+         写成「Consolas 出拉丁 + 文楷 Mono 只补中文」会错列。
+       ★ 回退栈刻意不给楷体（STKaiti/KaiTi 是比例字体，代码会歪）；
+         未装该字体时退回常规等宽栈即可。Preflight 经
+         `var(--default-mono-font-family, …)` 引用本变量（Tailwind v4 的 --font-mono 映射）。 */
+    --font-mono: 'LXGW WenKai Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      'Liberation Mono', 'Courier New', monospace;
+  }
 
 /* 站名手写体（字嶼雲遊手書.ttf，按站点标题+副题 16 字子集化，41.7KB；
  * 原始全量字体在用户桌面，重跑子集：python（fontTools subset，text=Site.astro 全部文字）） */
@@ -32,6 +44,11 @@ svg[hidden] {
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
   --tw-prose-quote-borders: var(--theme-color);
+  /* Markdown 无序列表 `-` 的圆点（2026-10-06 用户要求匹配主题色）：
+     typography 的 marker 颜色由 --tw-prose-bullets 控制，默认是浅灰
+     oklch(87.2% .01 258.338)，与站点主题色不搭。
+     注：有序列表的序号另由 --tw-prose-counters 控制，本次未动。 */
+  --tw-prose-bullets: var(--theme-color);
   /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
      typography 插件的 hr 颜色由 --tw-prose-hr 控制，此处按项目约定用变量覆盖 */
   --tw-prose-hr: rgb(0 0 0 / 0.45);

@@ -60,6 +60,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- 霞鹜文楷（全站中文字体）：自托管分片，与评论区 data: URL 主题共用同一 css；
          换字体版本时 bump ?v（与 public/assets/styles/fonts/ 内容保持同步） -->
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai.css?v=1" />
+    <!-- Bold 700（2026-10-06 补）：此前只生成了 Regular 400，strong 请求 600 时
+         该族无对应字面 → 浏览器**合成加粗**，楷体笔锋被糊成方硬笔画
+         （表现为「markdown 标记的文字像另一种字体」）。
+         刻意独立成文件：Comment.astro 会把主字体 CSS 引用的分片 base64 内联进
+         评论 iframe 主题，合并会让评论主题体积翻倍。
+         生成/更新：node scripts/prepare-fonts.mjs -->
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold.css?v=1" />
+    <!-- Mono（2026-10-06 补）：--font-mono 指向 'LXGW WenKai Mono'，为访客提供分片。
+         此前代码块落到 Consolas，而 Consolas 无 CJK 字形 —— 代码块里的中文由
+         系统回落字体接管，一个代码块出现两种字体。文楷 Mono 拉丁等宽且 CJK
+         恰为其 2 倍宽，中英混排严格对齐（实测比值 1.948 ≈ 2.0）。
+         只做 regular 一个字重：代码块基本不用粗体，且官方本就没有 Bold TTF。 -->
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-mono.css?v=1" />
     <!-- P0-1 字体子集：preload 单文件（字体 preload 必须 crossorigin），声明在分片之后使常用字命中子集、新字回落分片 -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2" />
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=1" />
