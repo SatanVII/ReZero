@@ -26,10 +26,10 @@ zero-astro/
     │   │                    ShootingStar / Butterfly / Comment(giscus) / PostList
     ├── layouts/
     │   └── BaseLayout.astro      # ③ head+OG / Fonts / ClientRouter / 主题系统 / 灯箱 / AOS
-    └── pages/                    # ④ 11 页 + 404 + rss.xml
-        ├── index / about / article / note / stars / moon / inspiration
+    └── pages/                    # ④ 页面 + 404 + rss.xml
+        ├── index / about / inspiration / book / friend
+        ├── archives.astro + archives/{tag,category,year}/[..].astro
         ├── posts/[slug].astro    #    getStaticPaths，中文标题作 slug
-        ├── book / friend / project / 404
         └── rss.xml.ts            # ⑥ 新增 RSS
 ```
 

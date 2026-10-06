@@ -2,6 +2,16 @@
 /**
  * 文章/笔记详情（对应旧站 app/posts/[slug]/page.tsx）
  * slug 即 frontmatter 标题（中文），构建期生成全部静态页面
+ *
+ * meta 行的日期 / 分类 / 标签自 2026-10-06 起链到对应归档视图：
+ *   日期 → /archives/year/<年>（归档粒度仅到年）
+ *   分类 → /archives/category/<分类>
+ *   标签 → /archives/tag/<标签>
+ * 归档三维度都排除了「关于」「随想」，这两类文章的对应分类/标签没有归档页，
+ * 故只对**确实存在归档页**的值渲染成链接，其余输出纯文本（避免 404）。
+ *
+ * 每个条目统一加 `meta-item`（inline-flex）—— Tailwind preflight 把 svg 设为
+ * display:block，不设 flex 会让图标独占一行、文字被挤到下一行（已踩过）。
  */
 import type { CollectionEntry } from 'astro:content';
 import { getCollection, render } from 'astro:content';
@@ -11,6 +21,7 @@ import Calendar from '@/components/icons/Calendar.astro';
 import Tag from '@/components/icons/Tag.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Comment from '@/components/Comment.astro';
+import { EXCLUDED_CATEGORIES } from '@/utils/content';
 
 export async function getStaticPaths() {
   const entries = await getCollection('post');
@@ -24,6 +35,20 @@ const { entry } = Astro.props;
 const { Content } = await render(entry);
 
 const { title, date, category, tags, description } = entry.data;
+
+/**
+ * 归档页实际生成的三类目标 —— 过滤口径必须与 /archives 路由一致
+ * （同一份 EXCLUDED_CATEGORIES），否则会出现指向不存在页面的链接。
+ */
+const archivePosts = (await getCollection('post')).filter(
+  ({ data }) => !EXCLUDED_CATEGORIES.includes(data.category),
+);
+const yearTargets = new Set(archivePosts.map(({ data }) => String(data.date.getFullYear())));
+const categoryTargets = new Set(archivePosts.map(({ data }) => data.category));
+const tagTargets = new Set(archivePosts.flatMap(({ data }) => data.tags ?? []));
+
+const year = String(date.getFullYear());
+const formattedDate = format(date, 'yyyy-MM-dd');
 ---
 
 <BaseLayout title={`${title} - Matcha`} description={description} keywords={tags.join(',')}>
@@ -31,15 +56,47 @@ const { title, date, category, tags, description } = entry.data;
     <article>
       <h2 class="mb-6 text-4xl italic">{title}</h2>
       <div class="meta mb-12 flex justify-start">
-        <Calendar class="mr-1" />
-        {format(date, 'yyyy-MM-dd')}
-        <Bookmark class="ml-4 mr-1" />
-        {category}
-        <Tag class="ml-4 mr-1" />
         {
-          tags.map((tag) => (
-            <span class="mr-2">{tag.trim()}</span>
-          ))
+          yearTargets.has(year) ? (
+            <a class="meta-item meta-link" href={`/archives/year/${year}`}>
+              <Calendar class="mr-1" />
+              {formattedDate}
+            </a>
+          ) : (
+            <span class="meta-item">
+              <Calendar class="mr-1" />
+              {formattedDate}
+            </span>
+          )
+        }
+        {
+          categoryTargets.has(category) ? (
+            <a class="meta-item meta-link ml-4" href={`/archives/category/${category}`}>
+              <Bookmark class="mr-1" />
+              {category}
+            </a>
+          ) : (
+            <span class="meta-item ml-4">
+              <Bookmark class="mr-1" />
+              {category}
+            </span>
+          )
+        }
+        {
+          tags.map((tag) => {
+            const name = tag.trim();
+            return tagTargets.has(name) ? (
+              <a class="meta-item meta-link ml-4" href={`/archives/tag/${name}`}>
+                <Tag class="mr-1" />
+                {name}
+              </a>
+            ) : (
+              <span class="meta-item ml-4">
+                <Tag class="mr-1" />
+                {name}
+              </span>
+            );
+          })
         }
       </div>
       <div class="prose max-w-full">

@@ -25,7 +25,9 @@ svg[hidden] {
 
 /* 旧 tailwind.config.js typography 定制：全部是 CSS 变量，直接覆盖插件的 .prose 默认值 */
 .prose {
-  font-size: 18px;
+  /* 文章正文字号：统一取自 --prose-font-size（见 :root）。
+     标题类由它 calc(×1.5) 派生，不再各处硬编码。 */
+  font-size: var(--prose-font-size);
   --tw-prose-headings: var(--font-color);
   --tw-prose-links: var(--theme-color);
   --tw-prose-code: var(--theme-color);
@@ -55,7 +57,8 @@ svg[hidden] {
   }
 }
 
-/* 隨想页正文 17px：与文章列表摘要字号一致（仅随想页，文章页保持 18px） */
+/* 隨想页正文：与文章列表摘要字号一致（仅随想页）。
+   现与文章正文同为 17px，但这是「对齐列表摘要」的独立意图，故保留覆盖。 */
 .inspiration .prose {
   font-size: 17px;
 }
@@ -88,6 +91,11 @@ svg[hidden] {
     --background-color: #fcfaf2;
     --background-image: none;
     --font-site: 'ZiYuYunYou', serif;
+    /* 文章正文字号 —— 全站唯一定义处。
+       「关于」页的标题就是 .prose 里的 h2（1.5em），
+       故 .page-title / .archives .group-title / .archive-head .archive-title
+       均由它 calc(×1.5) 派生，改这一行即可全局同步（2026-10-06 立）。 */
+    --prose-font-size: 17px;
     /* 滚动条：对齐原项目（zero-D globals.css 同款）——gutter 双侧占位 + overlay 悬浮 */
     scrollbar-gutter: stable both-edges;
     overflow-y: overlay;
@@ -317,6 +325,14 @@ svg[hidden] {
   .page {
     @apply relative min-h-screen px-4 py-24 tracking-wide sm:px-0 lg:py-16;
   }
+
+  /* 页面主标题（友邻等页顶部那一行）：与「关于」页正文 h2 同规格，
+     由 --prose-font-size × 1.5 派生（关于页标题即 .prose 的 h2）。 */
+  .page-title {
+    font-size: calc(var(--prose-font-size) * 1.5);
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
   .mask {
     @apply shadow-inner;
     will-change: height;
@@ -340,9 +356,107 @@ svg[hidden] {
     @apply w-5;
   }
 
-  /* project page */
-  .project a {
+  /* 详情页 meta 的每个条目（图标 + 文字）：
+     ★ Tailwind preflight 把 svg 设为 display:block，若不设 flex，
+       svg 会独占一行、文字被挤到下一行（横排布局被破坏）。
+       故链接与纯文本条目统一 inline-flex 横排。 */
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* 指向归档的链接（2026-10-06）：悬停颜色平滑过渡到主题色（方案 A：颜色过渡）。
+     图标 stroke 用 currentColor，自动跟随，无需单独处理。
+     间距（ml-4）挂在本类上而不是图标上，保证整块间隔区也在可点范围内。 */
+  .meta-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.25s ease;
+  }
+  .meta-link:hover {
     color: var(--theme-color);
+  }
+
+  /* archives page
+     网格项沿用友邻页的观感（2px 边框 + hover 上浮 + 主题色），但不含图片。
+     用独立的 .archives 命名空间，避免与 .friend 耦合成一体。 */
+
+  .archives .group + .group {
+    margin-top: 3rem;
+  }
+
+  /* 分区标题（标签 / 分类 / 时间线）：24px 加粗（方案 B，2026-10-06 对比后选定）。
+     ★ 此值与「关于」页的 h2 同为 24px（= .prose 的 1.5em × 16px 正文字号），
+       三处标题（关于 / 友邻 / 归档）保持一致；改 .prose 字号时要一并检查。
+     左侧图标与 PostList 元信息同源（标签→Tag、分类→Bookmark、时间线→Calendar）。
+     与下方网格之间留一行空气（1.75rem = leading-7，即站内一行的高度）。 */
+  .archives .group-title {
+    @apply flex items-baseline gap-2;
+    font-size: calc(var(--prose-font-size) * 1.5);
+    font-weight: bold;
+    margin-bottom: 1.75rem;
+    color: var(--font-color);
+  }
+
+  /* 图标随标题字号缩放；基线对齐下 SVG 会下沉，故单独垂直居中 */
+  .archives .group-title svg {
+    width: 0.78em;
+    height: 0.78em;
+    align-self: center;
+  }
+
+  .archives .group-count {
+    @apply text-sm;
+    opacity: 0.4;
+  }
+
+  .archives li {
+    /* 供右下角篇数绝对定位 */
+    position: relative;
+    will-change: transform;
+    border: 2px solid var(--font-color);
+  }
+
+  .archives li:hover {
+    @apply shadow-xl;
+    color: var(--theme-color);
+    border-color: var(--theme-color);
+  }
+
+  /* 网格项内的篇数：钉在方框右下角（绝对定位、脱离文档流），
+     让方框高度与友邻页对齐 —— 友邻页方框内只有一行文字 + py-4。 */
+  .archives li .count {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.3rem;
+    font-size: 0.72rem;
+    line-height: 1;
+    opacity: 0.5;
+  }
+
+  /* 归档子视图头部（放在 PostList 的头部槽里，故不嵌套在 .archives 下） */
+  .archive-head .crumb {
+    @apply mb-1 text-sm;
+    opacity: 0.6;
+  }
+
+  .archive-head .crumb a {
+    color: var(--theme-color);
+  }
+
+  .archive-head .crumb .sep {
+    margin: 0 0.35em;
+  }
+
+  .archive-head .archive-title {
+    font-size: calc(var(--prose-font-size) * 1.5);
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .archive-head .archive-count {
+    @apply text-sm;
+    opacity: 0.6;
   }
 
   /* friend page */

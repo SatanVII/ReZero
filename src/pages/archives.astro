@@ -1,0 +1,99 @@
+---
+/**
+ * 归档索引页（/project 经 astro.config 的 redirects 重定向至此）
+ *
+ * 三个维度全部由构建期从 frontmatter 聚合，内容侧零维护：
+ *   标签   → /archives/tag/<标签>
+ *   分类   → /archives/category/<分类>
+ *   时间线 → /archives/year/<年份>
+ *
+ * 收录范围：三个维度**一律排除**「关于」「随想」（见 src/utils/content.ts）——
+ * 它们分别由 /about 自述页与 /inspiration 隨想流独占，不进归档。
+ *
+ * 文案：页面不设主标题，直接进分区；分区标题（标签 / 分类 / 时间线）用站内 h2 规格
+ * （27px / 700），左侧配图标 —— 与 PostList 元信息同源的三个图标
+ * （标签→Tag、分类→Bookmark、时间线→Calendar），保证同一语义全站同一图标。
+ * 正文用简体（与 frontmatter 里的标签/分类数据：春节、随笔、日志… 一致）。
+ * 视觉参照友邻页（friend.astro）：同款网格 + 边框 + hover 上浮，不含图片。
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Bookmark from '@/components/icons/Bookmark.astro';
+import Calendar from '@/components/icons/Calendar.astro';
+import Tag from '@/components/icons/Tag.astro';
+import { EXCLUDED_CATEGORIES } from '@/utils/content';
+
+const entries = (await getCollection('post')).filter(
+  ({ data }) => !EXCLUDED_CATEGORIES.includes(data.category),
+);
+
+const tally = <K extends string>(getKeys: (entry: (typeof entries)[number]) => K[]) => {
+  const map = new Map<K, number>();
+  for (const entry of entries) {
+    for (const key of getKeys(entry)) map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return map;
+};
+
+/** 文章数降序，同数按名称 */
+const byCountThenName = (a: [string, number], b: [string, number]) =>
+  b[1] - a[1] || a[0].localeCompare(b[0]);
+
+const tags = [...tally((e) => e.data.tags ?? []).entries()].sort(byCountThenName);
+const categories = [...tally((e) => [e.data.category]).entries()].sort(byCountThenName);
+const years = [...tally((e) => [String(e.data.date.getFullYear())]).entries()].sort((a, b) =>
+  b[0].localeCompare(a[0]),
+);
+---
+
+<BaseLayout title="歸檔 - 字嶼隅">
+  <div class="page archives">
+    <section class="group">
+      <h2 class="group-title"><Tag />标签<span class="group-count">{tags.length}</span></h2>
+      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+        {
+          tags.map(([tag, count]) => (
+            <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
+              <a href={`/archives/tag/${tag}`} class="block h-full w-full py-4">
+                <span class="name">{tag}</span>
+                <span class="count">{count}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="group">
+      <h2 class="group-title"><Bookmark />分类<span class="group-count">{categories.length}</span></h2>
+      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+        {
+          categories.map(([category, count]) => (
+            <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
+              <a href={`/archives/category/${category}`} class="block h-full w-full py-4">
+                <span class="name">{category}</span>
+                <span class="count">{count}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="group">
+      <h2 class="group-title"><Calendar />时间线<span class="group-count">{years.length}</span></h2>
+      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+        {
+          years.map(([year, count]) => (
+            <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
+              <a href={`/archives/year/${year}`} class="block h-full w-full py-4">
+                <span class="name">{year}</span>
+                <span class="count">{count}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</BaseLayout>

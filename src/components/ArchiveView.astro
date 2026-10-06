@@ -1,0 +1,36 @@
+---
+/**
+ * 归档子视图（标签 / 分类 / 时间线 三者共用）
+ *
+ * 结构：PostList 的头部槽放「面包屑 + 维度标题 + 篇数」，正文由 PostList
+ * 渲染该维度下的文章列表（样式与文章列表页一致）。
+ *
+ * 面包屑首项用繁体「歸檔」，与侧边栏及页面主标题保持一致；
+ * 维度名（标签 / 分类 / 时间线）与篇数用简体。
+ *
+ * 注：PostList 的遮罩定位已改为 `item.offsetTop + 列表容器.offsetTop`，
+ * 因此在列表上方插入本头部不会导致指示框错位（见 PostList.astro 注释）。
+ */
+import type { CollectionEntry } from 'astro:content';
+import PostList from '@/components/PostList.astro';
+
+interface Props {
+  entries: CollectionEntry<'post'>[];
+  /** 维度名：标签 / 分类 / 时间线 */
+  kind: string;
+  /** 维度取值：标签名 / 分类名 / 年份 */
+  label: string;
+}
+
+const { entries, kind, label } = Astro.props;
+---
+
+<PostList entries={entries}>
+  <div class="archive-head mx-4 mb-6 leading-7">
+    <p class="crumb">
+      <a href="/archives">歸檔</a><span class="sep">/</span>{kind}
+    </p>
+    <p class="archive-title">{label}</p>
+    <p class="archive-count">{entries.length} 篇文章</p>
+  </div>
+</PostList>

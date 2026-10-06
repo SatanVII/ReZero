@@ -8,8 +8,10 @@ import { satteriEnhance } from './src/lib/satteriEnhance.ts';
 
 // https://astro.build/config
 export default defineConfig({
-  // 旧 /article 路由跳转到主页（主页即文章列表）
-  redirects: { '/article': '/' },
+  // 旧路由跳转：
+  //   /article → 主页（主页即文章列表）
+  //   /project → /archives（原「項目」页 2026-10-06 起由「歸檔」页取代）
+  redirects: { '/article': '/', '/project': '/archives' },
   // 站点线上地址（sitemap / RSS / canonical 依赖此项）
   site: 'https://rezero-five.vercel.app',
 

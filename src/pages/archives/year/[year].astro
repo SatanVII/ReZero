@@ -1,0 +1,44 @@
+---
+/**
+ * 归档子视图 · 时间线（/archives/year/<年份>）
+ *
+ * 构建期按 frontmatter 的 date 取年份聚合；跨年后自动出现新年份页面。
+ * 粒度按用户 2026-10-06 决定：**仅到年**，不做月份下钻。
+ * 「关于」「随想」两类文章在**三个维度一律排除**（见 src/utils/content.ts）。
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArchiveView from '@/components/ArchiveView.astro';
+import { EXCLUDED_CATEGORIES } from '@/utils/content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('post');
+  const grouped = new Map<string, (typeof all)[number][]>();
+
+  for (const entry of all) {
+    if (EXCLUDED_CATEGORIES.includes(entry.data.category)) continue;
+    const year = String(entry.data.date.getFullYear());
+    const list = grouped.get(year);
+    if (list) list.push(entry);
+    else grouped.set(year, [entry]);
+  }
+
+  const byDateDesc = (a: (typeof all)[number], b: (typeof all)[number]) =>
+    b.data.date.getTime() - a.data.date.getTime();
+
+  return [...grouped.entries()].map(([year, entries]) => ({
+    params: { year },
+    props: { year, entries: [...entries].sort(byDateDesc) },
+  }));
+}
+
+const { year, entries } = Astro.props;
+---
+
+<BaseLayout
+  title={`${year} 年 - 字嶼隅`}
+  description={`${year} 年的全部文章，共 ${entries.length} 篇。`}
+  keywords={year}
+>
+  <ArchiveView entries={entries} kind="时间线" label={year} />
+</BaseLayout>

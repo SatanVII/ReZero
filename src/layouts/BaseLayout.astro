@@ -171,6 +171,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 </html>
 
 <script>
+  import { isNavActive } from '../utils/nav';
+
   /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
   const nya = () => {
     const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
@@ -282,7 +284,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
   /* ---------- 导航激活态（Side/Header 被 transition:persist 保留后，激活类需在换页后手动更新） ---------- */
   const updateActiveNav = () => {
-    const path = location.pathname.endsWith('/') ? location.pathname.slice(0, -1) : location.pathname;
     document.querySelectorAll('.nav a[href]').forEach((a) => {
       const href = a.getAttribute('href') ?? '';
       // 占位社交链接（twitter/telegram/music，config 里为空串）在旧站从不参与激活态；
@@ -291,8 +292,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         a.classList.remove('active');
         return;
       }
-      const normalized = href.endsWith('/') ? href.slice(0, -1) : href;
-      a.classList.toggle('active', normalized === path);
+      // 2026-10-06：由「严格相等」改为 isNavActive（相等或子路径）。
+      // 归档页引入 /archives/{tag,category,year}/… 多级路由后，
+      // 严格相等会导致子路由不点亮「歸檔」图标。
+      a.classList.toggle('active', isNavActive(href, location.pathname));
     });
   };
 

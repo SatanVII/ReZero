@@ -8,6 +8,7 @@ import Panel from '@/components/Panel.astro';
 import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
 import config from '@/utils/config';
+import { isNavActive } from '@/utils/nav';
 // 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
 import BookBookmark from '@/components/icons/BookBookmark.astro';
 import BookOpen from '@/components/icons/BookOpen.astro';
@@ -26,7 +27,7 @@ import '@/components/Side.css';
 const navItems = [
   { href: '/', name: '文章', Icon: ScrollText },
   { href: '/inspiration', name: '隨想', Icon: Sparkles },
-  { href: '/project', name: '項目', Icon: Codepen },
+  { href: '/archives', name: '歸檔', Icon: Codepen },
   { href: '/book', name: '書閣', Icon: BookOpen },
   { href: '/friend', name: '友鄰', Icon: HeartPulse },
   { href: '/about', name: '自述', Icon: Ghost },
@@ -55,7 +56,7 @@ const { pathname } = Astro.url;
     <nav class="nav nav-y flex w-12 flex-col items-center justify-end">
       {
         navItems.map(({ href, name, Icon }) => (
-          <a class={pathname === href ? 'active' : undefined} href={href} data-name={name}>
+          <a class={isNavActive(href, pathname) ? 'active' : undefined} href={href} data-name={name}>
             <Icon />
           </a>
         ))

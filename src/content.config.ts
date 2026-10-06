@@ -2,6 +2,7 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { inspirationLoader } from '@/lib/inspirationLoader';
+import { CATEGORIES } from '@/utils/content';
 
 // 旧站约定：URL 为 /posts/<frontmatter 标题>，因此以标题作为条目 id
 const generateIdFromTitle = ({
@@ -15,13 +16,16 @@ const generateIdFromTitle = ({
 const postSchema = z.object({
   title: z.string(),
   date: z.coerce.date(),
-  category: z.string(),
-  tags: z.array(z.string()),
+  // 受控词表：见 src/utils/content.ts 的 CATEGORIES（写错会在构建期报错，
+  // 而不是静默变成「未分类」——「关于」「随想」是保留分类，拼错会让页面静默失效）
+  category: z.enum(CATEGORIES),
+  tags: z.preprocess((v) => (typeof v === 'string' ? [v] : v), z.array(z.string())),
   description: z.string().optional(),
 });
 
-// 「 blog-post/ 」目录：文章按年份子目录归档（2024/、2025/…），
-// 分类体系：关于（首页/自述）、随想（火花流）、日志、随笔（后两者进文字页）
+// 「 blog-post/ 」目录：文章按年份子目录归档（2025/、2026/…）
+// 分类为受控词表（src/utils/content.ts 的 CATEGORIES）：
+//   关于（/about 自述页独占）、随想（/inspiration 火花流独占）、日志、随笔、笔记
 const post = defineCollection({
   loader: glob({
     // 排除模板目录：`content/blog-post/templates/**` 里的 Obsidian 模板含 `<% tp.date.now() %>`
@@ -40,7 +44,7 @@ const inspiration = defineCollection({
     title: z.string(),
     postTitle: z.string(),
     date: z.coerce.date(),
-    category: z.string(),
+    category: z.enum(CATEGORIES),
     order: z.number(),
   }),
 });

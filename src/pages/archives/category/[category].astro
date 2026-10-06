@@ -1,0 +1,43 @@
+---
+/**
+ * 归档子视图 · 分类（/archives/category/<分类>）
+ *
+ * 构建期按 frontmatter 的 category 聚合。
+ * 「关于」「随想」不生成分类页 —— 它们分别由 /about 自述页与 /inspiration 隨想流独占
+ * （排除项见 src/utils/content.ts，与首页 index.astro 共用同一份）。
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArchiveView from '@/components/ArchiveView.astro';
+import { EXCLUDED_CATEGORIES } from '@/utils/content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('post');
+  const grouped = new Map<string, (typeof all)[number][]>();
+
+  for (const entry of all) {
+    if (EXCLUDED_CATEGORIES.includes(entry.data.category)) continue;
+    const list = grouped.get(entry.data.category);
+    if (list) list.push(entry);
+    else grouped.set(entry.data.category, [entry]);
+  }
+
+  const byDateDesc = (a: (typeof all)[number], b: (typeof all)[number]) =>
+    b.data.date.getTime() - a.data.date.getTime();
+
+  return [...grouped.entries()].map(([category, entries]) => ({
+    params: { category },
+    props: { category, entries: [...entries].sort(byDateDesc) },
+  }));
+}
+
+const { category, entries } = Astro.props;
+---
+
+<BaseLayout
+  title={`分类：${category} - 字嶼隅`}
+  description={`分类「${category}」下的全部文章，共 ${entries.length} 篇。`}
+  keywords={category}
+>
+  <ArchiveView entries={entries} kind="分类" label={category} />
+</BaseLayout>

@@ -1,0 +1,45 @@
+---
+/**
+ * 归档子视图 · 标签（/archives/tag/<标签>）
+ *
+ * 构建期按 frontmatter 的 tags 聚合；新标签自动生成页面，删除标签页面自动消失。
+ * 「关于」「随想」两类文章在**三个维度一律排除**（见 src/utils/content.ts），
+ * 因此只出现在这两篇文章上的标签（自述、随想）不会生成页面。
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArchiveView from '@/components/ArchiveView.astro';
+import { EXCLUDED_CATEGORIES } from '@/utils/content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('post');
+  const grouped = new Map<string, (typeof all)[number][]>();
+
+  for (const entry of all) {
+    if (EXCLUDED_CATEGORIES.includes(entry.data.category)) continue;
+    for (const tag of entry.data.tags ?? []) {
+      const list = grouped.get(tag);
+      if (list) list.push(entry);
+      else grouped.set(tag, [entry]);
+    }
+  }
+
+  const byDateDesc = (a: (typeof all)[number], b: (typeof all)[number]) =>
+    b.data.date.getTime() - a.data.date.getTime();
+
+  return [...grouped.entries()].map(([tag, entries]) => ({
+    params: { tag },
+    props: { tag, entries: [...entries].sort(byDateDesc) },
+  }));
+}
+
+const { tag, entries } = Astro.props;
+---
+
+<BaseLayout
+  title={`标签：${tag} - 字嶼隅`}
+  description={`标签「${tag}」下的全部文章，共 ${entries.length} 篇。`}
+  keywords={tag}
+>
+  <ArchiveView entries={entries} kind="标签" label={tag} />
+</BaseLayout>
