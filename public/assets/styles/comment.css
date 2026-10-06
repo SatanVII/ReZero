@@ -9,9 +9,19 @@
  * 2026-09-17 由 Noto Serif SC 更换）：
  * 本 @import 仅供 Comment.astro 解析——由它在页面侧把 woff2 分片抓取并
  * base64 内联进 data: URL 主题，iframe 内无需任何外部请求。 */
-@import url('./fonts/lxgw-wenkai.css');
-
-main {
+  @import url('./fonts/lxgw-wenkai.css');
+  
+  /* 2026-10-07：字体声明从 main 提升到 body —— giscus 的 body 自带
+     `-apple-system, Segoe UI…` 系统栈，main 只盖得住 main 内部，
+     body/header/按钮等外层文字仍是系统字体 → 评论区两种字体并存
+     （用户反馈「评论区字体又渲染不好了」的根因）。
+     提升到 body 后整个 iframe 统一文楷；main 的声明保留（冗余但兼容）。 */
+  body {
+    font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', sans-serif;
+    -webkit-text-stroke: 0.2px;
+  }
+  
+  main {
   /* 与正文一致的字体栈：文楷 + 系统楷体回退（引导版主题即含本声明——
      完整主题（内联文楷分片）到达前先以系统楷体渲染，消除先无衬线后楷体的闪变）；
      0.2px 描边与正文 body 一致，补偿文楷 Regular 细笔画 */
