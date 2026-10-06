@@ -385,23 +385,34 @@ svg[hidden] {
     margin-top: 3rem;
   }
 
-  /* 分区标题（标签 / 分类 / 时间线）：24px 加粗（方案 B，2026-10-06 对比后选定）。
-     ★ 此值与「关于」页的 h2 同为 24px（= .prose 的 1.5em × 16px 正文字号），
-       三处标题（关于 / 友邻 / 归档）保持一致；改 .prose 字号时要一并检查。
+  /* 分区标题（标签 / 分类 / 时间线）：**不用标题格式**（2026-10-06 定）——
+     比正文大一档但不是粗体，与网格的细边框调性一致。
+     注：因此不再从 --prose-font-size 派生（那是「页面主标题」才需要的
+     「与关于页一致」约束）。
      左侧图标与 PostList 元信息同源（标签→Tag、分类→Bookmark、时间线→Calendar）。
-     与下方网格之间留一行空气（1.75rem = leading-7，即站内一行的高度）。 */
+     与下方网格之间留一行空气（1.75rem = leading-7）。 */
   .archives .group-title {
     @apply flex items-baseline gap-2;
-    font-size: calc(var(--prose-font-size) * 1.5);
-    font-weight: bold;
+    font-size: 20px;
+    font-weight: 500;
     margin-bottom: 1.75rem;
     color: var(--font-color);
+    /* 图标前的主题色竖条（方案 B，2026-10-06）：
+       Markdown 引用块式 —— 与 .prose blockquote 同规格
+       （border-inline-start 0.25rem + padding-inline-start 1em）。
+       注：斜体来自 blockquote 的 font-style，与 border 是独立声明，
+       这里只取竖条，文字不会变斜。 */
+    border-inline-start: 0.25rem solid var(--theme-color);
+    padding-inline-start: 1em;
   }
 
-  /* 图标随标题字号缩放；基线对齐下 SVG 会下沉，故单独垂直居中 */
+  /* 图标随标题字号缩放；基线对齐下 SVG 会下沉，故单独垂直居中。
+     2026-10-06：由 0.78em 改为 1em —— 0.78em 在 20px 标题下只有 15.6px，
+     明显小于站内其它图标的 20px 基准（.nav svg / .meta svg 均为 1.25rem），
+     视觉上「太小」。1em 在 20px 标题下正好 = 20px，与全站基准对齐。 */
   .archives .group-title svg {
-    width: 0.78em;
-    height: 0.78em;
+    width: 1em;
+    height: 1em;
     align-self: center;
   }
 
