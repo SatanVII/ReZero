@@ -49,6 +49,9 @@ svg[hidden] {
      oklch(87.2% .01 258.338)，与站点主题色不搭。
      注：有序列表的序号另由 --tw-prose-counters 控制，本次未动。 */
   --tw-prose-bullets: var(--theme-color);
+  /* 有序列表序号（2026-10-06）：与 `-` 圆点统一为主题色。
+     此前未覆盖 → typography 默认深灰，与已主题化的圆点不一致。 */
+  --tw-prose-counters: var(--theme-color);
   /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
      typography 插件的 hr 颜色由 --tw-prose-hr 控制，此处按项目约定用变量覆盖 */
   --tw-prose-hr: rgb(0 0 0 / 0.45);
@@ -276,6 +279,27 @@ svg[hidden] {
   .prose code::before,
   .prose code::after {
     @apply hidden;
+  }
+
+  /* 表格抬头（2026-10-06）：typography 把整表缩到 0.875em（14.875px），抬头文字
+     比表格正文（继承正文 17px）还小一号 —— 字重虽是 600，视觉上「不够黑」。
+     用户要求抬头像 **文字**（strong = 正文字号/600）一样。
+     ★ 两处易错：① 值必须用 var(--prose-font-size)（=17px），写 1em 会被
+       表格的 0.875em 继承值吃掉，等于没改（曾踩）；
+       ② 必须 !important：typography 在 @layer utilities，本项目覆盖在
+       components，layer 优先级压过特异性（教训同行内 code 的字重修复）。 */
+  .prose thead th {
+    font-size: var(--prose-font-size) !important;
+  }
+
+  /* 行内 code 不加粗（2026-10-06）：typography 默认 font-weight:600，但
+     文楷 Mono 只有 Regular 一个字重（官方本就无 Bold），600 会触发浏览器
+     合成加粗 → 过粗。强调已由主题色 + 字号缩小（0.875em）承担。
+     ★ 必须 !important：typography 的规则在 @layer utilities，本项目覆盖在
+       @layer components —— layer 优先级压过特异性，普通声明赢不了
+       （与 .prose pre.astro-code 的处理一致）。 */
+  .prose code:not(:where([class~='not-prose'], [class~='not-prose'] *)) {
+    font-weight: 400 !important;
   }
 
   .prose img {
