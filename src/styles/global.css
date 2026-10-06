@@ -426,16 +426,15 @@ svg[hidden] {
     margin-top: 3rem;
   }
 
-  /* 分区标题（标签 / 分类 / 时间线）：**不用标题格式**（2026-10-06 定）——
-     比正文大一档但不是粗体，与网格的细边框调性一致。
-     注：因此不再从 --prose-font-size 派生（那是「页面主标题」才需要的
-     「与关于页一致」约束）。
-     左侧图标与 PostList 元信息同源（标签→Tag、分类→Bookmark、时间线→Calendar）。
+  /* 分区标题（标签 / 分类 / 时间线）：**H3 标题格式**（2026-10-06 定）——
+     与 typography 的 h3 同规格：1.25em / 600，随正文字号（--prose-font-size）派生。
+     左侧图标与 PostList 元信息同源（标签→Tag、分类→Bookmark、时间线→Calendar），
+     图标 1em 随标题缩放、垂直居中对齐。
      与下方网格之间留一行空气（1.75rem = leading-7）。 */
   .archives .group-title {
     @apply flex items-baseline gap-2;
-    font-size: 20px;
-    font-weight: 500;
+    font-size: calc(var(--prose-font-size) * 1.25);
+    font-weight: 600;
     margin-bottom: 1.75rem;
     color: var(--font-color);
     /* 图标前的主题色竖条（方案 B，2026-10-06）：
@@ -448,9 +447,7 @@ svg[hidden] {
   }
 
   /* 图标随标题字号缩放；基线对齐下 SVG 会下沉，故单独垂直居中。
-     2026-10-06：由 0.78em 改为 1em —— 0.78em 在 20px 标题下只有 15.6px，
-     明显小于站内其它图标的 20px 基准（.nav svg / .meta svg 均为 1.25rem），
-     视觉上「太小」。1em 在 20px 标题下正好 = 20px，与全站基准对齐。 */
+     1em = 标题字号（H3 格式下 21.25px），与站内图标基准（20px）同档。 */
   .archives .group-title svg {
     width: 1em;
     height: 1em;
