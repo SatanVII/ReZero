@@ -446,12 +446,10 @@ svg[hidden] {
     padding-inline-start: 1em;
   }
 
-  /* 图标随标题字号缩放；基线对齐下 SVG 会下沉，故单独垂直居中。
-     1em = 标题字号（H3 格式下 21.25px），与站内图标基准（20px）同档。 */
+  /* 2026-10-07：应用户要求**删除分区标题图标**（仅此一项改动，其余样式不动）。
+     若要恢复，改回 { width:1em; height:1em; align-self:center } 即可。 */
   .archives .group-title svg {
-    width: 1em;
-    height: 1em;
-    align-self: center;
+    display: none;
   }
 
   .archives .group-count {

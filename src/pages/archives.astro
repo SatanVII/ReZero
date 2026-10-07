@@ -50,11 +50,11 @@ const years = [...tally((e) => [String(e.data.date.getFullYear())]).entries()].s
   <div class="page archives">
     <section class="group">
       <h2 class="group-title"><Tag />标签<span class="group-count">{tags.length}</span></h2>
-      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+      <ul class="grid w-full grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
         {
           tags.map(([tag, count]) => (
             <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
-              <a href={`/archives/tag/${tag}`} class="block h-full w-full py-4">
+              <a href={`/archives/tag/${tag}`} class="block h-full w-full py-3">
                 <span class="name">{tag}</span>
                 <span class="count">{count}</span>
               </a>
@@ -66,11 +66,11 @@ const years = [...tally((e) => [String(e.data.date.getFullYear())]).entries()].s
 
     <section class="group">
       <h2 class="group-title"><Bookmark />分类<span class="group-count">{categories.length}</span></h2>
-      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+      <ul class="grid w-full grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
         {
           categories.map(([category, count]) => (
             <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
-              <a href={`/archives/category/${category}`} class="block h-full w-full py-4">
+              <a href={`/archives/category/${category}`} class="block h-full w-full py-3">
                 <span class="name">{category}</span>
                 <span class="count">{count}</span>
               </a>
@@ -82,11 +82,11 @@ const years = [...tally((e) => [String(e.data.date.getFullYear())]).entries()].s
 
     <section class="group">
       <h2 class="group-title"><Calendar />时间线<span class="group-count">{years.length}</span></h2>
-      <ul class="grid w-full grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5">
+      <ul class="grid w-full grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
         {
           years.map(([year, count]) => (
             <li class="inline-block transform text-center duration-300 hover:-translate-y-1">
-              <a href={`/archives/year/${year}`} class="block h-full w-full py-4">
+              <a href={`/archives/year/${year}`} class="block h-full w-full py-3">
                 <span class="name">{year}</span>
                 <span class="count">{count}</span>
               </a>
