@@ -1,0 +1,35 @@
+---
+/**
+ * 夜间模式切换按钮（2026-10-09）
+ *
+ * 两态（日间 / 夜间）单按钮，图标显示**当前状态**：
+ *   日间 → sun，夜间 → moon（lucide v0.279，与站内其余 vendor 图标同源同尺寸）。
+ *
+ * ★ 两个图标常驻 DOM，由 `[data-scheme]` 决定显示哪一个（见 global.css）——
+ *   切换时只改属性，零 JS 换图标、零闪烁、零延迟。
+ *
+ * 落点由使用处决定：
+ *   - 桌面：BaseLayout 里 `<SchemeToggle class="scheme-toggle-desktop" />`（视口右上角）
+ *   - 移动：Header 顶栏左端（标题左侧）
+ * 样式统一写在 global.css 的 `[data-toggle-scheme]` 段（同一组件在两处渲染）。
+ */
+import Sun from '@/components/icons/Sun.astro';
+import Moon from '@/components/icons/Moon.astro';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<button
+  type="button"
+  data-toggle-scheme
+  class:list={[className]}
+  aria-label="切换到夜间模式"
+  title="切换到夜间模式"
+>
+  <Sun class="icon-sun" />
+  <Moon class="icon-moon" />
+</button>

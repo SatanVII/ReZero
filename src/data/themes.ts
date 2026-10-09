@@ -28,6 +28,8 @@ export interface Theme {
   color: {
     primary: string;
     background: string;
+    /** 夜间模式（data-scheme='dark'）下的页面底色：保住色相、明度压到约 11% */
+    darkBackground: string;
   };
   image: string;
   url: string;
@@ -49,7 +51,7 @@ const themes: Theme[] = [
     type: 'Coral',
     name: '朱砂點記',
     description: 'illus.门特ment',
-    color: { primary: '#E06458', background: '#FCFAF2' },
+    color: { primary: '#E06458', background: '#FCFAF2', darkBackground: '#201E18' },
     image: Coral,
     url: 'https://v.douyin.com/r80AnFEoAtI/',
   },
@@ -57,7 +59,7 @@ const themes: Theme[] = [
     type: 'Sage',
     name: '綠意初萌',
     description: 'illus.门特ment',
-    color: { primary: '#7EA08A', background: '#F3F7F2' },
+    color: { primary: '#7EA08A', background: '#F3F7F2', darkBackground: '#1A2018' },
     image: Sage,
     url: 'https://v.douyin.com/BlCBRA-Syyg/',
   },
@@ -65,7 +67,7 @@ const themes: Theme[] = [
     type: 'Azure',
     name: '天光雲影',
     description: 'illus.紺屋',
-    color: { primary: '#74B5DB', background: '#DBEAF1' },
+    color: { primary: '#74B5DB', background: '#DBEAF1', darkBackground: '#181D20' },
     image: Azure,
     url: 'https://www.pixiv.net/artworks/118359840',
   },
@@ -73,7 +75,7 @@ const themes: Theme[] = [
     type: 'Indigo',
     name: '深海星辰',
     description: 'illus.Rafa',
-    color: { primary: '#5260A6', background: '#E2E5F5' },
+    color: { primary: '#5260A6', background: '#E2E5F5', darkBackground: '#181920' },
     image: Indigo,
     url: 'https://www.pixiv.net/artworks/132039017',
   },
@@ -81,7 +83,7 @@ const themes: Theme[] = [
     type: 'Mauve',
     name: '落星微塵',
     description: 'illus.花铭',
-    color: { primary: '#BF9997', background: '#F2E1DC' },
+    color: { primary: '#BF9997', background: '#F2E1DC', darkBackground: '#201A18' },
     image: Mauve,
     url: 'https://www.pixiv.net/artworks/134109172',
   },
@@ -89,7 +91,7 @@ const themes: Theme[] = [
     type: 'Slate',
     name: '煙波浩渺',
     description: 'illus.nawtis✤',
-    color: { primary: '#8996B2', background: '#D8E2EC' },
+    color: { primary: '#8996B2', background: '#D8E2EC', darkBackground: '#181C20' },
     image: Slate,
     url: 'https://www.pixiv.net/artworks/135637025',
   },
@@ -97,7 +99,7 @@ const themes: Theme[] = [
     type: 'Terracotta',
     name: '秋色連波',
     description: 'illus.门特ment',
-    color: { primary: '#C15C42', background: '#F3E8DB' },
+    color: { primary: '#C15C42', background: '#F3E8DB', darkBackground: '#201C18' },
     image: Terracotta,
     url: 'https://v.douyin.com/bwDvrIOTCvA/',
   },
@@ -105,7 +107,7 @@ const themes: Theme[] = [
     type: 'Lilac',
     name: '紫夢初醒',
     description: 'illus.Miracle',
-    color: { primary: '#8C78B0', background: '#E3DBED' },
+    color: { primary: '#8C78B0', background: '#E3DBED', darkBackground: '#1C1820' },
     image: Lilac,
     url: 'https://www.pixiv.net/artworks/149130893',
   },

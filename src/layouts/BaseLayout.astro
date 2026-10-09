@@ -10,6 +10,7 @@ import { ClientRouter } from 'astro:transitions';
 import TopProgress from '@/components/TopProgress.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
+import SchemeToggle from '@/components/SchemeToggle.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import themes, { themeTypes } from '@/data/themes';
 const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
@@ -114,6 +115,25 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           /* localStorage 不可用（隐私模式等）：退回第一套主题 */
         }
         document.documentElement.dataset.theme = type || LIST[0];
+        /* ---- 夜间模式（2026-10-09）-----------------------------------------
+           与主题（色相）正交的明度轴。localStorage 存**用户显式选择**，
+           无值即跟随系统 prefers-color-scheme。
+           ★ 持久化策略刻意不同于主题：主题是「24h 过期 + 按访问次数轮换」
+             （为「每次访问换壁纸」而设计），而明暗是用户偏好 —— 不该过期、
+             不该轮换，故用独立键 scheme、长期有效。 */
+        let scheme = '';
+        try {
+          const saved = localStorage.getItem('scheme');
+          scheme =
+            saved === 'dark' || saved === 'light'
+              ? saved
+              : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                  ? 'dark'
+                  : 'light');
+        } catch {
+          scheme = 'light'; /* localStorage 不可用（隐私模式等） */
+        }
+        document.documentElement.dataset.scheme = scheme;
         // P0-2：首绘前预载当前主题背景图（比等 CSS 解析后再发现提前一轮 RTT）
         const bg = themeImages[type || LIST[0]];
         if (bg) document.head.insertAdjacentHTML('beforeend', '<link rel="preload" as="image" href="' + bg + '">');
@@ -162,7 +182,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       })();
     </script>
     <ClientRouter />
-  </head>
+      </head>
   <body>
     <!--
       布局组件在换页时保持不重建（对应旧站 Next App Router 的持久 layout）：
@@ -171,6 +191,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     -->
     <Header />
     <Side />
+    <!-- 夜间模式切换（桌面落点：视口右上角；lg 以下隐藏，由 Header 内的实例承担） -->
+    <SchemeToggle class="scheme-toggle-desktop" />
     <div class="page-wrap">
       <slot />
     </div>
@@ -245,6 +267,70 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     (event as unknown as { viewTransition?: { skipTransition(): void } }).viewTransition?.skipTransition();
     document.documentElement.classList.add('js');
     if (currentTheme) document.documentElement.dataset.theme = currentTheme;
+    // 明度轴同理：换页会把 data-scheme 一并清掉，必须补回，否则夜间模式闪一下白天
+    document.documentElement.dataset.scheme = resolveScheme();
+  });
+
+  /* ---- 夜间模式切换（2026-10-09）-----------------------------------------
+     点击 → 切 data-scheme + 落盘（长期）+ 同步无障碍标签。
+     图标显隐由 CSS 按 data-scheme 决定（两个图标常驻），故这里不碰图标。 */
+  const resolveScheme = (): string => {
+    try {
+      const saved = localStorage.getItem('scheme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      /* 忽略 */
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+
+  const syncSchemeA11y = () => {
+    const dark = document.documentElement.dataset.scheme === 'dark';
+    const label = dark ? '切换到日间模式' : '切换到夜间模式';
+    document.querySelectorAll('[data-toggle-scheme]').forEach((btn) => {
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+    });
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target as HTMLElement).closest('[data-toggle-scheme]')) return;
+    const next = document.documentElement.dataset.scheme === 'dark' ? 'light' : 'dark';
+    const root = document.documentElement;
+    const apply = () => {
+      root.dataset.scheme = next;
+    };
+    /* 过渡：**不做过渡，瞬时切换**（2026-10-09 用户决定）。
+       曾尝试两套方案均撤下：
+       ① CSS 逐属性过渡（.scheme-anim）：全页 400+ 元素同时重绘 + 全屏壁纸层，
+          在真机上表现为「闪烁」；
+       ② View Transition：本站**早已主动禁用**（head 内的垫片，2026-09-25 —— 快照
+          管线会让「显示光标」在换页瞬间锁存成箭头），调用它 = 过渡直接消失。
+       → 回到最初的瞬时切换。 */
+    apply();
+    try {
+      localStorage.setItem('scheme', next);
+    } catch {
+      /* 隐私模式：本次会话内仍然生效，只是不落盘 */
+    }
+    syncSchemeA11y();
+    // 通知评论区重建 giscus 主题（含 dark 叠加层）
+    window.dispatchEvent(new CustomEvent('scheme:changed', { detail: next }));
+  });
+
+  // 换页后按钮被重建，需重新同步无障碍标签
+  document.addEventListener('astro:page-load', syncSchemeA11y);
+  syncSchemeA11y();
+
+  // 系统偏好变化：仅在没有显式选择时跟随
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    try {
+      const saved = localStorage.getItem('scheme');
+      if (saved === 'dark' || saved === 'light') return;
+    } catch {
+      /* 忽略 */
+    }
+    document.documentElement.dataset.scheme = e.matches ? 'dark' : 'light';
   });
 
   window.addEventListener('theme:select', (event) => {

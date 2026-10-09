@@ -13,7 +13,11 @@ const themeCss = themes
   .map(
     // 用 :root[data-theme=...] 而不是 [data-theme=...]：global.css 的 :root 里有兜底默认值，
     // 两者同为 (0,1,0) 时会被文档顺序（<link> 在 <style> 之后）压掉，加一级 :root 保证生效。
-    (t) => `:root[data-theme='${t.type}']{--theme-color:${t.color.primary};--background-color:${t.color.background};--background-image:url('${t.image}')}`,
+    (t) =>
+      `:root[data-theme='${t.type}']{--theme-color:${t.color.primary};--background-color:${t.color.background};--background-image:url('${t.image}')}` +
+      // 夜间模式（2026-10-09）：同一条规则再加一个属性选择器 —— :root 上 data-theme 与
+      // data-scheme 同时命中时才生效，特异性天然更高，不必依赖文档顺序。
+      `:root[data-theme='${t.type}'][data-scheme='dark']{--background-color:${t.color.darkBackground}}`,
   )
   .join('');
 ---

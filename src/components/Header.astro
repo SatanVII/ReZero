@@ -10,6 +10,7 @@ import Ghost from '@/components/icons/Ghost.astro';
 import HeartPulse from '@/components/icons/HeartPulse.astro';
 import ScrollText from '@/components/icons/ScrollText.astro';
 import Sparkles from '@/components/icons/Sparkles.astro';
+import SchemeToggle from '@/components/SchemeToggle.astro';
 import { isNavActive } from '@/utils/nav';
 import '@/components/Header.css';
 
@@ -29,23 +30,30 @@ const { pathname } = Astro.url;
   <!-- 移动端菜单遮罩：菜单弹出时覆盖全屏空白区（拦截下层点击），点遮罩收起 -->
   <div class="nav-backdrop" data-nav-backdrop hidden></div>
 
+  <!-- 左端：站名 -->
   <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">字嶼隅</a></h3>
 
-  <nav class="nav hidden items-center sm:flex">
-    {
-      navItems.map(({ href, name, Icon }) => (
-        <a class={isNavActive(href, pathname) ? 'active' : undefined} href={href}>
-          <Icon />
-          {name}
-        </a>
-      ))
-    }
-  </nav>
+  <!-- 右端：导航 + 夜间模式切换 + 汉堡（2026-10-09：切换键置于**汉堡左侧**并与之对齐；
+       sm 以上汉堡隐藏时，它落在导航左侧同一行） -->
+  <div class="flex items-center gap-2">
+    <nav class="nav hidden items-center sm:flex">
+      {
+        navItems.map(({ href, name, Icon }) => (
+          <a class={isNavActive(href, pathname) ? 'active' : undefined} href={href}>
+            <Icon />
+            {name}
+          </a>
+        ))
+      }
+    </nav>
 
-  <div class="toggle flex w-7 flex-col sm:hidden" data-toggle-nav>
-    <span></span>
-    <span></span>
-    <span></span>
+    <SchemeToggle />
+
+    <div class="toggle flex w-7 flex-col sm:hidden" data-toggle-nav>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
   </div>
 </div>
 

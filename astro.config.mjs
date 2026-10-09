@@ -23,7 +23,10 @@ export default defineConfig({
     // 默认前景 #90A4AE），在近白底色上模糊发白、难以阅读；github-light
     // 为对比度最高的经典浅色主题，token 均为深色系，可读性优先。
     shikiConfig: {
-      theme: 'github-light',
+      // 夜间模式（2026-10-09）：单主题改**双主题** —— Astro 会为每个 token 同时输出
+      // `--shiki-light` / `--shiki-dark` 两个 CSS 变量，由 global.css 按 data-scheme 取用。
+      // 切换零成本：不必重新生成 HTML，也不用两套构建。
+      themes: { light: 'github-light', dark: 'github-dark' },
     },
     // Astro 7 默认处理器为 Rust 版 Sätteri；关闭旧站未使用的 smartypants 以保持输出一致
     processor: satteri({

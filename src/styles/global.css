@@ -52,19 +52,21 @@ svg[hidden] {
   /* 有序列表序号（2026-10-06）：与 `-` 圆点统一为主题色。
      此前未覆盖 → typography 默认深灰，与已主题化的圆点不一致。 */
   --tw-prose-counters: var(--theme-color);
-  /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
-     typography 插件的 hr 颜色由 --tw-prose-hr 控制，此处按项目约定用变量覆盖 */
-  --tw-prose-hr: rgb(0 0 0 / 0.45);
-  /* 表格线条（2026-10-02）：与上面的 `---` 分割线统一为柔和黑。
-     typography 默认是两档灰（表头 oklch(87.2%…) ≈#d1d5db、行 oklch(92.8%…) ≈#e5e7eb），
-     这里一并覆盖。thead 下边框与 tfoot 上边框共用 th-borders，行下边框用 td-borders。
-     注：插件把 tbody tr:last-child 的 border-bottom-width 置 0，最后一行本就没有底线。 */
-  --tw-prose-th-borders: rgb(0 0 0 / 0.45);
-  --tw-prose-td-borders: rgb(0 0 0 / 0.45);
-  --tw-prose-pre-bg: rgba(0, 0, 0, 0.04);
+    /* Markdown 的 `---` 分隔线（2026-09-27 用户要求「黑色但柔和」）：
+       typography 插件的 hr 颜色由 --tw-prose-hr 控制。
+       2026-10-09 令牌化：改为引用 --line-color，夜间模式只需换令牌值 */
+    --tw-prose-hr: var(--line-color);
+    /* 表格线条（2026-10-02）：与上面的 `---` 分割线统一为柔和黑。
+       typography 默认是两档灰（表头 oklch(87.2%…) ≈#d1d5db、行 oklch(92.8%…) ≈#e5e7eb），
+       这里一并覆盖。thead 下边框与 tfoot 上边框共用 th-borders，行下边框用 td-borders。
+       注：插件把 tbody tr:last-child 的 border-bottom-width 置 0，最后一行本就没有底线。 */
+    --tw-prose-th-borders: var(--line-color);
+    --tw-prose-td-borders: var(--line-color);
+    --tw-prose-pre-bg: var(--fill-color);
   /* P4-A：补齐 typography 默认的 oklch 变量（Firefox <113 对 oklch 整条失效），
      统一回退为墨色——同时消除各内核的正文颜色微差 */
   --tw-prose-body: var(--font-color);
+  --tw-prose-bold: var(--bold-color);
   --tw-prose-lead: var(--font-color);
   --tw-prose-captions: var(--font-color);
   --tw-prose-quotes: var(--font-color);
@@ -116,9 +118,55 @@ svg[hidden] {
        故 .page-title / .archives .group-title / .archive-head .archive-title
        均由它 calc(×1.5) 派生，改这一行即可全局同步（2026-10-06 立）。 */
     --prose-font-size: 17px;
+    /* ---- 夜间模式令牌（2026-10-09）------------------------------------
+       data-scheme（明度）与 data-theme（色相）正交：色相仍由 8 套主题决定，
+       这里只收敛「随明暗变化」的语义色，使切换只是一组值的替换。
+       值为**亮色默认态**；暗色见紧随其后的 :root[data-scheme='dark']。 */
+    --line-color: rgb(0 0 0 / 0.45); /* 正文线条：--- 分隔线、表格线 */
+    --fill-color: rgba(0, 0, 0, 0.04); /* 低透明填充：代码块底、Shiki 底 */
+    --mask-color: rgba(0, 0, 0, 0.04); /* PostList 悬浮高亮遮罩 */
+    --wallpaper-opacity: 0.08; /* 主题壁纸透明度 */
+    /* 粗体色：typography 的 --tw-prose-bold 默认是近黑 oklch(21% .034 264.665)，
+       本站一直未覆盖 —— 夜间模式下就成了「黑字压暗底」不可读（用户实测）。
+       亮色取该默认值的近似 hex 以**保持原观感**，暗色另给一档更亮的暖白。 */
+    --bold-color: #111827;
+    /* COLORS 面板（主题选择）的卡片底色。Panel.css 里原为硬编码 #fff/white；
+       夜间若不变，卡片仍是白底而文字随 --font-color 翻成浅色 → 白底浅字不可读。
+       暗色取比页面底色略亮的暖调中性色，读作「浮起的一层」。 */
+    --panel-surface: #ffffff;
     /* 滚动条：对齐原项目（zero-D globals.css 同款）——gutter 双侧占位 + overlay 悬浮 */
     scrollbar-gutter: stable both-edges;
     overflow-y: overlay;
+  }
+
+  /* 夜间模式（2026-10-09）：与 data-theme 正交的明度轴。
+     由 head 内联脚本在首次绘制前写入（见 BaseLayout），避免闪白。
+     注：`--font-color` 是全局单令牌（非每主题一份），它的翻转是本次最省力的一处 ——
+     全站正文 / 标题 / 引用 / 图注 / 表格文字都由它派生，不必逐组件改。 */
+  :root[data-scheme='dark'] {
+    /* 正文色：三轮真机反馈收敛 —— #d9d5d0（不够白）→ #f7f5f1（太白）→ **#eae7e2**。
+       对比度 13.5–14.2:1（8 暗底两端），比初版 11.4 亮、比上版 15.3–16.1 收，
+       同时与粗体色拉开约 21/通道的差，保证粗体可辨。 */
+    --font-color: #eae7e2;
+    --line-color: rgb(255 255 255 / 0.32);
+    --fill-color: rgba(255, 255, 255, 0.06);
+    --mask-color: rgba(255, 255, 255, 0.02); /* PostList 悬浮遮罩：0.05→0.03→0.02（用户两轮下调，Δ≈+4.5/通道） */
+    --wallpaper-opacity: 0.05;
+    --bold-color: #ffffff; /* 粗体用纯白：与正文 #eae7e2 拉开约 21/通道，
+                              叠加自身的粗字面，保证 **文字** 与普通文字明显可辨 */
+    --panel-surface: #2a2724; /* COLORS 面板卡片底：比页面底色略亮的暖中性 */
+  }
+
+
+
+  /* 夜间字体（2026-10-09，经多轮对照 + 真机反馈定案）：
+     **去掉描边**（`-webkit-text-stroke: 0`）—— 该描边是为「浅底深字」增粗用的；
+     暗底浅字**本身就视觉增粗**（光晕效应），再描边只会更糊更粗。
+     ★ 刻意**不再切换 `-webkit-font-smoothing`**：它是**不可过渡**属性，
+       明暗切换时会瞬间改变文字渲染方式 → 用户反复反馈的「切换时文字闪一下」。
+       可读性已由更亮的正文色（#f7f5f1，实测 15.3–16.1:1）解决，无需换渲染方式。 */
+  :root[data-scheme='dark'] body {
+    -webkit-text-stroke: 0;
   }
 
   html {
@@ -167,7 +215,7 @@ svg[hidden] {
     @apply fixed left-0 top-0 h-screen w-screen bg-cover bg-center bg-no-repeat;
     content: '';
     z-index: -1;
-    opacity: 0.08;
+    opacity: var(--wallpaper-opacity);
     background-image: var(--background-image);
     transition: background-image 0.8s;
   }
@@ -264,7 +312,7 @@ svg[hidden] {
      旧站 rehype-pretty-code 不注入底色，此处覆盖为旧站的深字浅底，
      token 高亮 span 有各自内联色不受影响 */
   .prose pre.astro-code {
-    background-color: rgba(0, 0, 0, 0.04) !important;
+    background-color: var(--fill-color) !important;
     color: var(--font-color) !important;
   }
 
@@ -377,7 +425,7 @@ svg[hidden] {
   .mask {
     @apply shadow-inner;
     will-change: height;
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--mask-color);
   }
   .mask:before {
     content: '';
@@ -584,5 +632,84 @@ svg[hidden] {
     height: 8.1rem;
     transform: translateX(5.25rem) rotateY(90deg);
     background-color: var(--background-color);
+  }
+
+  /* ---- 夜间模式切换按钮（2026-10-09）------------------------------------
+     落点：桌面 = 视口右上角浮动；移动 = Header 顶栏左端（见 Header.astro）。
+     尺寸/颜色与站内一致：图标 1.25rem（.side .nav svg 同基准）、hover → 主题色。
+     ★ 两个图标常驻按钮内，由 data-scheme 决定显示哪一个 —— 切换零 JS、零闪烁。
+     语义：显示**当前状态**（日间显太阳、夜间显月亮）。 */
+  [data-toggle-scheme] {
+    position: relative; /* 供 sun/moon 两枚图标叠放，做淡入淡出 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: none;
+    color: var(--font-color);
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  [data-toggle-scheme] svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    /* 两枚图标绝对定位叠放；用 opacity 交叉淡入淡出（display 无法过渡，
+       直接 display:none 会让图标「啪」地跳变 —— 用户实测「抽搐」） */
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    transition: opacity 0.35s ease;
+  }
+
+  /* 移动端图标放大（2026-10-09）：相邻的汉堡键是 28×30、2px 横条，
+     20px 的图标偏小、与之不相称 → 顶栏范围内放大到 1.5rem（24px）。
+     桌面端保持 1.25rem，与侧栏图标基准（.side .nav svg）一致。 */
+  @media (max-width: 1023px) {
+    [data-toggle-scheme] svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  }
+    [data-toggle-scheme]:hover,
+    [data-toggle-scheme]:focus-visible {
+      color: var(--theme-color);
+    }
+
+  [data-scheme='light'] [data-toggle-scheme] .icon-moon,
+  [data-scheme='dark'] [data-toggle-scheme] .icon-sun {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 桌面落点：右上角。与顶部进度条（top:0，高 3px）留 1rem；
+     z-index 20 < 主题面板的 30，故面板打开时被自然盖住。 */
+  .scheme-toggle-desktop {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 20;
+  }
+
+  /* lg 以下改由 Header 内的实例承担（Tailwind lg = 1024px） */
+  @media (max-width: 1023px) {
+    .scheme-toggle-desktop {
+      display: none;
+    }
+  }
+
+  /* Shiki 双主题（2026-10-09）：astro.config 改 themes:{light,dark} 后，pre 与每个 token
+     都同时带 `--shiki-dark*` 变量，这里按明度轴取用（Astro 官方推荐写法）。
+     刻意**不覆盖 background-color** —— 本站要用 --fill-color 的半透明底贴合纸感，
+     而非 Shiki 自带的实心 #24292e。 */
+  [data-scheme='dark'] .prose pre.astro-code,
+  [data-scheme='dark'] .prose pre.astro-code span {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
   }
 }

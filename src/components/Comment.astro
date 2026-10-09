@@ -30,7 +30,8 @@ const { term } = Astro.props;
   // 2026-10-02e：单独加回 lilac 的 selected-bg 与 terracotta 的 var() 两处修正
   // 2026-10-02f：抹平 lilac 独占的 --color-btn-primary-hover-border（8 主题同构）
   // 2026-10-07：comment.css 的字体声明从 main 提升到 body（修「评论区两种字体」），必须 bump
-  const THEME_V = '2026100700';
+  // 2026-10-09：新增 comment-dark.css（夜间叠加层），主题数据变更，必须 bump
+  const THEME_V = '2026100900';
 
   // ---------------------------------------------------------------------------
   // 主题注入方式说明（重要）：
@@ -111,24 +112,33 @@ const { term } = Astro.props;
     return fontCssPromise;
   }
 
-  // 完整主题：字体（与文章一致）+ comment.css（基础变量）+ 主题覆盖
+  // 完整主题：字体（与文章一致）+ comment.css（基础变量）+ [暗色叠加] + 主题覆盖
   const fullThemeCache = new Map<string, Promise<string>>();
 
-  function buildFullTheme(theme: string): Promise<string> {
-    const key = theme.toLowerCase();
+  /** 当前明度轴（与 data-theme 正交）；夜间由 head 内联脚本在首绘前写好 */
+  const currentScheme = () => document.documentElement.dataset.scheme ?? 'light';
+
+  function buildFullTheme(theme: string, scheme = currentScheme()): Promise<string> {
+    // 缓存键必须带明度，否则先切日间再切夜间会命中旧数据
+    const key = `${theme.toLowerCase()}|${scheme}`;
     if (!fullThemeCache.has(key)) {
       fullThemeCache.set(
         key,
         (async () => {
-          const [themeCss, commentCss, fontCss] = await Promise.all([
-            fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
+          const [themeCss, commentCss, darkCss, fontCss] = await Promise.all([
+            fetchText(`/assets/styles/${theme.toLowerCase()}.css?v=${THEME_V}`),
             fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
+            // 夜间：追加 giscus 官方 dark 主题作叠加层（同为 main{} 选择器，后者胜出）
+            scheme === 'dark'
+              ? fetchText(`/assets/styles/comment-dark.css?v=${THEME_V}`)
+              : Promise.resolve(''),
             buildFontCss(),
           ]);
-          // 顺序：字体声明在前，comment.css 次之，主题覆盖在后（与原站级联一致）
+          // 顺序：字体声明在前 → comment.css → 暗色叠加 → 主题覆盖在后（与原站级联一致）
           const merged =
             (fontCss ? fontCss + '\n' : '') +
             stripImports(commentCss) +
+            (darkCss ? '\n' + stripImports(darkCss) : '') +
             '\n' +
             stripImports(themeCss);
           return toDataUrl(merged);
@@ -149,12 +159,16 @@ const { term } = Astro.props;
       const [themeCss, commentCss] = await Promise.all([
         fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
         fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
+        // 夜间引导主题也要带暗色叠加层，否则 iframe 就绪瞬间是白的
+        currentScheme() === 'dark'
+          ? fetchText(`/assets/styles/comment-dark.css?v=${THEME_V}`)
+          : Promise.resolve(''),
       ]);
       const minify = (css: string) =>
         stripImports(css)
           .replace(/\/\*[\s\S]*?\*\//g, '')
           .replace(/\n\s*/g, '');
-      return toDataUrl(minify(commentCss) + minify(themeCss));
+      return toDataUrl(minify(commentCss) + (darkCss ? minify(darkCss) : '') + minify(themeCss));
     } catch (err) {
       console.error('[giscus] 构建引导主题失败，回退内置 light：', err);
       return 'light';
@@ -286,6 +300,12 @@ const { term } = Astro.props;
   // 主题切换时同步 giscus iframe 配色（完整主题已缓存，切换即时生效）
   window.addEventListener('theme:changed', (event) => {
     currentThemeName = (event as CustomEvent<string>).detail;
+    postCurrentFullTheme();
+  });
+
+  // 明度切换（日/夜，2026-10-09）：重建并推送评论主题（含 giscus dark 叠加层）。
+  // 由 BaseLayout 的切换处理器派发。
+  window.addEventListener('scheme:changed', () => {
     postCurrentFullTheme();
   });
 
