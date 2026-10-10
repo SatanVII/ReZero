@@ -15,7 +15,7 @@ export const GET: APIRoute = async (context) => {
     }));
 
   return rss({
-    title: '字嶼隅',
+    title: '風信箋',
     description: '愿似飘飖五云影，从来从去九天间。',
     site: context.site ?? 'https://www.yun37.me',
     items,

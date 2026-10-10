@@ -26,7 +26,7 @@ interface Props {
 }
 
 const {
-  title = '字嶼隅',
+  title = '風信箋',
   description = '愿似飘飖五云影，从来从去九天间。',
   keywords = 'Matcha',
 } = Astro.props;
@@ -46,7 +46,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="author" content="Matcha" />
     <link rel="canonical" href={canonicalURL} />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="字嶼隅" />
+    <meta property="og:site_name" content="風信箋" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
@@ -211,7 +211,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   /* ---------- 控制台彩蛋（旧站 utils/index.ts Nya） ---------- */
   const nya = () => {
     const labelStyle = 'line-height:22px;color:#FFF;background:#DB493C;border-radius:3px;';
-    console.info(`%c 字嶼隅 %c`, labelStyle, '', '基于 zero 主题重构');
+    console.info(`%c 風信箋 %c`, labelStyle, '', '基于 zero 主题重构');
     console.info('%c 主题 %c', labelStyle, '', 'Astro + ClientRouter');
     console.info('~❀~ 发现控制台报错请务必联系博主 ~❀~');
   };
