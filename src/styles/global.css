@@ -22,8 +22,19 @@
       'Liberation Mono', 'Courier New', monospace;
   }
 
-/* 站名手写体（字嶼雲遊手書.ttf，按站点标题+副题 16 字子集化，41.7KB；
- * 原始全量字体在用户桌面，重跑子集：python（fontTools subset，text=Site.astro 全部文字）） */
+/* 站名手写体（字嶼雲遊手書.ttf 的子集，21 字 / 50KB）。
+ *
+ * ★ 重跑子集的方法（2026-10-10 更新 —— 原注释写的「原始全量字体在用户桌面」已失效）：
+ *   全量字体**装在用户系统字体库里**，不在项目/桌面：
+ *     %LOCALAPPDATA%\Microsoft\Windows\Fonts\字嶼雲遊手書.ttf   （7629 字，name: ZY-yunyoushoushu-TC）
+ *   用托管 venv 里的 pyftsubset（无需另装 fontTools）：
+ *     C:/Users/ybeib/.workbuddy/binaries/python/envs/default/Scripts/pyftsubset.exe \
+ *       "<上面那个 ttf>" --text-file=need.txt \
+ *       --output-file=src/assets/fonts/ziyu-yunyou.ttf --layout-features='*' --no-hinting
+ *
+ *   字符集 = 现有子集 ∪ 新增用字。**只放站名与首页题字**，
+ *   不要把模板里的 UI 文案扫进来（曾误生成 190 字 / 295KB 的臃肿子集）。
+ *   当前 21 字：。信去君字嶼從思挹散此相箋辭遊長隅雨雲風， */
 @font-face {
   font-family: 'ZiYuYunYou';
   src: url('../assets/fonts/ziyu-yunyou.ttf') format('truetype');
