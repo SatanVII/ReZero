@@ -521,7 +521,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             window.setTimeout(() => {
               btn.classList.remove('copied');
               btn.setAttribute('aria-label', '复制代码');
-            }, 1000);
+            }, 500);
           } catch (err) {
             console.error('[code-copy] 复制失败：', err);
           }
