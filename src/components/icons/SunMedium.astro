@@ -1,0 +1,23 @@
+---
+// lucide 的 sun-medium 图标：与 sun 相比**光芒更短**（射线长 1 而非 2，且贴着圆盘）。
+// 用于夜间模式切换按钮（当前为日间时显示），要求见用户 2026-10-11。
+//
+// ⚠️ 版本说明：站内其余图标取自 lucide-react@0.279，但 sun-medium 是**该版本之后**
+// 才加入的（v0.279.0 的 icons/ 目录下没有此文件，实测 404）。此处直接采用 lucide
+// 官方仓库 main 分支的 sun-medium.svg 几何（与 0.279 系列同一绘制规范：
+// 24 视窗 / stroke-width 2 / round 端点），故视觉体系一致。
+---
+<svg
+  xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+  class:list={['lucide lucide-sun-medium', Astro.props.class]}
+>
+  <circle cx="12" cy="12" r="4"></circle>
+  <path d="M12 3v1"></path>
+  <path d="M12 20v1"></path>
+  <path d="M3 12h1"></path>
+  <path d="M20 12h1"></path>
+  <path d="m18.364 5.636-.707.707"></path>
+  <path d="m6.343 17.657-.707.707"></path>
+  <path d="m5.636 5.636.707.707"></path>
+  <path d="m17.657 17.657.707.707"></path>
+</svg>
