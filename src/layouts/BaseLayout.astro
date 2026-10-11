@@ -11,6 +11,8 @@ import TopProgress from '@/components/TopProgress.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
+import Copy from '@/components/icons/Copy.astro';
+import Check from '@/components/icons/Check.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import themes, { themeTypes } from '@/data/themes';
 const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
@@ -202,6 +204,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       <img alt="" />
       <p class="photo-caption"></p>
     </dialog>
+
+    <!--
+      代码块复制按钮模板（2026-10-11）
+      markdown 代码块是构建期产出的静态 HTML，按钮由运行时克隆此模板注入
+      （见下方 enhanceCodeBlocks）。用 <template> 而不是在 JS 里拼 SVG 字符串，
+      是为了让图标保持 Astro 组件形态 —— 与站内其余 lucide 图标同源同版本。
+      Copy / Check 两枚叠放，按 .copied 类切换显隐，不换 DOM（避免图标跳一下）。
+    -->
+    <template id="code-copy-template">
+      <button class="code-copy" type="button" aria-label="复制代码" title="复制代码">
+        <Copy />
+        <Check />
+      </button>
+    </template>
   </body>
 </html>
 
@@ -443,12 +459,59 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     aosObservers = [main, past];
   };
 
-  document.addEventListener('astro:page-load', () => {
-    document.documentElement.classList.add('booted'); // 首载完成标记：此后 .nav 的入场动画不再随换页重播
-    updateActiveNav();
-    if (currentTheme) syncThemePanel(currentTheme);
-    setupAos();
-  });
+    document.addEventListener('astro:page-load', () => {
+      document.documentElement.classList.add('booted'); // 首载完成标记：此后 .nav 的入场动画不再随换页重播
+      updateActiveNav();
+      if (currentTheme) syncThemePanel(currentTheme);
+      setupAos();
+      enhanceCodeBlocks();
+    });
+
+    /* ---------- 代码块复制（2026-10-11） ----------
+     * markdown 的 ``` 块由 Shiki 渲染成静态 <pre class="astro-code">，
+     * 右上角原先用 CSS ::before 显示语言名（如 text）；现改为只显示图标的复制按钮。
+     * 按钮从 #code-copy-template 克隆注入（模板里是 Astro 组件渲染的 lucide 图标），
+     * 点击复制 <code> 的纯文本，成功后就地换成 check 图标 1.6s 再复原。
+     * 幂等：重复调用（换页后）不会重复插入 —— 已存在按钮的 pre 直接跳过。 */
+    const enhanceCodeBlocks = () => {
+      const tpl = document.getElementById('code-copy-template') as HTMLTemplateElement | null;
+      if (!tpl) return;
+      document.querySelectorAll<HTMLPreElement>('.prose pre.astro-code').forEach((pre) => {
+        if (pre.querySelector(':scope > .code-copy')) return; // 幂等
+        const node = tpl.content.firstElementChild;
+        if (!node) return;
+        const btn = node.cloneNode(true) as HTMLButtonElement;
+        btn.addEventListener('click', async () => {
+          const code = pre.querySelector('code');
+          const text = code ? code.textContent ?? '' : '';
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(text);
+            } else {
+              // 回退：非安全上下文（http 局域网等）下 clipboard API 不可用
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              ta.setAttribute('readonly', '');
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              ta.remove();
+            }
+            btn.classList.add('copied');
+            btn.setAttribute('aria-label', '已复制');
+            window.setTimeout(() => {
+              btn.classList.remove('copied');
+              btn.setAttribute('aria-label', '复制代码');
+            }, 1600);
+          } catch (err) {
+            console.error('[code-copy] 复制失败：', err);
+          }
+        });
+        pre.appendChild(btn);
+      });
+    };
 
   // 首屏：面板高亮与说明链接需要跟 head 内联脚本定下的主题对齐
   const boot = () => {

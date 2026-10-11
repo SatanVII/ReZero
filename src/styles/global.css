@@ -346,14 +346,48 @@ svg[hidden] {
   .prose pre.astro-code {
     background-color: var(--fill-color) !important;
     color: var(--font-color) !important;
+    position: relative; /* 右上角复制按钮的定位基准 */
   }
 
-  /* Shiki（astro-code）输出的 pre 带 data-language 属性 */
-  .prose pre[data-language]::before {
-    @apply absolute right-2 top-2 text-base uppercase leading-4;
-    content: attr(data-language);
+  /* 代码块右上角：复制按钮（2026-10-11）
+     原先这里是 `::before { content: attr(data-language) }` —— 显示语言名（如 text）。
+     按用户要求改为**只显示图标**的复制交互，语言标签移除。
+     按钮由 BaseLayout 的 <template> 克隆注入（图标因此保持 Astro 组件形态），
+     点击行为见 BaseLayout 的 enhanceCodeBlocks()。 */
+  .prose pre.astro-code .code-copy {
+    @apply absolute right-1.5 top-1.5 flex items-center justify-center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.375rem;
+    background: none;
     color: var(--font-color);
-    border-bottom: 2px solid currentColor;
+    opacity: 0.55; /* 常驻可见但不抢视线；悬停/聚焦提升到全不透明 + 主题色 */
+    cursor: pointer;
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
+  }
+  .prose pre.astro-code .code-copy:hover,
+  .prose pre.astro-code .code-copy:focus-visible {
+    opacity: 1;
+    color: var(--theme-color);
+  }
+  .prose pre.astro-code .code-copy svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  /* 两枚图标叠放，按 .copied 切换（不换 DOM，避免图标「跳」一下） */
+  .prose pre.astro-code .code-copy .lucide-check {
+    display: none;
+  }
+  .prose pre.astro-code .code-copy.copied .lucide-copy {
+    display: none;
+  }
+  .prose pre.astro-code .code-copy.copied .lucide-check {
+    display: block;
+    color: var(--theme-color);
   }
 
   .prose code::before,
