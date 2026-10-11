@@ -470,14 +470,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     /* ---------- 代码块复制（2026-10-11） ----------
      * markdown 的 ``` 块由 Shiki 渲染成静态 <pre class="astro-code">，
      * 右上角原先用 CSS ::before 显示语言名（如 text）；现改为只显示图标的复制按钮。
-     * 按钮从 #code-copy-template 克隆注入（模板里是 Astro 组件渲染的 lucide 图标），
-     * 点击复制 <code> 的纯文本，成功后就地换成 check 图标 1.6s 再复原。
-     * 幂等：重复调用（换页后）不会重复插入 —— 已存在按钮的 pre 直接跳过。 */
+     *
+     * ★ 按钮挂在**包装层 .code-block** 上，不是 pre 里：
+     *   pre 是横向滚动容器（overflow-x: auto），绝对定位子元素会随内容一起滚走 ——
+     *   移动端左右滑代码时按钮会跑出视野（用户实测）。
+     *   包装层在滚动容器之外，按钮因此恒定固定在右上角 ✓
+     *
+     * 按钮从 #code-copy-template 克隆（模板里是 Astro 组件渲染的 lucide 图标），
+     * 点击复制 <code> 的纯文本，成功后就地换成 check 图标 1s 再复原。
+     * 幂等：已包装/已注入的跳过 —— 换页后重复调用不会叠加。 */
     const enhanceCodeBlocks = () => {
       const tpl = document.getElementById('code-copy-template') as HTMLTemplateElement | null;
       if (!tpl) return;
       document.querySelectorAll<HTMLPreElement>('.prose pre.astro-code').forEach((pre) => {
-        if (pre.querySelector(':scope > .code-copy')) return; // 幂等
+        const parent = pre.parentElement;
+        if (!parent) return;
+        // 1) 包装层（复用已存在的，保证幂等）
+        let wrap = parent.classList.contains('code-block') ? parent : null;
+        if (!wrap) {
+          wrap = document.createElement('div');
+          wrap.className = 'code-block';
+          parent.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
+        }
+        if (wrap.querySelector(':scope > .code-copy')) return; // 已注入
+        // 2) 按钮
         const node = tpl.content.firstElementChild;
         if (!node) return;
         const btn = node.cloneNode(true) as HTMLButtonElement;
@@ -504,12 +521,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             window.setTimeout(() => {
               btn.classList.remove('copied');
               btn.setAttribute('aria-label', '复制代码');
-            }, 1600);
+            }, 1000);
           } catch (err) {
             console.error('[code-copy] 复制失败：', err);
           }
         });
-        pre.appendChild(btn);
+        wrap.appendChild(btn);
       });
     };
 

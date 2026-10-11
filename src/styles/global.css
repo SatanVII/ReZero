@@ -352,9 +352,16 @@ svg[hidden] {
   /* 代码块右上角：复制按钮（2026-10-11）
      原先这里是 `::before { content: attr(data-language) }` —— 显示语言名（如 text）。
      按用户要求改为**只显示图标**的复制交互，语言标签移除。
-     按钮由 BaseLayout 的 <template> 克隆注入（图标因此保持 Astro 组件形态），
-     点击行为见 BaseLayout 的 enhanceCodeBlocks()。 */
-  .prose pre.astro-code .code-copy {
+
+     ★ 按钮挂在 `.code-block` 包装层上，**不是 pre 里面**：
+       pre 是横向滚动容器（overflow-x: auto），其绝对定位子元素会**随内容一起滚走** ——
+       移动端左右滑代码时按钮会跑出视野（用户实测）。包装层在滚动容器之外，按钮因此
+       恒定固定在右上角。包装层由 BaseLayout 的 enhanceCodeBlocks() 注入。 */
+  .prose .code-block {
+    position: relative;
+  }
+
+  .prose .code-block .code-copy {
     @apply absolute right-1.5 top-1.5 flex items-center justify-center;
     width: 1.75rem;
     height: 1.75rem;
@@ -369,23 +376,23 @@ svg[hidden] {
       opacity 0.2s ease,
       color 0.2s ease;
   }
-  .prose pre.astro-code .code-copy:hover,
-  .prose pre.astro-code .code-copy:focus-visible {
+  .prose .code-block .code-copy:hover,
+  .prose .code-block .code-copy:focus-visible {
     opacity: 1;
     color: var(--theme-color);
   }
-  .prose pre.astro-code .code-copy svg {
+  .prose .code-block .code-copy svg {
     width: 1rem;
     height: 1rem;
   }
   /* 两枚图标叠放，按 .copied 切换（不换 DOM，避免图标「跳」一下） */
-  .prose pre.astro-code .code-copy .lucide-check {
+  .prose .code-block .code-copy .lucide-check {
     display: none;
   }
-  .prose pre.astro-code .code-copy.copied .lucide-copy {
+  .prose .code-block .code-copy.copied .lucide-copy {
     display: none;
   }
-  .prose pre.astro-code .code-copy.copied .lucide-check {
+  .prose .code-block .code-copy.copied .lucide-check {
     display: block;
     color: var(--theme-color);
   }
