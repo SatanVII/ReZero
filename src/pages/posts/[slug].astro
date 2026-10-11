@@ -51,7 +51,7 @@ const year = String(date.getFullYear());
 const formattedDate = format(date, 'yyyy-MM-dd');
 ---
 
-<BaseLayout title={`${title} - Matcha`} description={description} keywords={tags.join(',')}>
+<BaseLayout title={`${title} - Matcha`} description={description} keywords={tags.join(',')} hidePanelFab>
   <div class="page">
     <article>
       <h2 class="mb-6 text-4xl italic">{title}</h2>
