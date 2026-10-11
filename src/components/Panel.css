@@ -234,3 +234,65 @@
 :root[data-theme='Sage'] .panel .description::before {
   background-image: linear-gradient(rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.07));
 }
+
+/* ---- 移动端适配（2026-10-11）-------------------------------------------------
+ * 桌面版内容卡固定 37.5rem（600px），在 <640px 视口会横向溢出；
+ * 而面板原先挂在 Side 里、移动端根本打不开（已迁至 BaseLayout）。
+ * 低于 1024px（侧栏消失、改由右下角蝴蝶 FAB 打开）时的处理：
+ *   - 两侧装饰竖线收起：它们是桌面版大留白的一部分，窄屏没有空间
+ *   - 内容卡随视口收缩（留 1rem 边距），上限仍是 37.5rem
+ *   - 色块网格高度改为自适应：固定 16.25rem 在窄屏下会被文字撑破
+ *   - 底部说明胶囊同步收窄，避免顶到边缘
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .panel .short-line,
+  .panel .long-line {
+    display: none;
+  }
+
+  .panel .content {
+    width: calc(100vw - 2rem);
+    max-width: 37.5rem;
+  }
+
+  .panel .body {
+    height: auto;
+    min-height: 16.25rem;
+    padding-inline: 1rem;
+  }
+
+  .panel .description {
+    width: min(18.75rem, calc(100vw - 4rem));
+  }
+}
+
+/* ---- 移动端适配（2026-10-11）-------------------------------------------------
+ * 桌面版内容卡固定 37.5rem（600px），在 <640px 视口会横向溢出；
+ * 而面板原先挂在 Side 里、移动端根本打不开（已迁至 BaseLayout）。
+ * 低于 1024px（侧栏消失、改由右下角蝴蝶 FAB 打开）时的处理：
+ *   - 两侧装饰竖线收起：它们是桌面版大留白的一部分，窄屏没有空间
+ *   - 内容卡随视口收缩（留 1rem 边距），上限仍是 37.5rem
+ *   - 色块网格高度改为自适应：固定 16.25rem 在窄屏下会被文字撑破
+ *   - 底部说明胶囊同步收窄，避免顶到边缘
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .panel .short-line,
+  .panel .long-line {
+    display: none;
+  }
+
+  .panel .content {
+    width: calc(100vw - 2rem);
+    max-width: 37.5rem;
+  }
+
+  .panel .body {
+    height: auto;
+    min-height: 16.25rem;
+    padding-inline: 1rem;
+  }
+
+  .panel .description {
+    width: min(18.75rem, calc(100vw - 4rem));
+  }
+}

@@ -13,6 +13,8 @@ import Side from '@/components/Side.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
 import Copy from '@/components/icons/Copy.astro';
 import Check from '@/components/icons/Check.astro';
+import Butterfly from '@/components/Butterfly.astro';
+import Panel from '@/components/Panel.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import themes, { themeTypes } from '@/data/themes';
 const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
@@ -195,6 +197,32 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <Side />
     <!-- 夜间模式切换（桌面落点：视口右上角；lg 以下隐藏，由 Header 内的实例承担） -->
     <SchemeToggle class="scheme-toggle-desktop" />
+
+    <!--
+      移动端主题面板入口（2026-10-11）
+      lg 以下整个侧栏隐藏（Side 是 hidden…lg:flex），COLORS 按钮随之不可达 —— 这里补一个
+      右下角浮动入口。点击由 Side.astro 里 **document 级**的 [data-toggle-panel] 委托处理，
+      故无需任何新增 JS。裸图标样式（用户选定）：不加底色/描边，仅保留 44×44 可点区域
+      （触摸目标下限），蝴蝶本身仍是那个纯 CSS 动画元素。
+      z-index 20 < 面板的 30，面板打开时会被自然盖住。
+    -->
+    <button
+      type="button"
+      class="panel-fab fixed right-5 z-20 flex h-11 w-11 items-center justify-center lg:hidden"
+      data-name="COLORS"
+      data-toggle-panel
+      aria-label="主题配色"
+    >
+      <Butterfly />
+    </button>
+
+    <!--
+      主题面板（COLORS）。2026-10-11 从 Side.astro 迁到这里。
+      原因：Side 容器是 `hidden … lg:flex`，面板放在里面时**移动端整个 display:none** ——
+      点 FAB 只切换了面板自身的 hidden 属性，祖先仍不可见 → 表现为「点了没反应」✗
+      面板自身是 fixed 定位，不依赖所在位置，放在这一层桌面/移动端都可用。
+    -->
+    <Panel hidden />
     <div class="page-wrap">
       <slot />
     </div>

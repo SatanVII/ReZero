@@ -4,7 +4,6 @@
  * 垂直导航 + 站名诗句 + 社交链接 + 蝴蝶按钮（主题面板入口）
  */
 import Butterfly from '@/components/Butterfly.astro';
-import Panel from '@/components/Panel.astro';
 import ShootingStar from '@/components/ShootingStar.astro';
 import Site from '@/components/Site.astro';
 import config from '@/utils/config';
@@ -49,7 +48,6 @@ const { pathname } = Astro.url;
 
 <div class="side sticky top-0 hidden h-screen min-w-[24rem] flex-col items-start justify-between lg:flex" transition:persist="side">
   <ShootingStar />
-  <Panel hidden></Panel>
 
   <!-- side menu -->
   <div class="z-20 flex h-3/5 w-full justify-end">
