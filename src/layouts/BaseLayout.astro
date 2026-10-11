@@ -13,7 +13,6 @@ import Side from '@/components/Side.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
 import Copy from '@/components/icons/Copy.astro';
 import Check from '@/components/icons/Check.astro';
-import Butterfly from '@/components/Butterfly.astro';
 import Panel from '@/components/Panel.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import themes, { themeTypes } from '@/data/themes';
@@ -27,19 +26,13 @@ interface Props {
   title?: string;
   description?: string;
   keywords?: string;
-  /**
-   * 隐藏移动端主题入口（右下角…现为左下角蝴蝶 FAB）。
-   * 用户 2026-10-11：**文章正文页不显示** —— 沉浸阅读时右下角不留浮动元素。
-   * 由 posts/[slug].astro 传入；首页/归档等列表页保持显示。
-   */
-  hidePanelFab?: boolean;
 }
 
 const {
   title = '風信箋',
   description = '愿似飘飖五云影，从来从去九天间。',
   keywords = 'Matcha',
-  hidePanelFab = false,
+
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -206,36 +199,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <SchemeToggle class="scheme-toggle-desktop" />
 
     <!--
-      移动端主题面板入口（2026-10-11）
-      lg 以下整个侧栏隐藏（Side 是 hidden…lg:flex），COLORS 按钮随之不可达 —— 这里补一个
-      右下角浮动入口。点击由 Side.astro 里 **document 级**的 [data-toggle-panel] 委托处理，
-      故无需任何新增 JS。裸图标样式（用户选定）：不加底色/描边，仅保留 44×44 可点区域
-      （触摸目标下限），蝴蝶本身仍是那个纯 CSS 动画元素。
-      z-index 20 < 面板的 30，面板打开时会被自然盖住。
-    -->
-    {
-      /* 文章正文页不渲染（用户 2026-10-11）。
-         刻意用「条件渲染」而非 `hidden` 属性 —— 本按钮带 Tailwind 的 .flex，
-         而 `.flex{display:flex}` 与 UA 的 `[hidden]{display:none}` 特异性相同、
-         工具类在后 → hidden 属性会被覆盖、按钮照样显示 ✗。不渲染最干净。 */
-      !hidePanelFab && (
-        <button
-          type="button"
-          class="panel-fab fixed left-5 z-20 flex h-11 w-11 items-center justify-center lg:hidden"
-          data-name="COLORS"
-          data-toggle-panel
-          aria-label="主题配色"
-        >
-          <Butterfly />
-        </button>
-      )
-    }
-
-    <!--
       主题面板（COLORS）。2026-10-11 从 Side.astro 迁到这里。
       原因：Side 容器是 `hidden … lg:flex`，面板放在里面时**移动端整个 display:none** ——
-      点 FAB 只切换了面板自身的 hidden 属性，祖先仍不可见 → 表现为「点了没反应」✗
+      点入口只切换了面板自身的 hidden 属性，祖先仍不可见 → 表现为「点了没反应」✗
       面板自身是 fixed 定位，不依赖所在位置，放在这一层桌面/移动端都可用。
+      （移动端入口 = Header 里标题左侧的蝴蝶，见 Header.astro）
     -->
     <Panel hidden />
     <div class="page-wrap">

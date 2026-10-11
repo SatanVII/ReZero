@@ -758,12 +758,6 @@ svg[hidden] {
     pointer-events: none;
   }
 
-  /* 移动端主题面板入口 FAB（2026-10-11，用户选定「裸图标」样式）
-     位置/尺寸/断点用 Tailwind 写在元素上（fixed right-5 z-20 h-11 w-11 lg:hidden），
-     这里只补 Tailwind 表达不了的一件事：**iOS 安全区** —— 否则按钮会贴在底部白条上。 */
-  .panel-fab {
-    bottom: calc(1.25rem + env(safe-area-inset-bottom));
-  }
 
   /* 桌面落点：右上角。与顶部进度条（top:0，高 3px）留 1rem；
      z-index 20 < 主题面板的 30，故面板打开时被自然盖住。 */

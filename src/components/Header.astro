@@ -11,6 +11,7 @@ import HeartPulse from '@/components/icons/HeartPulse.astro';
 import ScrollText from '@/components/icons/ScrollText.astro';
 import Sparkles from '@/components/icons/Sparkles.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
+import Butterfly from '@/components/Butterfly.astro';
 import { isNavActive } from '@/utils/nav';
 import '@/components/Header.css';
 
@@ -30,8 +31,22 @@ const { pathname } = Astro.url;
   <!-- 移动端菜单遮罩：菜单弹出时覆盖全屏空白区（拦截下层点击），点遮罩收起 -->
   <div class="nav-backdrop" data-nav-backdrop hidden></div>
 
-  <!-- 左端：站名 -->
-  <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">風信箋</a></h3>
+  <!-- 左端：主题面板入口（蝴蝶）+ 站名（2026-10-11：移动端主题入口从浮动 FAB 改为这里 ——
+       顶栏常驻、不遮挡正文，且 lg 以下才渲染（整个 header 是 lg:hidden）。
+       点击由 Side.astro 里 document 级的 [data-toggle-panel] 委托接管，零新增 JS。
+       44×44 触摸区，蝴蝶本体仍是那个纯 CSS 动画元素。） -->
+  <div class="flex items-center gap-3">
+    <button
+      type="button"
+      class="panel-entry flex h-11 w-11 items-center justify-center"
+      data-name="COLORS"
+      data-toggle-panel
+      aria-label="主题配色"
+    >
+      <Butterfly />
+    </button>
+    <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">風信箋</a></h3>
+  </div>
 
   <!-- 右端：导航 + 夜间模式切换 + 汉堡（2026-10-09：切换键置于**汉堡左侧**并与之对齐；
        sm 以上汉堡隐藏时，它落在导航左侧同一行） -->
