@@ -27,15 +27,18 @@ const navItems = [
 const { pathname } = Astro.url;
 ---
 
-<div class="header fixed z-10 flex h-16 w-screen items-center justify-between px-6 shadow-sm lg:hidden" transition:persist="header">
+<div class="header fixed z-10 grid h-16 w-screen grid-cols-[1fr_auto_1fr] items-center px-6 shadow-sm lg:hidden" transition:persist="header">
   <!-- 移动端菜单遮罩：菜单弹出时覆盖全屏空白区（拦截下层点击），点遮罩收起 -->
   <div class="nav-backdrop" data-nav-backdrop hidden></div>
 
-  <!-- 左端：主题面板入口（蝴蝶）+ 站名（2026-10-11：移动端主题入口从浮动 FAB 改为这里 ——
-       顶栏常驻、不遮挡正文，且 lg 以下才渲染（整个 header 是 lg:hidden）。
-       点击由 Side.astro 里 document 级的 [data-toggle-panel] 委托接管，零新增 JS。
-       44×44 触摸区，蝴蝶本体仍是那个纯 CSS 动画元素。） -->
-  <div class="flex items-center gap-3">
+  <!--
+    三栏布局（2026-10-11）：左 = 蝴蝶 + 明暗切换；中 = 站名；右 = 菜单键。
+    ★ 用 grid-cols-[1fr_auto_1fr] 而非 flex 的 justify-between —— 后者在左右两侧
+      内容宽度不同时会把标题推偏；grid 的**等宽边栏**才能让标题真居中。
+    左侧两个按钮的点击分别由 document 级的 [data-toggle-panel]（面板）
+    与 [data-toggle-scheme]（明暗）委托接管，零新增 JS。
+  -->
+  <div class="flex items-center justify-start gap-1">
     <button
       type="button"
       class="panel-entry flex h-11 w-11 items-center justify-center"
@@ -45,12 +48,14 @@ const { pathname } = Astro.url;
     >
       <Butterfly />
     </button>
-    <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">風信箋</a></h3>
+    <SchemeToggle />
   </div>
 
-  <!-- 右端：导航 + 夜间模式切换 + 汉堡（2026-10-09：切换键置于**汉堡左侧**并与之对齐；
-       sm 以上汉堡隐藏时，它落在导航左侧同一行） -->
-  <div class="flex items-center gap-2">
+  <!-- 中：站名 -->
+  <h3 class="title text-4xl tracking-wider"><a href="/" class="text-current no-underline">風信箋</a></h3>
+
+  <!-- 右：导航（sm 以上）+ 菜单键（sm 以下） -->
+  <div class="flex items-center justify-end gap-2">
     <nav class="nav hidden items-center sm:flex">
       {
         navItems.map(({ href, name, Icon }) => (
@@ -61,8 +66,6 @@ const { pathname } = Astro.url;
         ))
       }
     </nav>
-
-    <SchemeToggle />
 
     <div class="toggle flex w-7 flex-col sm:hidden" data-toggle-nav>
       <span></span>
