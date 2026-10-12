@@ -115,7 +115,12 @@ const { term } = Astro.props;
    * ⚠️ 后续优化方向：若要恢复评论区的文楷，正确做法是**另做一套小字符集子集**
    *   （例如常用 3500 字，fontTools subset），把体积压到 1MB 内 —— 那时本机制自动放行。
    */
-  const FONT_INLINE_BUDGET = 3_000_000; // 字节（base64 前）——评论区字体实际 97 片 / 1.7MB，留一倍余量
+  const FONT_INLINE_BUDGET = 6_000_000; // 字节（base64 前）
+  // ★ 数值来历（2026-10-12 二次修正）：评论区字体 97 片，**完整总量 > 3MB**。
+  //   先前日志里的「1.7MB」是**假象** —— 分批累计一旦越线就立刻中止，打印出的是
+  //   中止那一刻的部分和，不是总量 ✗。按部分和定预算必然误杀：3MB 预算下日志显示
+  //   「2.9MB 超出 2.9MB」并跳过内联 → 评论区回退字体栈（用户反馈「字体渲染不好」）。
+  //   现取 6MB：覆盖当前字体量级，同时保留「将来暴涨时自动放弃」的护栏。
 
   function buildFontCss(): Promise<string> {
     fontCssPromise ??= (async () => {
@@ -152,8 +157,11 @@ const { term } = Astro.props;
         total += got.reduce((n, g) => n + g.bytes.length, 0);
         if (total > FONT_INLINE_BUDGET) {
           console.warn(
-            `[giscus] 字体分片总量 ${(total / 1048576).toFixed(1)}MB 超出内联预算 ` +
-              `${(FONT_INLINE_BUDGET / 1048576).toFixed(1)}MB（共 ${refs.length} 片）——` +
+            // 明确标注"已抓取"与"x/y 片" —— 此前只印累计和，看起来像总量，
+            // 直接导致我把 1.7MB 当成全量、把预算定小 ✗
+            `[giscus] 字体分片已抓取 ${(total / 1048576).toFixed(1)}MB` +
+              `（${fetched.length}/${refs.length} 片）即超出内联预算 ` +
+              `${(FONT_INLINE_BUDGET / 1048576).toFixed(0)}MB —— ` +
               `本次跳过字体内联，评论回退为 comment.css 里的字体栈（配色不受影响）`,
           );
           return '';
