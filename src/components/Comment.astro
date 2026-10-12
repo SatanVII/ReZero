@@ -115,7 +115,7 @@ const { term } = Astro.props;
    * ⚠️ 后续优化方向：若要恢复评论区的文楷，正确做法是**另做一套小字符集子集**
    *   （例如常用 3500 字，fontTools subset），把体积压到 1MB 内 —— 那时本机制自动放行。
    */
-  const FONT_INLINE_BUDGET = 1_500_000; // 字节（base64 前的原始 woff2 总量）
+  const FONT_INLINE_BUDGET = 3_000_000; // 字节（base64 前）——评论区字体实际 97 片 / 1.7MB，留一倍余量
 
   function buildFontCss(): Promise<string> {
     fontCssPromise ??= (async () => {
@@ -219,7 +219,11 @@ const { term } = Astro.props;
   async function buildBootstrapTheme(theme: string): Promise<string> {
     const key = theme.toLowerCase();
     try {
-      const [themeCss, commentCss] = await Promise.all([
+      // ★ 2026-10-12 修复：Promise.all 里有 **3** 个元素，此前只解构了 2 个，
+      //   导致下面引用的 `darkCss` 是未声明变量 → ReferenceError →
+      //   引导主题**每次**都走 catch 回退成内置 `light`（白底）✗
+      //   这正是「评论区经常变成原始白底」的直接原因（实测 iframe 拿到的 theme 就是 "light"）。
+      const [themeCss, commentCss, darkCss] = await Promise.all([
         fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
         fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
         // 夜间引导主题也要带暗色叠加层，否则 iframe 就绪瞬间是白的
@@ -257,7 +261,15 @@ const { term } = Astro.props;
     const timer = setInterval(() => {
       tries++;
       const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
-      if (frame) postCurrentFullTheme();
+      if (frame) {
+        // 2026-10-12：额外挂一次 load 监听 —— 轮询可能赶在 giscus 就绪之前，
+        // 那时它还没准备好接收 setConfig，消息会被丢弃；load 之后推才稳。
+        if (frame.dataset.upgradeBound !== '1') {
+          frame.dataset.upgradeBound = '1';
+          frame.addEventListener('load', () => postCurrentFullTheme());
+        }
+        postCurrentFullTheme();
+      }
       if ((frame && tries > 4) || tries > 16) clearInterval(timer);
     }, 800);
   }
