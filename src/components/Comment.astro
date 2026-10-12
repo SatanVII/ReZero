@@ -48,16 +48,32 @@ const { term } = Astro.props;
   const toDataUrl = (css: string) =>
     'data:text/css;charset=utf-8,' + encodeURIComponent(css);
 
-  async function fetchText(url: string): Promise<string> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${res.status} ${url}`);
-    return res.text();
+  async function fetchText(url: string, retries = 2): Promise<string> {
+    for (let i = 0; ; i++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${url}`);
+        return await res.text();
+      } catch (err) {
+        // 瞬时失败（代理抖动、连接被挤）不该直接让主题回退成内置 light（白底）——
+        // 退避重试两次，仍失败才向上抛（由调用方的 catch 决定回退）
+        if (i >= retries) throw err;
+        await new Promise((r) => setTimeout(r, 220 * (i + 1)));
+      }
+    }
   }
 
-  async function fetchBuffer(url: string): Promise<Uint8Array> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${res.status} ${url}`);
-    return new Uint8Array(await res.arrayBuffer());
+  async function fetchBuffer(url: string, retries = 1): Promise<Uint8Array> {
+    for (let i = 0; ; i++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${url}`);
+        return new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        if (i >= retries) throw err;
+        await new Promise((r) => setTimeout(r, 220 * (i + 1)));
+      }
+    }
   }
 
   const toBase64 = (bytes: Uint8Array): string => {
@@ -79,6 +95,28 @@ const { term } = Astro.props;
   const FONT_CSS_URL = `/assets/styles/fonts/lxgw-wenkai.css?v=${THEME_V}`;
   let fontCssPromise: Promise<string> | null = null;
 
+  /*
+   * 字体内联的总预算（2026-10-12 新增，修「评论区经常退回白底主题」）。
+   *
+   * ★ 事故根因：字体分片在 2026-10-06 补 Bold 700 + Mono 后由 97 涨到 **291 片 / 14MB**，
+   *   而这里会把**全部**分片 base64 内联进同一个 data: URL。后果有三：
+   *     ① 291 个并发请求占满浏览器连接池，**同一 Promise.all 里的 3 个 CSS 请求被挤到
+   *        超时/中断 → reject → 主题构建 catch 回退字符串 `light` → giscus 内置白底** ✗
+   *        （这正是用户反馈「评论区经常变成原始白底主题」的直接原因，且因时序相关而"时好时坏"）
+   *     ② 即便全部成功，内联后 URL 约 19MB，远超 data: URL 实际可用上限
+   *     ③ 每次评论挂载都要拉 14MB，对真实访客是带宽灾难
+   *
+   * 策略：**全有或全无** —— 分批抓取并累计体积，一旦超预算就整体放弃字体（配色照常生效）。
+   *   不做"只内联一半"：unicode-range 分片缺一两片会让同一条评论里出现两种字体，
+   *   比统一回退更难看。
+   *   预算 1.5MB 是「值得内联」与「宁可不要」的分界：正常情况下文楷局部子集约 1MB 量级，
+   *   而现在这个 14MB 的巨物每次都会被直接跳过。
+   *
+   * ⚠️ 后续优化方向：若要恢复评论区的文楷，正确做法是**另做一套小字符集子集**
+   *   （例如常用 3500 字，fontTools subset），把体积压到 1MB 内 —— 那时本机制自动放行。
+   */
+  const FONT_INLINE_BUDGET = 1_500_000; // 字节（base64 前的原始 woff2 总量）
+
   function buildFontCss(): Promise<string> {
     fontCssPromise ??= (async () => {
       // 以字体 CSS 自身 URL 为基准解析相对路径（正则只抓 ./ 开头的 woff2 引用）
@@ -89,24 +127,49 @@ const { term } = Astro.props;
           [...css.matchAll(/url\((\.\/[^)]+\.woff2)\)/g)].map((m) => m[1]),
         ),
       ];
-      await Promise.all(
-        refs.map(async (rel) => {
-          const abs = new URL(rel, fontCssUrl).href;
-          const bytes = await fetchBuffer(abs);
-          // wOF2 魔数校验，防止 404 的 HTML 被误当字体内联
-          if (
-            !(bytes[0] === 0x77 && bytes[1] === 0x4f && bytes[2] === 0x46 && bytes[3] === 0x32)
-          ) {
-            throw new Error(`woff2 魔数校验失败: ${abs}`);
-          }
-          css = css.split(rel).join(`data:font/woff2;base64,${toBase64(bytes)}`);
-        }),
+
+      // 先探总量：分批抓（每批 12 个），累计超预算立即放弃，不做无谓的后续请求
+      const BATCH = 12;
+      let total = 0;
+      const fetched: Array<{ rel: string; bytes: Uint8Array }> = [];
+      for (let i = 0; i < refs.length; i += BATCH) {
+        const slice = refs.slice(i, i + BATCH);
+        const got = await Promise.all(
+          slice.map(async (rel) => {
+            const abs = new URL(rel, fontCssUrl).href;
+            const bytes = await fetchBuffer(abs);
+            // wOF2 魔数校验，防止 404 的 HTML 被误当字体内联
+            if (
+              !(bytes[0] === 0x77 && bytes[1] === 0x4f &&
+                bytes[2] === 0x46 && bytes[3] === 0x32)
+            ) {
+              throw new Error(`woff2 魔数校验失败: ${abs}`);
+            }
+            return { rel, bytes };
+          }),
+        );
+        fetched.push(...got);
+        total += got.reduce((n, g) => n + g.bytes.length, 0);
+        if (total > FONT_INLINE_BUDGET) {
+          console.warn(
+            `[giscus] 字体分片总量 ${(total / 1048576).toFixed(1)}MB 超出内联预算 ` +
+              `${(FONT_INLINE_BUDGET / 1048576).toFixed(1)}MB（共 ${refs.length} 片）——` +
+              `本次跳过字体内联，评论回退为 comment.css 里的字体栈（配色不受影响）`,
+          );
+          return '';
+        }
+      }
+
+      for (const { rel, bytes } of fetched) {
+        css = css.split(rel).join(`data:font/woff2;base64,${toBase64(bytes)}`);
+      }
+      console.log(
+        `[giscus] 评论字体内联完成：${refs.length} 片 / ${(total / 1048576).toFixed(1)}MB (LXGW WenKai)`,
       );
-      console.log(`[giscus] 评论字体内联完成：${refs.length} 片 (LXGW WenKai Regular)`);
       return css;
     })().catch((err) => {
       // 字体失败不阻塞配色：返回空串即回退 sans-serif
-      console.error('[giscus] 构建评论字体失败，回退 sans-serif：', err);
+      console.error('[giscus] 构建评论字体失败，回退字体栈（配色不受影响）：', err);
       return '';
     });
     return fontCssPromise;
