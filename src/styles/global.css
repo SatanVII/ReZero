@@ -35,12 +35,20 @@
  *   字符集 = 现有子集 ∪ 新增用字。**只放站名与首页题字**，
  *   不要把模板里的 UI 文案扫进来（曾误生成 190 字 / 295KB 的臃肿子集）。
  *   当前 21 字：。信去君字嶼從思挹散此相箋辭遊長隅雨雲風， */
-/* 站名/副标题主字体：文悦古典明朝体（2026-10-16 起）
- * 来源：D:/ybeib/Desktop/WenYue-GuDianMingChaoTi-JRFC-2.otf（完整版，8798 字）
- * 子集化：pyftsubset，字符集 = 站名 + 副标题（22 字 / 11KB，见 visual-audit/subset/）
- * ⚠️ 该字库**缺「遊」字**（副标题「雲遊雨散」用字），其简体「游」有 ——
- *    故 --font-site 里把原有手书体串在其后做逐字回退，缺字落到手书体而非通用衬线。
- * OTF/CFF 需用 format('opentype')。 */
+/* 站名/副标题主字体：Aa 马上行楷（2026-10-16 起，第二版）
+ * 来源：D:/ybeib/Desktop/AaMaShangXingKai（JianFan）-2.ttf
+ *       （Aa马上行楷（简繁），© 2019 HanMeiHutong(XiaMen) Technology，10124 字）
+ * 子集化：pyftsubset，字符集 = 站名 + 副标题（22 字 / 24KB）
+ * ⚠️ 同样**缺「遊」字**（副标题「雲遊雨散」用字，其简体「游」有）——
+ *    故回退链里保留手书体，缺字落到手书体而非通用衬线。 */
+@font-face {
+  font-family: 'MaShangXingKai';
+  src: url('../assets/fonts/mashang-xingkai.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* 上一版主字体：文悦古典明朝体（2026-10-16 当日被行楷替换）。
+ * 保留 @font-face 与文件，便于一行切回；未被 token 引用时浏览器不会下载它。 */
 @font-face {
   font-family: 'WenYueGuDian';
   src: url('../assets/fonts/wenyue-gudian.otf') format('opentype');
@@ -135,7 +143,7 @@ svg[hidden] {
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
-    --font-site: 'WenYueGuDian', 'ZiYuYunYou', serif;
+    --font-site: 'MaShangXingKai', 'ZiYuYunYou', serif;
     /* 文章正文字号 —— 全站唯一定义处。
        「关于」页的标题就是 .prose 里的 h2（1.5em），
        故 .page-title / .archives .group-title / .archive-head .archive-title
