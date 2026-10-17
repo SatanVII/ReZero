@@ -36,26 +36,33 @@
  *   不要把模板里的 UI 文案扫进来（曾误生成 190 字 / 295KB 的臃肿子集）。
  *   当前 23 字：。信光去君字嶼從思挹散此相箋辭遊長隅隙雨雲風，
  *   （2026-10-14 改名 風信箋→雲隙光 时新增 隙/光；每次改名都要重查覆盖） */
-/* 站名/副标题主字体：郑庆科南北词宫谱宋体（2026-10-16 起，第三版）
- * 来源：D:/ybeib/Desktop/正式版（推荐）/郑庆科南北词宫谱宋体（推荐）.ttf
- *       （ZQKNBCGPST，© 2025 zhengqingke，21501 字）
- * 子集化：pyftsubset，字符集 = 站名「晴昼夢」+ 副标题 → 18 字 / 19KB
- * ★ 需要的 18 字**全部命中**（含简体「昼」），无需回退 ✓ */
+/* 站名/副标题主字体：Liyu Shoushu（2026-10-17 起，本地调试版）
+ * 来源：D:/ybeib/Desktop/LiyuShoushu.ttf
+ *       （Liyu Shoushu，© 2026 Alexander Tseng；部分版权 2021 The Yuji Project，18221 字）
+ * 子集化：pyftsubset，字符集 = 站名「晴晝夢」+ 副标题 → 18 字 / 16.6KB
+ * ★ 18 字全中（含繁体「晝」）→ 无回退需求 ✓ */
+@font-face {
+  font-family: 'LiyuShoushu';
+  src: url('../assets/fonts/liyu-shoushu.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* 上一版主字体：郑庆科南北词宫谱宋体（保留 @font-face，便于一行切回；
+ * 未被 --font-site 引用时浏览器不会下载它） */
 @font-face {
   font-family: 'ZQKNanBei';
   src: url('../assets/fonts/zhengqinke-nanbei-ntf.ttf') format('truetype');
   font-display: swap;
 }
 
-/* 上一版主字体：汇文明朝体（保留一处 @font-face，便于一行切回；
- * 未被 --font-site 引用时浏览器不会下载它） */
+/* 再上一版：汇文明朝体（同上，保留备选） */
 @font-face {
   font-family: 'HuiwenMincho';
   src: url('../assets/fonts/huiwen-mingchao.ttf') format('truetype');
   font-display: swap;
 }
 
-/* 原站名手书体：回退链末端（兜底，避免缺字落到通用衬线） */
+/* 原站名手书体：回退链末端（兜底） */
 @font-face {
   font-family: 'ZiYuYunYou';
   src: url('../assets/fonts/ziyu-yunyou.ttf') format('truetype');
@@ -144,7 +151,7 @@ svg[hidden] {
     --theme-color: #e06458;
     --background-color: #fcfaf2;
     --background-image: none;
-    --font-site: 'ZQKNanBei', 'ZiYuYunYou', serif;
+    --font-site: 'LiyuShoushu', 'ZiYuYunYou', serif;
     /* 文章正文字号 —— 全站唯一定义处。
        「关于」页的标题就是 .prose 里的 h2（1.5em），
        故 .page-title / .archives .group-title / .archive-head .archive-title
