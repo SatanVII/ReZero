@@ -8,8 +8,6 @@
   font-family: var(--font-site), serif;
   /* 墨色 95%：比正文浅 5%，随主题自适应（暗色模式下自动变暗） */
   color: color-mix(in oklab, var(--font-color) 95%, var(--background-color));
-  /* 墨色 95%：比正文浅 5%，随主题自适应（暗色模式下自动变暗） */
-  color: color-mix(in oklab, var(--font-color) 95%, var(--background-color));
 }
 
 /* 移动端菜单遮罩：透明拦截层，盖住页面内容但位于汉堡/菜单/站名之下 */
