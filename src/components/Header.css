@@ -8,6 +8,8 @@
   font-family: var(--font-site), serif;
   /* 与首屏标题同一套字重调校：墨色浅一档，降低视觉负担 */
   color: color-mix(in oklab, var(--font-color) 80%, var(--background-color));
+  /* 与首屏标题同一套字重调校：墨色浅一档，降低视觉负担 */
+  color: color-mix(in oklab, var(--font-color) 80%, var(--background-color));
 }
 
 /* 移动端菜单遮罩：透明拦截层，盖住页面内容但位于汉堡/菜单/站名之下 */
