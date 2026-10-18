@@ -1,24 +1,68 @@
 [
   {
-    "name": "Compiler Design",
-    "author": "Reinhard Wilhelm, Helmut Seidl, Sebastian Hack",
-    "published": "2013-05-13",
-    "progress": "Reading",
-    "postTitle": "待更新",
-    "postLink": "https://yun37.me/#/post/12",
-    "cover": "/assets/book/Compiler_Design.jpg",
-    "link": "https://link.springer.com/book/10.1007/978-3-642-17540-4",
-    "description": "For Zhenyun, from Reinhard, 2024.1.20"
+    "name": "心",
+    "author": "夏目漱石",
+    "published": "1914",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/心.jpg",
+    "link": "https://www.douban.com/search?q=%E5%BF%83%20%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3",
+    "description": "先生的孤独自白，揭开人性暗面，追问罪与救赎。"
   },
   {
-    "name": "欢迎来到宇宙",
-    "author": "李旻 孙正凡 粱焰译",
-    "published": "2021-05-01",
-    "progress": "知新",
-    "postTitle": "待更新",
-    "postLink": "https://yun37.me/#/post/1",
-    "cover": "/assets/book/欢迎来到宇宙.jpg",
-    "link": "https://book.douban.com/subject/35459590/",
-    "description": "我们身处广袤的宇宙之中，可是对它又有多少了解呢？"
+    "name": "百年孤独",
+    "author": "加西亚·马尔克斯",
+    "published": "1967",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/百年孤独.jpg",
+    "link": "https://www.douban.com/search?q=%E7%99%BE%E5%B9%B4%E5%AD%A4%E7%8B%AC%20%E9%A9%AC%E5%B0%94%E5%85%8B%E6%96%AF",
+    "description": "布恩迪亚家族七代人的魔幻史诗，拉美文学巅峰。"
+  },
+  {
+    "name": "呼啸山庄",
+    "author": "艾米莉·勃朗特",
+    "published": "1847",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/呼啸山庄.jpg",
+    "link": "https://www.douban.com/search?q=%E5%91%BC%E5%95%B8%E5%B1%B1%E5%BA%84%20%E5%8B%83%E6%9C%97%E7%89%B9",
+    "description": "荒原上的爱与复仇，狂暴情感冲破阶级与生死。"
+  },
+  {
+    "name": "米格尔街",
+    "author": "V.S. 奈保尔",
+    "published": "1959",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/米格尔街.jpg",
+    "link": "https://www.douban.com/search?q=%E7%B1%B3%E6%A0%BC%E5%B0%94%E8%A1%97%20%E5%A5%88%E4%BF%9D%E5%B0%94",
+    "description": "特立尼达小街的众生相，笑中带泪的普通人。"
+  },
+  {
+    "name": "苏菲的世界",
+    "author": "乔斯坦·贾德",
+    "published": "1991",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/苏菲的世界.jpg",
+    "link": "https://www.douban.com/search?q=%E8%8B%8F%E8%8F%B2%E7%9A%84%E4%B8%96%E7%95%8C%20%E8%B4%BE%E5%BE%B7",
+    "description": "以小说串起西方哲学史，写给大众的哲学入门。"
+  },
+  {
+    "name": "动物农场",
+    "author": "乔治·奥威尔",
+    "published": "1945",
+    "progress": "阅毕",
+    "postTitle": "",
+    "postLink": "",
+    "cover": "/assets/book/动物农场.jpg",
+    "link": "https://www.douban.com/search?q=%E5%8A%A8%E7%89%A9%E5%86%9C%E5%9C%BA%20%E5%A5%A5%E5%A8%81%E5%B0%94",
+    "description": "动物革命如何蜕变为新专制，政治寓言经典。"
   }
 ]
