@@ -50,10 +50,10 @@ const themes: Theme[] = [
   {
     type: 'Coral',
     name: '朱砂點記',
-    description: 'illus.门特ment',
+    description: 'illus.Z3zz4',
     color: { primary: '#E06458', background: '#FCFAF2', darkBackground: '#201E18' },
     image: Coral,
-    url: 'https://v.douyin.com/r80AnFEoAtI/',
+    url: 'https://x.com/Z3zz4',
   },
   {
     type: 'Sage',
