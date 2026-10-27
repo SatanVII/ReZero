@@ -3,8 +3,9 @@
  * gc-watchdog.mjs — 沙箱 GC 误删文件自动恢复看门狗
  *
  * 背景：WorkBuddy 沙箱的 sandbox-cli-gc.exe（--retain-sec 600 / maxSizeMb 3000）
- * 清理会话备份时会误删真实工作区文件（2026-09-18 当日六次，详见
- * ../.workbuddy/memory/2026-09-18.md）。
+ * 清理会话备份时会误删真实工作区文件（2026-09-18 当日六次，见 HANDOVER.md §7.1）。
+ * ⚠️ 2026-10-28 起已迁到 DSH（DeepSeek Harness），该进程不复存在，
+ *    本脚本保留但通常不再需要；`git commit` 仍是最可靠的恢复点。
  *
  * 行为：每 30s 跑一次 `git status --porcelain`，把「未暂存的工作树删除」（` D` 行）
  * 用 `git checkout -- <path>` 自动恢复；已被 git add 的删除（`D `）不碰。
@@ -26,8 +27,8 @@ const once = process.argv.includes('--once');
 // ⚠️ 仓库路径通过 `git -C` 传入而非 spawn 的 cwd 选项——cwd 混合斜杠路径会让
 // CreateProcess 直接 ENOENT（路径问题伪装成「程序不存在」）。
 const GIT_CANDIDATES = [
-  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/current/mingw64/bin/git.exe',
-  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git.exe',
+  'D:/Code/Git/Git/cmd/git.exe',
+  'C:/Program Files/Git/cmd/git.exe',
   'git',
 ];
 const gitBin = GIT_CANDIDATES.find((p) => p === 'git' || fs.existsSync(p));

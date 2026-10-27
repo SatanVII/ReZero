@@ -21,8 +21,8 @@ let problems = 0;
 
 // git 包装：-C 传仓库路径（不经 shell、不依赖 cwd），真身路径优先
 const GIT_CANDIDATES = [
-  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/current/mingw64/bin/git.exe',
-  'C:/Users/ybeib/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git.exe',
+  'D:/Code/Git/Git/cmd/git.exe',
+  'C:/Program Files/Git/cmd/git.exe',
   'git',
 ];
 const gitBin = GIT_CANDIDATES.find((p) => p === 'git' || fs.existsSync(p));
@@ -78,12 +78,17 @@ if (untracked.length) {
 } else console.log('✓ 主仓无未跟踪残留');
 
 // 3. content 嵌套仓库
+// ⚠️ 未跟踪判定必须交给 git（这样 .gitignore 才生效）。此前用磁盘遍历对比 ls-files，
+//    导致 content/.gitignore 忽略的 .obsidian/* 被误报成「未跟踪残留」（2026-10-28 修正）。
 const C = path.join(ROOT, 'content');
 if (fs.existsSync(path.join(C, '.git'))) {
   const tc = lsFiles(C);
   const dc = walkDisk(C, '', new Set(), false);
   const d1 = [...tc].filter((f) => !dc.has(f));
-  const u1 = [...dc].filter((f) => !tc.has(f));
+  const u1 = spawnSync(gitBin, ['-C', C, 'status', '--porcelain'], { encoding: 'utf8' })
+    .stdout.split('\n')
+    .filter((l) => l.startsWith('??'))
+    .map((l) => l.slice(3).trim());
   if (d1.length || u1.length) {
     problems++;
     console.log(`✗ content 不一致：缺失 ${d1.length}（${d1.slice(0, 8).join(', ')}）、未跟踪 ${u1.length}（${u1.slice(0, 8).join(', ')}）`);
