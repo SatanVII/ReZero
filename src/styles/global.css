@@ -41,13 +41,17 @@
  *       （Liyu Shoushu，© 2026 Alexander Tseng；部分版权 2021 The Yuji Project，18221 字）
  * 子集化：pyftsubset，字符集 = 站名「晴晝夢」+ 副标题 → 18 字 / 16.6KB
  * ★ 18 字全中（含繁体「晝」）→ 无回退需求 ✓ */
-/* 站名/副标题主字体：文悦古典明朝体（2026-10-17 定稿）
+/* 站名/副标题主字体：文悦古典明朝体（2026-10-17 曾定稿，**后被 a8fb9f2 回切**）
  * 来源：D:/ybeib/Desktop/WenYue-GuDianMingChaoTi-JRFC-2.otf（完整版 8798 字）
- * ★ 选它的原因：zero-D 的标题用的就是该字族的 13 字样品（GuDianMingChaoTi.ttf），
- *   换上完整版 → **字重与 zero-D 完全同源同档** ✓（实测比郑庆科/汇文明朝都细，
+ * ★ 当初选它：zero-D 的标题用的就是该字族的 13 字样品（GuDianMingChaoTi.ttf），
+ *   换上完整版 → **字重与 zero-D 完全同源同档**（实测比郑庆科/汇文明朝都细，
  *   而 CSS 无法把字体变细，只能换字体）
- * 子集：18 字（站名 + 副标题）/ 8.7KB，OTF/CFF → format('opentype')
- * ⚠️ 该字库**缺「遊」**（副标题「雲遊雨散」）→ 回退链里的手书体恰好有「遊」✓ */
+ * ⚠️ 该字库**缺「遊」**（副标题「雲遊雨散」）→ 回退链里的手书体恰好有「遊」✓
+ * ⚠️ **现况（以此为准）**：`--font-site` 实际是 `'ZQKNanBei', 'ZiYuYunYou', serif`
+ *   （见本文件 :168）。用户 2026-10-17 反馈后回切郑庆科，并改用
+ *   字距 0.115em + 墨色 `color-mix(in oklab, var(--font-color) 80%, ...)` 降低标题
+ *   视觉负担 —— 因为郑庆科只有 Regular 一档，CSS 变不细，只能在字距与墨色上补。
+ *   所以 WenYueGuDian 目前**只是保留的备选**，不在回退链上。 */
 @font-face {
   font-family: 'WenYueGuDian';
   src: url('../assets/fonts/wenyue-gudian.otf') format('opentype');
