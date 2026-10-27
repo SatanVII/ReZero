@@ -18,6 +18,12 @@ import Panel from '@/components/Panel.astro';
 import ThemeStyles from '@/components/ThemeStyles.astro';
 import themes, { themeTypes } from '@/data/themes';
 const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
+// 站名字体（郑庆科南北词宫谱宋体）：global.css 只声明了 @font-face，浏览器要等
+// CSS 解析完才去下载 → 首屏站名先渲染回退字体再跳变（FOUT）。
+// 这里用 ?url 拿构建后带哈希的真实地址，head 里 preload，与字体下载并行。
+// 与 global.css 的 `url('../assets/fonts/zhengqinke-nanbei-ntf.ttf')` 指向同一文件，
+// Vite 会归一到同一个哈希产物，不会重复打包。
+import siteFontUrl from '@/assets/fonts/zhengqinke-nanbei-ntf.ttf?url';
 // 全站中文字体：霞鹜文楷（2026-09-17 由 Noto Serif SC 600 更换）。
 // 自托管分片走 public（正文 <link> 与评论区内联共用，见 head 内 link 标签），
 // lxgw-wenkai-webfont 包仅作为 prepare-fonts.mjs 的分片来源保留在 devDependencies。
@@ -88,6 +94,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- P0-1 字体子集：preload 单文件（字体 preload 必须 crossorigin），声明在分片之后使常用字命中子集、新字回落分片 -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2" />
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=1" />
+    <!-- 站名字体 preload（2026-10-27 补）：--font-site 首字 ZQKNanBei 是首屏最大的
+         可见文字，此前要等 global.css 解析完才发起请求，慢网下能明显看到
+         「先楷体/宋体回退 → 再跳成郑庆科」的 FOUT。字体 preload 必须 crossorigin。 -->
+    <link rel="preload" as="font" type="font/ttf" crossorigin href={siteFontUrl} />
     <ThemeStyles />
     <!--
       首屏防闪：在首次绘制前把 data-theme 写到 <html> 上。
