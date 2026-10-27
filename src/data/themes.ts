@@ -50,10 +50,10 @@ const themes: Theme[] = [
   {
     type: 'Coral',
     name: '朱砂點記',
-    description: 'illus.Z3zz4',
+    description: 'illus.不想当画家的Leo',
     color: { primary: '#E06458', background: '#FCFAF2', darkBackground: '#201E18' },
     image: Coral,
-    url: 'https://x.com/Z3zz4',
+    url: 'https://www.pixiv.net/artworks/133591148',
   },
   {
     type: 'Sage',
