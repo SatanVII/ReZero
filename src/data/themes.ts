@@ -77,7 +77,7 @@ const themes: Theme[] = [
     description: 'illus.Rafa',
     color: { primary: '#5260A6', background: '#E2E5F5', darkBackground: '#181920' },
     image: Indigo,
-    url: 'https://www.pixiv.net/artworks/132039017',
+    url: 'https://www.pixiv.net/users/3970196',
   },
   {
     type: 'Mauve',
