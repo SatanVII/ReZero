@@ -1,0 +1,24 @@
+/* 代码块等宽字体：LXGW WenKai Mono Regular 单文件子集（2026-10-29 起）。
+ *
+ * 为什么不再用 97 个 unicode-range 分片：
+ * 代码块里中英混排时，一个代码块的中文字符散落在十几个分片里，按需逐片拉取，
+ * 每到一个就替换几个字 —— 与粗体「一跳一跳」同源。实测一个文章页为几个中文
+ * 代码字下了 12 片 / 622.7KB，而全站代码块实际只用到 182 个字。
+ *
+ * 字表 = 全 ASCII + 代码块实有字 + 常用中文标点（共 182 码位，30.9KB）。
+ * 集外字由浏览器回落到 --font-mono 栈的后续项（等宽，无 CJK 时走系统），
+ * 不会再出现「同一段里两种字体互相替换」的跳变。
+ * 新增文章若代码块用到集外字，scripts/check-font-coverage.mjs 会在 prebuild 阶段告警。
+ *
+ * unicode-range 必须声明：缺了它，浏览器会认为本族「全覆盖」，
+ * 集外字不回落到同族后续声明，直接掉到家族外的系统楷体。
+ * ?v=4 与 BaseLayout 里的引用必须同步（/assets/(.*) 是 immutable 一年缓存）。
+ */
+@font-face {
+  font-family: 'LXGW WenKai Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./lxgw-wenkai-mono-subset.woff2?v=4') format('woff2');
+  unicode-range: U+20-7E, U+B7, U+D7, U+F7, U+2014, U+2018-2019, U+201C-201D, U+2026, U+3001-3002, U+3008-3011, U+3014-3015, U+4E86, U+4E89, U+4ECD, U+4F1A, U+505A, U+5212, U+5230, U+524D, U+526A, U+53C8, U+540E, U+54C1, U+56DE, U+58F0, U+5907, U+5931, U+5B64, U+5C0F, U+5F00, U+5FC6, U+5FD8, U+60C5, U+6218, U+62CD, U+63A8, U+6444, U+671F, U+6807, U+6D88, U+7194, U+7231, U+7269, U+72EC, U+75C7, U+7720, U+7B56, U+7B7E, U+7ED9, U+8BA1, U+8BB0, U+8BBE, U+8D34, U+8F91, U+8FD1, U+9057, U+91D1, U+9760, U+97F3, U+9C7C, U+FF01, U+FF05, U+FF08-FF09, U+FF0B-FF0D, U+FF1A-FF1B, U+FF1D, U+FF1F, U+FF3B, U+FF3D, U+FF5E, U+FFE5;
+}

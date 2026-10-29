@@ -81,26 +81,59 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          到达逐个替换 → 肉眼看到「正文字体先渲染一次」。实测改为单文件后该现象消失。
          注意 public/assets/styles/fonts/lxgw-wenkai.css 与分片文件**必须保留**：
          Comment.astro 仍用它们给 giscus iframe 内联字体（独立于本站 <link>）。 -->
-    <!-- Bold 700（2026-10-06 补）：此前只生成了 Regular 400，strong 请求 600 时
+    <!-- Bold 700（2026-10-29 改为单文件子集）：此前只生成了 Regular 400，strong 请求 600 时
          该族无对应字面 → 浏览器**合成加粗**，楷体笔锋被糊成方硬笔画
          （表现为「markdown 标记的文字像另一种字体」）。
-         刻意独立成文件：Comment.astro 会把主字体 CSS 引用的分片 base64 内联进
-         评论 iframe 主题，合并会让评论主题体积翻倍。
-         生成/更新：node scripts/prepare-fonts.mjs -->
-    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold.css?v=1" />
-    <!-- Mono（2026-10-06 补）：--font-mono 指向 'LXGW WenKai Mono'，为访客提供分片。
-         此前代码块落到 Consolas，而 Consolas 无 CJK 字形 —— 代码块里的中文由
-         系统回落字体接管，一个代码块出现两种字体。文楷 Mono 拉丁等宽且 CJK
-         恰为其 2 倍宽，中英混排严格对齐（实测比值 1.948 ≈ 2.0）。
-         只做 regular 一个字重：代码块基本不用粗体，且官方本就没有 Bold TTF。 -->
-    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-mono.css?v=1" />
-    <!-- 正文字体单文件（2026-10-28 重建）：覆盖全站用字 + GB2312 一级常用字共 2565 字，573KB。
-         它已取代上面的 Regular 97 分片 —— 旧架构下缺字不回落到同族分片、直接掉到系统楷体，
-         且 288KB 子集把分片请求全挡在身后，首屏必然经历字形跳变。
-         ?v=2 与 css 里的 src 版本号必须同步：/assets/(.*) 是 immutable 一年缓存，
-         内容换了不换 URL，老访客一年内都拿不到新文件。 -->
-    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=2" />
-    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=2" />
+         2026-10-29 起不再用 97 个 unicode-range 分片：一个 h2 标题的字散落在十几片里，
+         每到一片就替换几个字 → 粗体「一跳一跳」，这是「只有粗体闪」的根因。
+         改为 GB2312 一级全覆盖单文件（894KB），与正文同字表，
+         避免「同一个字在标题是文楷、在正文是楷体」的错位。
+         官方从未提供 Bold 字重，粗体一贯是 Medium 轮廓 + 元数据标 700（见 css 头注释）。
+         ?v=4 与 css 里 src 的版本号必须同步（/assets/(.*) 是 immutable 一年缓存）。 -->
+    <!-- 2026-10-29：粗体按页面性质分流，且**一律不 preload**。
+         首页没有粗体元素，preload 会白下 937KB（实测 document.fonts 里 700 的 loaded=0）。
+         · 文章页 /posts/* —— 粗体字随文章内容变化，用 4284 字单文件子集（937KB）。
+           单文件的好处：一旦出现粗体就一次到位，不会「一跳一跳」地替换。
+         · 归档 / 友邻 / 自述等其它页 —— 粗体字是**页面固定文案**，数量少又不变，
+           用 97 个 unicode-range 分片：只下载真正用到的那几片，代价是逐片到达时
+           字形会替换几次（这些页可接受）。
+         两者家族名与字重相同，同一页只会加载其中一套。 -->
+    {/^\/posts\//.test(Astro.url.pathname) ? (
+      <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold-subset.css?v=4" />
+    ) : (
+      <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold.css?v=1" />
+    )}
+    <!-- Mono（2026-10-29 改为单文件子集）：--font-mono 指向 'LXGW WenKai Mono'。
+         此前用 97 个 unicode-range 分片，一个代码块里的中文散落在十几片里逐片到达 →
+         与粗体同源的「一跳一跳」。实测文章页为几个中文代码字下了 12 片 / 622.7KB，
+         而全站代码块实际只用到 182 个字。
+         改为 182 码位 / 30.9KB 单文件（全 ASCII + 代码块实有字 + 常用中文标点），
+         同样**不 preload**：没有代码块的页面一个字节都不下。
+         集外字由 --font-mono 栈后续项接管，不会再在同一段里来回替换。
+         有代码块 Pages 用到的集外字由 check-font-coverage.mjs 在 prebuild 告警。 -->
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-mono-subset.css?v=4" />
+    <!-- 正文字体：**两套单文件子集，按页面类型分流**（2026-10-29）。源 LXGW WenKai v1.530。
+         旧架构是 97 个 unicode-range 分片：缺字不回落到同族分片、直接掉家族外的系统楷体，
+         首屏必然经历字形跳变。单文件则「要么全有、要么全无」，最多切一次。
+         · 文章页 /posts/* —— 用 4284 字 GB2312 一级大子集（922KB）。文章用字随内容变化，
+           必须留足余量，兜底由 scripts/check-font-coverage.mjs 在 prebuild 告警。
+         · 首页 / 自述 / 随想 / 归档 / 书阁 / 友邻 / 404 —— 正文是**页面固定文案**，
+           实测只有 789 个码位，用 789 字 lite 子集（181KB）。首页因此从 1298KB 降到 551KB。
+         两套家族名与字重相同，同一页只加载其中一套，不会混用。
+         维护：新增分类/标签会生成新归档页、改导航或固定文案后若出现个别字回落系统楷体，
+         按 AGENTS.md §3.3.4 重跑 lite 子集。
+         ?v=4 与各自 css 里的 src 版本号必须同步：/assets/(.*) 是 immutable 一年缓存。 -->
+    {/^\/posts\//.test(Astro.url.pathname) ? (
+      <Fragment>
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=4" />
+        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=4" />
+      </Fragment>
+    ) : (
+      <Fragment>
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-lite.woff2?v=4" />
+        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-lite.css?v=4" />
+      </Fragment>
+    )}
     <!-- 站名字体 preload（2026-10-27 补）：--font-site 首字 ZQKNanBei 是首屏最大的
          可见文字，此前要等 global.css 解析完才发起请求，慢网下能明显看到
          「先楷体/宋体回退 → 再跳成郑庆科」的 FOUT。字体 preload 必须 crossorigin。 -->

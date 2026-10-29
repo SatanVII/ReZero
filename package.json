@@ -7,7 +7,7 @@
   "scripts": {
     "predev": "node scripts/sync-content.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/sync-content.mjs",
+    "prebuild": "node scripts/sync-content.mjs && node scripts/check-font-coverage.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
