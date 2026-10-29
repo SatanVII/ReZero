@@ -1,0 +1,402 @@
+---
+/**
+ * 文章目录悬浮球（2026-10-29）
+ *
+ * 设计约束（来自用户的明确要求）：
+ *   - 只出现在文章正文页（由 posts/[slug].astro 挂载）
+ *   - 没有「球」：不加圆形底、不留内边距，图标本身就是可点区域（22×22），
+ *     无背景、无边框、无阴影，只有图标轮廓；交互范围＝图标尺寸
+ *   - 位置固定、不可拖动：桌面在右上角太阳图标正下方（右缘与太阳右缘对齐、间距 12px）；
+ *     移动端（<1024px，太阳图标在此断点隐藏）回到右下角
+ *   - 面板：左缘对齐文章大标题左缘、顶部接标题字下边缘往下展开，桌面宽 246px，
+ *     移动端放宽到「视口宽 - 32px」，纵向高度超屏时向内夹紧
+ *   - 不改动正文布局（不挤占版心、不改变 docH）
+ *
+ * 目录来源：`.prose` 内的 h2/h3。文章标题本身是 `article > h2`（在 .prose 之外），
+ * 但部分 markdown 首行也写了 `## 标题`，故按文本比对把它排掉。
+ * 少于 2 个章节时整个组件自动移除（单节文章没有索引意义）。
+ */
+---
+
+<div class="tocd" data-toc-ball>
+  <button
+    class="tocd-ball"
+    type="button"
+    aria-expanded="false"
+    aria-controls="tocd-panel"
+    aria-label="文章目录"
+    title="目录"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 12H3"></path>
+      <path d="M16 18H3"></path>
+      <path d="M16 6H3"></path>
+      <path d="M21 12h.01"></path>
+      <path d="M21 18h.01"></path>
+      <path d="M21 6h.01"></path>
+    </svg>
+  </button>
+  <nav class="tocd-panel" id="tocd-panel" aria-label="章节目录">
+    <p class="tocd-h">目录</p>
+    <ol class="tocd-ol"></ol>
+  </nav>
+</div>
+
+<style is:global>
+  /*
+   * 类名统一加 `tocd-` 前缀并走 is:global —— 目录条目是 JS 动态创建的节点，
+   * 没有 Astro 的 scope 属性，scoped 样式对它们不生效。
+   */
+  .tocd {
+    position: fixed;
+    z-index: 30;
+    /* 容器就是图标本身，不再有 44px 的球体 */
+    width: 22px;
+    height: 22px;
+    /* left/top/right/bottom 全由 JS 写入（对齐太阳图标 / 移动端右下角），
+       下面 CSS 里的定位只是脚本尚未执行时的兜底 */
+  }
+
+  /* 只有图标：无背景/边框/阴影，可点区域等于图标尺寸 */
+  .tocd-ball {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: none;
+    /*
+     * 交互色与右上角太阳图标（global.css 的 `[data-toggle-scheme]`）完全一致：
+     * 常态用正文墨色 `--font-color` 且**不调透明度**（此前是 opacity 0.42，观感发淡，
+     * 用户要求「收起时是正常颜色，不变淡」）；指针进入交互区或键盘聚焦转 `--theme-color`；
+     * 展开期间锁在主题色 —— 点过图标后指针往往已经离开，不能再退回墨色。
+     */
+    color: var(--font-color);
+    /*
+     * 不展开时变淡：图标是常驻的辅助控件，实心墨色存在感太强（用户反馈「太黑」）。
+     * 回到最初的透明度方案 —— 常态 0.42，指针进入交互区抬到 0.85，展开时 1（最亮）。
+     * 颜色规则不变：常态墨色，hover / 展开转主题色。
+     */
+    opacity: 0.42;
+    cursor: pointer;
+    place-items: center;
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
+  }
+  /* 只在收起时给 hover/focus 反馈：展开态由下面的 `.tocd.open` 统一接管，
+     否则 `:hover` 会和展开态抢透明度，出现"展开时指针一放上去图标就变淡一点"。 */
+  .tocd:not(.open) .tocd-ball:hover,
+  .tocd:not(.open) .tocd-ball:focus-visible {
+    color: var(--theme-color);
+    opacity: 0.85;
+  }
+  .tocd-ball svg {
+    width: 22px;
+    height: 22px;
+  }
+  .tocd.open .tocd-ball {
+    color: var(--theme-color);
+    opacity: 1;
+  }
+
+  .tocd-panel {
+    /* 贴着图标向左展开：图标 22×22，面板从它左侧 12px 起，顶部对齐图标后向下展开 */
+    position: absolute;
+    top: 0;
+    right: calc(100% + 12px);
+    width: 246px;
+    max-height: 60vh;
+    padding: 14px 6px 12px;
+    overflow: auto;
+    border: 1px solid var(--line-color);
+    border-radius: 10px;
+    /* 透明度对齐壁纸的观感（--wallpaper-opacity 亮 0.08 / 暗 0.05，非常淡）：
+       底色只留 60%，靠 backdrop-filter 把底下的正文糊开保证可读，
+       边框也一起减淡，避免在浅色主题下出现硬边。 */
+    background: color-mix(in oklab, var(--background-color) 60%, transparent);
+    border-color: color-mix(in oklab, var(--line-color) 55%, transparent);
+    box-shadow: 0 8px 28px -14px rgb(0 0 0 / 22%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(18px) saturate(1.3);
+  }
+  .tocd.open .tocd-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .tocd-h {
+    margin: 0 0 10px;
+    padding: 0 12px;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    opacity: 0.62;
+  }
+
+  .tocd-ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+  }
+  .tocd-ol li {
+    margin: 0;
+  }
+  .tocd-ol a {
+    display: block;
+    padding: 6px 12px 6px 10px;
+    border-left: 2px solid transparent;
+    color: inherit;
+    font-size: 13.5px;
+    line-height: 1.45;
+    text-decoration: none;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .tocd-ol a.on {
+    border-left-color: var(--theme-color);
+    background: color-mix(in oklab, var(--theme-color) 7%, transparent);
+    color: var(--theme-color);
+  }
+  /* 所有 :hover 都包在 hover 媒体查询里，避免平板 tap 后粘滞 */
+  @media (hover: hover) {
+    .tocd-ol a:hover {
+      background: color-mix(in oklab, var(--font-color) 5%, transparent);
+    }
+  }
+
+  /*
+   * 窄屏不再需要「降级成底部全宽」的媒体查询：面板宽度与 left/top 全部由
+   * JS 的 layoutPanel() 计算（移动端 width = 视口 - 32，left = 16）。
+   */
+</style>
+
+<script>
+  /**
+   * ClientRouter 换页不会重新执行 module script，只会替换 body。
+   * 所以初始化逻辑挂在 `astro:page-load` 上，并在换页前解绑。
+   */
+  let cleanup: (() => void) | null = null;
+
+  function init() {
+    cleanup?.();
+    cleanup = null;
+
+    const root = document.querySelector<HTMLElement>('[data-toc-ball]');
+    if (!root) return;
+
+    /*
+     * fixed 定位的包含块必须是视口。这个组件渲染在 BaseLayout 的 slot 里，
+     * 祖先链上只要有一层带 transform / filter / backdrop-filter / will-change / contain，
+     * 就会被降级成「相对该祖先定位」—— 实测表现为球跑到视口外（x=1840，视口只有 1440）、
+     * 窄屏全宽面板跑到文档底部（y=3759）。提到 body 顶层可彻底避开这个陷阱。
+     */
+    if (root.parentElement !== document.body) document.body.append(root);
+
+    const ball = root.querySelector<HTMLButtonElement>('.tocd-ball');
+    const panel = root.querySelector<HTMLElement>('.tocd-panel');
+    const list = root.querySelector<HTMLOListElement>('.tocd-ol');
+    const prose = document.querySelector<HTMLElement>('.prose');
+    if (!ball || !panel || !list || !prose) return;
+
+    /* ---------- 收集章节 ---------- */
+    const articleTitle = (document.querySelector('article > h2')?.textContent ?? '').trim();
+    const heads = [...prose.querySelectorAll<HTMLElement>('h2, h3')].filter((h) => {
+      const text = (h.textContent ?? '').trim();
+      return text.length > 0 && text !== articleTitle && !h.closest('.code-block');
+    });
+    // 单节文章没有索引意义，直接不显示
+    if (heads.length < 2) {
+      root.remove();
+      return;
+    }
+
+    list.textContent = '';
+    heads.forEach((h, i) => {
+      if (!h.id) h.id = `toc-sec-${i + 1}`;
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `#${h.id}`;
+      a.textContent = (h.textContent ?? '').trim();
+      a.dataset.idx = String(i);
+      li.append(a);
+      list.append(li);
+    });
+
+    /* ---------- 定位：球贴太阳图标 / 移动端右下角；面板贴大标题 ---------- */
+    const MOBILE = 1024; // 与 .scheme-toggle-desktop 的隐藏断点一致
+    const GAP_BALL = 6; // 拿不到标题时，图标接在太阳图标下方的间距
+    const BALL_LIFT = 17; // 图标底端比标题文字底端再抬高 17px（用户四次微调累加：2 → +3 → +7 → +5）
+
+    /*
+     * 站点开了 `scrollbar-gutter: stable both-edges`（左右各留排水沟），
+     * 于是 `position: fixed` 的包含块比 `getBoundingClientRect()` 的坐标系内缩了一段
+     * （实测 5px）：`left: 464px` 会画在 x=469。直接拿标题/太阳的 rect 去写 left/right
+     * 就会整体偏移，所以先用两个零尺寸探针量出 fixed 坐标系的实际左右边界。
+     */
+    let fixedL = 0;
+    let fixedR = 0;
+
+    const measureFixed = () => {
+      const probe = (css: string) => {
+        const d = document.createElement('div');
+        d.style.cssText = `position:fixed;top:0;width:0;height:0;pointer-events:none;${css}`;
+        document.body.append(d);
+        const v = d.getBoundingClientRect();
+        d.remove();
+        return v;
+      };
+      fixedL = probe('left:0').left;
+      fixedR = probe('right:0').right;
+    };
+
+    const layoutBall = () => {
+      /*
+       * 水平基准取太阳图标里的 `svg` 而不是外层 40×40 按钮：按钮有内边距，
+       * 按按钮对齐会让图标轮廓偏右约 9px（用户实测反馈「并没有对齐」）。
+       * 纵向不再跟着太阳走 —— 用户要求图标底端与大标题文字底端对齐，
+       * 所以纵向基准换成 `article > h2` 的 bottom，太阳只负责定横向那条竖线。
+       */
+      const sunSvg =
+        document.querySelector<HTMLElement>('.scheme-toggle-desktop svg') ??
+        document.querySelector<HTMLElement>('.scheme-toggle-desktop');
+      const sr = sunSvg?.getBoundingClientRect();
+      const box = root.getBoundingClientRect();
+      if (innerWidth >= MOBILE && sr && sr.width > 0) {
+        const cx = (sr.left + sr.right) / 2;
+        const titleEl = document.querySelector<HTMLElement>('article > h2');
+        const tr = titleEl?.getBoundingClientRect();
+        root.style.top = tr
+          ? `${Math.round(tr.bottom - box.height - BALL_LIFT)}px`
+          : `${Math.round(sr.bottom + GAP_BALL)}px`;
+        root.style.left = 'auto';
+        root.style.right = `${Math.round(fixedR - cx - box.width / 2)}px`;
+        root.style.bottom = 'auto';
+      } else {
+        /* 移动端：右下角（太阳图标在这个断点隐藏） */
+        root.style.top = 'auto';
+        root.style.left = 'auto';
+        root.style.right = `${Math.round(fixedR - (window.visualViewport?.width ?? innerWidth) + 16)}px`;
+        root.style.bottom = '16px';
+      }
+    };
+
+    const layoutPanel = () => {
+      /*
+       * 面板贴图标向左展开（横向由 CSS 的 `right: calc(100% + 12px)` 负责）。
+       * 纵向默认让面板顶部对齐图标顶部、向下展开；图标靠近视口下沿时（移动端
+       * 图标就在右下角）自动上翻，保证整块面板留在视口内。
+       * top 是相对 `.tocd` 的偏移，写之前要减掉图标自身的 top。
+       */
+      panel.style.width = '246px';
+      const box = root.getBoundingClientRect();
+      const ph = panel.offsetHeight || 0;
+      const maxTop = Math.max(8, innerHeight - ph - 8);
+      const clamped = Math.min(Math.max(8, box.top), maxTop);
+      panel.style.top = `${Math.round(clamped - box.top)}px`;
+      panel.style.transform = 'none';
+      panel.style.left = '';
+    };
+
+    const layout = () => {
+      measureFixed();
+      layoutBall();
+      if (root.classList.contains('open')) layoutPanel();
+    };
+
+    layout();
+    /*
+     * 首帧再校正一次。脚本可能在内层视口尺寸稳定之前执行（实测桌面首次拿到的
+     * innerWidth 是未应用 emulation 的 1904，而实际视口只有 1440），按那个值算出的
+     * 位置会让球落到视口外。rAF 时视口已定型，重算一次即可归位。
+     */
+    requestAnimationFrame(layout);
+
+    /* ---------- 展开 / 收起 ---------- */
+    const setOpen = (open: boolean) => {
+      root.classList.toggle('open', open);
+      ball.setAttribute('aria-expanded', String(open));
+      if (open) {
+        layoutPanel();
+        highlight();
+      }
+    };
+
+    /* ---------- 当前章节高亮 ---------- */
+    let raf = 0;
+    const highlight = () => {
+      raf = 0;
+      let current = 0;
+      heads.forEach((h, i) => {
+        if (h.getBoundingClientRect().top < 140) current = i;
+      });
+      [...list.querySelectorAll('a')].forEach((a, i) => {
+        a.classList.toggle('on', i === current);
+      });
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(highlight);
+    };
+
+    /* ---------- 点击球展开 / 收起（位置固定，不支持拖动） ---------- */
+    const onBallClick = () => setOpen(!root.classList.contains('open'));
+
+    /* ---------- 点条目跳转 / 点空白收起 ---------- */
+    const onPanelClick = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement).closest('a');
+      if (!link) return;
+      const target = heads[Number(link.dataset.idx)];
+      if (!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 96;
+      window.scrollTo({ top, behavior: 'smooth' });
+      setOpen(false);
+    };
+
+    const onDocClick = (e: MouseEvent) => {
+      if (!root.contains(e.target as Node)) setOpen(false);
+    };
+
+    const onResize = () => layout();
+
+    ball.addEventListener('click', onBallClick);
+    panel.addEventListener('click', onPanelClick);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    document.addEventListener('click', onDocClick);
+
+    highlight();
+
+    /* 进入正文默认收起（2026-10-30 用户撤销了「进入即展开」）。
+       只有点图标才展开，点页面上任意其它区域收起。 */
+
+    cleanup = () => {
+      ball.removeEventListener('click', onBallClick);
+      panel.removeEventListener('click', onPanelClick);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('click', onDocClick);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }
+
+  init();
+  document.addEventListener('astro:page-load', init);
+  document.addEventListener('astro:before-swap', () => {
+    cleanup?.();
+    cleanup = null;
+  });
+</script>

@@ -21,6 +21,8 @@ import Calendar from '@/components/icons/Calendar.astro';
 import Tag from '@/components/icons/Tag.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Comment from '@/components/Comment.astro';
+import TocBall from '@/components/TocBall.astro';
+import BackTop from '@/components/BackTop.astro';
 import { EXCLUDED_CATEGORIES } from '@/utils/content';
 
 export async function getStaticPaths() {
@@ -105,4 +107,6 @@ const formattedDate = format(date, 'yyyy-MM-dd');
     </article>
     <Comment term={title} />
   </div>
+  <TocBall />
+  <BackTop />
 </BaseLayout>

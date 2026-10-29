@@ -1,0 +1,231 @@
+---
+/**
+ * 回到顶部（2026-10-29）
+ *
+ * 设计约束（与 TocBall.astro 保持一致）：
+ *   - 只出现在文章正文页（由 posts/[slug].astro 挂载在 <TocBall /> 之后）
+ *   - 没有「球」：无背景、无边框、无阴影，22×22 图标本身即交互区，与目录图标同规格
+ *   - 图标来源：内联 SVG（lucide `chevron-up` 几何），与 TocBall 用内联 SVG 的做法一致
+ *   - 位置：
+ *       桌面（≥1024px）→ 右下角，右边距/下边距 16px（与目录图标移动端同一安全边距）
+ *       移动（<1024px）→ 目录图标正上方，水平同列对齐，垂直间距 12px；
+ *         目录面板向**左**展开，所以图标在正上方不会碰到面板
+ *   - 显隐：滚过半屏才出现，过渡与目录图标一致（opacity / color 0.2s ease）
+ *   - 不改变正文布局（position: fixed），也不触碰目录组件的任何逻辑
+ *
+ * 边界：内容不足一屏时 scrollY 永远到不了阈值 → 图标保持隐藏。
+ */
+---
+
+<button
+  class="btt"
+  type="button"
+  aria-label="回到顶部"
+  title="回到顶部"
+  data-back-top
+>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M18 15l-6-6-6 6"></path>
+  </svg>
+</button>
+
+<style is:global>
+  /*
+   * 与 .tocd 同一个 z-index 与规格。隐藏时用 visibility 而非只靠 opacity，
+   * 否则看不见的按钮仍会吃掉点击。
+   */
+  .btt {
+    position: fixed;
+    z-index: 30;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    /* left/top/right/bottom 全由 JS 写入，CSS 只兜底一个右下角 */
+    right: 16px;
+    bottom: 16px;
+    background: none;
+    color: var(--font-color);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    cursor: pointer;
+    place-items: center;
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
+  }
+  /* 出现态：常态 0.42（与目录图标一致，实心墨色存在感太强） */
+  .btt.show {
+    opacity: 0.42;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  /* 所有 :hover 包进 hover 媒体查询，避免平板 tap 后粘滞 */
+  @media (hover: hover) {
+    .btt.show:hover {
+      color: var(--theme-color);
+      opacity: 0.85;
+    }
+  }
+  .btt.show:focus-visible {
+    color: var(--theme-color);
+    opacity: 0.85;
+  }
+  .btt svg {
+    width: 28px;
+    height: 28px;
+  }
+</style>
+
+<script>
+  /**
+   * ClientRouter 换页不会重跑 module script，只会替换 body，
+   * 所以挂在 `astro:page-load` 上，并在换页前解绑（与 TocBall 同一套路）。
+   */
+  let cleanup: (() => void) | null = null;
+
+  function init() {
+    cleanup?.();
+    cleanup = null;
+
+    const btn = document.querySelector<HTMLElement>('[data-back-top]');
+    if (!btn) return;
+
+    /*
+     * `position: fixed` 的包含块必须是视口。祖先链上只要有
+     * transform / filter / backdrop-filter / will-change，包含块就会被降级成那个祖先，
+     * 图标随之被推出视口（实测桌面 bottom:16 画在了距底 467px 处）。
+     * 提到 body 顶层即可，与 TocBall 的处理一致。
+     */
+    if (btn.parentElement !== document.body) document.body.append(btn);
+
+    const MOBILE = 1024; // 与 .scheme-toggle-desktop 的隐藏断点、TocBall 的 MOBILE 一致
+    const EDGE = 16; // 右边距 / 桌面下边距，与目录图标移动端的安全边距相同
+    const GAP = 12; // 移动端：与目录图标的垂直间距（= 目录面板与图标的间距）
+    const LIFT_DESKTOP = 50; // 桌面：在右下角基准 EDGE 之上再上移的距离（用户 2026-10-30 改为 50）
+
+    /*
+     * 站点开了 `scrollbar-gutter: stable both-edges`，`position: fixed` 的包含块
+     * 比 `getBoundingClientRect()` 的坐标系内缩约 5px。用零尺寸探针量出左右边界，
+     * 写 left / right 之前都要换算，否则图标会整体偏移（见 TocBall 的 measureFixed 注释）。
+     */
+    let fixedL = 0;
+    let fixedR = 0;
+    const measureFixed = () => {
+      const d = document.createElement('div');
+      d.style.cssText =
+        'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none';
+      document.body.append(d);
+      fixedL = d.getBoundingClientRect().left;
+      d.style.left = 'auto';
+      d.style.right = '0';
+      fixedR = d.getBoundingClientRect().right;
+      d.remove();
+    };
+
+    const layout = () => {
+      measureFixed();
+      /*
+       * 这里必须用 `innerWidth`（含滚动条），不能用 `visualViewport.width`
+       * ——后者已经扣掉了滚动条，与 fixedR 相等，gutter 会算成 0，
+       * 导致桌面右边距实测 21px 而不是 16px。
+       */
+      const vw = innerWidth;
+      /*
+       * vw - fixedR 就是右侧那条排水沟的宽度（`scrollbar-gutter: both-edges` 造成，
+       * 桌面实测 5px、移动端 0）。fixed 的包含块不含滚动条，所以减去它，
+       * 视觉边距才真的是 EDGE。
+       */
+      const gutter = Math.max(0, Math.round(vw - fixedR));
+      btn.style.right = `${EDGE - gutter}px`;
+      btn.style.left = 'auto';
+
+      if (innerWidth >= MOBILE) {
+        /*
+         * 桌面：**水平居中于文章正文栏**（用户 2026-10-30 要求），距底 EDGE + LIFT_DESKTOP。
+         * 用正文栏的实测 rect 算中线，而不是写死像素 —— 版心宽度随视口变化
+         * （1440 下正文 x=464 w=896，中心 912；1280 下会变）。
+         * 取不到正文时退回右下角（right 已在上面写好）。
+         */
+        const pr = document.querySelector('.prose')?.getBoundingClientRect();
+        if (pr && pr.width > 0) {
+          const cx = (pr.left + pr.right) / 2;
+          btn.style.right = 'auto';
+          btn.style.left = `${Math.round(cx - btn.offsetWidth / 2 - fixedL)}px`;
+        }
+        btn.style.top = 'auto';
+        btn.style.bottom = `${EDGE + LIFT_DESKTOP}px`;
+        return;
+      }
+
+      /*
+       * 移动端：坐在目录图标正上方。
+       * 直接读目录图标的 rect 而不是写死 50px —— 目录位置由它自己的 JS 计算
+       * （且底部可能受 safe-area 影响），读实测值才能保证两者始终同列且不重叠。
+       */
+      const toc = document.querySelector<HTMLElement>('[data-toc-ball]');
+      const tr = toc?.getBoundingClientRect();
+      btn.style.top = 'auto';
+      btn.style.bottom =
+        tr && tr.width > 0
+          ? `${Math.round(innerHeight - tr.top + GAP)}px`
+          : `${EDGE + btn.offsetHeight + GAP}px`;
+    };
+
+    /* ---------- 显隐：滚过约半屏才出现（内容不足一屏时永远不出现） ---------- */
+    /*
+     * 这里**故意不用 requestAnimationFrame 节流**：只切换一个 class，开销可以忽略，
+     * 而 rAF 在后台/最小化窗口里会被浏览器暂停，实测导致滚了很久图标仍不出现。
+     * scroll 事件本身已被浏览器按帧合并，直接算即可。
+     */
+    const update = () => {
+      const threshold = Math.max(400, innerHeight * 0.5);
+      btn.classList.toggle('show', window.scrollY > threshold);
+    };
+    const onScroll = () => update();
+
+    const onResize = () => layout();
+
+    /* ---------- 点击：平滑回顶，且不让目录把它当成「点击其它区域」 ---------- */
+    const onClick = (e: MouseEvent) => {
+      /*
+       * TocBall 的 onDocClick 判断 `!root.contains(target)` 就收起面板。
+       * 点这里若不拦住冒泡，会顺带把目录面板收起来 —— 用户要求两者互不误触发，
+       * 所以显式 stopPropagation，让这次点击只对「回到顶部」生效。
+       */
+      e.stopPropagation();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    btn.addEventListener('click', onClick);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+
+    layout();
+    /* 首帧视口尺寸稳定后再校正一次（与 TocBall 同样原因：首次 innerWidth 可能是旧值） */
+    requestAnimationFrame(layout);
+    update();
+
+    cleanup = () => {
+      btn.removeEventListener('click', onClick);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+    };
+  }
+
+  document.addEventListener('astro:page-load', init);
+  document.addEventListener('astro:before-swap', () => {
+    cleanup?.();
+    cleanup = null;
+  });
+</script>
