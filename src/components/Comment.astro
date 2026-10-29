@@ -85,14 +85,17 @@ const { term } = Astro.props;
   };
 
   // ---------------------------------------------------------------------------
-  // 评论字体：与文章正文一致（霞鹜文楷 LXGW WenKai Regular 400，
-  // lxgw-wenkai-webfont 包同源自托管分片，位置
-  // public/assets/styles/fonts/lxgw-wenkai/；2026-09-17 由 Noto Serif SC 更换）。
-  // iframe 内无法请求本站字体（PNA/CORS 拦截），故在页面侧把 woff2 分片抓下来
-  // base64 内联进主题 CSS，再打包进 data: URL。unicode-range 分片下浏览器只
-  // 真正加载用到的字形分片，注册上百个 face 无额外网络成本。
+  // 评论字体（2026-10-30 改）：霞鹜文楷 LXGW WenKai Regular 400，单文件全覆盖子集。
+  // 旧方案内联 97 个 unicode-range 分片 —— 4.42 MB（base64 后 5.88 MB），且合并只覆盖
+  // CJK 57.7%，评论里缺的字会掉回系统楷体，一条评论出现两种字体。
+  // 现方案 `lxgw-wenkai-comment.woff2`（v1.530 Regular，GB2312 全集 6763 汉字 + ASCII +
+  // 中文标点 + 全角）1.57 MB，base64 后约 2.09 MB，一次到位、无逐片替换。
+  // iframe 内无法请求本站字体（跨域 + PNA 拦截），故在页面侧把 woff2 抓下来 base64
+  // 内联进主题 CSS，再打包进 data: URL。
+  // ⚠️ 该 css 刻意不写 unicode-range（写了就会让未覆盖码位回落系统楷体）。
+  // 重建字体后必须同步 bump 这里的版本号与 css 内 src 的 ?v=。
   // ---------------------------------------------------------------------------
-  const FONT_CSS_URL = `/assets/styles/fonts/lxgw-wenkai.css?v=${THEME_V}`;
+  const FONT_CSS_URL = `/assets/styles/fonts/lxgw-wenkai-comment.css?v=1`;
   let fontCssPromise: Promise<string> | null = null;
 
   /*

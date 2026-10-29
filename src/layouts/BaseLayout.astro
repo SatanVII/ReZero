@@ -24,6 +24,20 @@ const themeImages = Object.fromEntries(themes.map((t) => [t.type, t.image]));
 // 与 global.css 的 `url('../assets/fonts/zhengqinke-nanbei-ntf.ttf')` 指向同一文件，
 // Vite 会归一到同一个哈希产物，不会重复打包。
 import siteFontUrl from '@/assets/fonts/zhengqinke-nanbei-ntf.ttf?url';
+
+/* 哪些页面「真的有粗体元素」—— 决定要不要 preload 粗体子集（101.5KB）。
+ *
+ * 2026-10-30 实测（遍历 body 下所有计算字重 ≥600 的元素并用
+ * `document.fonts.check('600 17px "LXGW WenKai"', text)` 逐字符校验）：
+ *   首页 0、隨想 0、书阁 0、自述 2、友邻 1、归档 6、文章页 24~50
+ * → 前三个页面 preload 粗体是纯白下（document.fonts 里 600~700 那个 face 的
+ *   loaded 计数为 0），所以只在这几个路径 preload。
+ *
+ * ⚠️ 维护：如果以后给首页 / 隨想 / 书阁 的固定文案加了粗体（或新增了带粗体的
+ *   页面类型），把这个正则补上，否则那几处粗体会「先细后粗」闪一次
+ *   —— 不会缺字，只是 preload 少了一次（stylesheet 仍全站加载，按需下载 101.5KB）。
+ *   判断方法：`node visual-audit/_round-fonts-v5-cover.mjs` 看「粗体元素」列。 */
+const HAS_BOLD = /^\/(posts\/|about|archives|friend)/.test(Astro.url.pathname);
 // 全站中文字体：霞鹜文楷（2026-09-17 由 Noto Serif SC 600 更换）。
 // 自托管分片走 public（正文 <link> 与评论区内联共用，见 head 内 link 标签），
 // lxgw-wenkai-webfont 包仅作为 prepare-fonts.mjs 的分片来源保留在 devDependencies。
@@ -81,28 +95,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          到达逐个替换 → 肉眼看到「正文字体先渲染一次」。实测改为单文件后该现象消失。
          注意 public/assets/styles/fonts/lxgw-wenkai.css 与分片文件**必须保留**：
          Comment.astro 仍用它们给 giscus iframe 内联字体（独立于本站 <link>）。 -->
-    <!-- Bold 700（2026-10-29 改为单文件子集）：此前只生成了 Regular 400，strong 请求 600 时
-         该族无对应字面 → 浏览器**合成加粗**，楷体笔锋被糊成方硬笔画
-         （表现为「markdown 标记的文字像另一种字体」）。
-         2026-10-29 起不再用 97 个 unicode-range 分片：一个 h2 标题的字散落在十几片里，
-         每到一片就替换几个字 → 粗体「一跳一跳」，这是「只有粗体闪」的根因。
-         改为 GB2312 一级全覆盖单文件（894KB），与正文同字表，
-         避免「同一个字在标题是文楷、在正文是楷体」的错位。
+    <!-- Bold 600~700（2026-10-30 重建为「与正文同表」）：938KB 单文件子集，只在文章页加载。
          官方从未提供 Bold 字重，粗体一贯是 Medium 轮廓 + 元数据标 700（见 css 头注释）。
-         ?v=4 与 css 里 src 的版本号必须同步（/assets/(.*) 是 immutable 一年缓存）。 -->
-    <!-- 2026-10-29：粗体按页面性质分流，且**一律不 preload**。
-         首页没有粗体元素，preload 会白下 937KB（实测 document.fonts 里 700 的 loaded=0）。
-         · 文章页 /posts/* —— 粗体字随文章内容变化，用 4284 字单文件子集（937KB）。
-           单文件的好处：一旦出现粗体就一次到位，不会「一跳一跳」地替换。
-         · 归档 / 友邻 / 自述等其它页 —— 粗体字是**页面固定文案**，数量少又不变，
-           用 97 个 unicode-range 分片：只下载真正用到的那几片，代价是逐片到达时
-           字形会替换几次（这些页可接受）。
-         两者家族名与字重相同，同一页只会加载其中一套。 -->
+         · 为什么是 938KB 而不是之前的 101KB：粗体字形每字约 220 字节，要覆盖正文全部
+           4284 字就是这个量级，中间没有可用的档位（实测「GB2312 一级 3755」是 885KB，
+           只少 53KB）。101KB 那版只有 469 字，余量仅 140 字 —— 新文章一出现新粗体字就
+           掉回系统楷体并合成加粗，观感比正文缺字更明显。用户 2026-10-30 要求
+           「基本不会缺字」→ 扩到与正文同表，正文能显示的字粗体一定有。
+         · 为什么只在 /posts/* 加载：938KB 给归档页/自述页（那里只有几十个粗体字）
+           不划算。非文章页**完全不给 bold face**，由浏览器对 strong/h2 做合成加粗，
+           实测墨量只多 1.6 个百分点；归档页/自述页因此各少下约 101KB。
+         · 为什么必须 preload：938KB 若不 preload，文章页首屏会先出现合成加粗/系统楷体，
+           等字体到达后再换一次 —— 那正是「字体后渲染」。preload 后实测字体 17~36ms
+           内到位，远早于首帧。
+         · font-weight 在 css 里声明为区间 `600 700`：实测 .prose strong 计算字重 600、
+           h2 为 700，写成区间才能两者都命中本 face，不会回落成正文的 400。
+         · 集外字已不可能出现（字表直接取自 font-charset.json 的 regular）。若将来正文
+           扩字表，粗体必须同步重建，否则又会出现「正文是文楷、标题掉楷体」的错配。
+         ?v=6 与 css 里 src 的版本号必须同步（/assets/(.*) 是 immutable 一年缓存）。 -->
     {/^\/posts\//.test(Astro.url.pathname) ? (
-      <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold-subset.css?v=4" />
-    ) : (
-      <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold.css?v=1" />
-    )}
+      <Fragment>
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-bold-subset.woff2?v=6" />
+        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold-subset.css?v=6" />
+      </Fragment>
+    ) : null}
     <!-- Mono（2026-10-29 改为单文件子集）：--font-mono 指向 'LXGW WenKai Mono'。
          此前用 97 个 unicode-range 分片，一个代码块里的中文散落在十几片里逐片到达 →
          与粗体同源的「一跳一跳」。实测文章页为几个中文代码字下了 12 片 / 622.7KB，

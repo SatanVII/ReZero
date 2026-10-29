@@ -5,11 +5,12 @@
 
 /* 原项目此处为 @import Google Fonts 的字体外链；该外链国内不可达，
  * 且 giscus iframe 内无法请求本站字体（PNA/CORS 拦截）。
- * 现改为与文章正文一致的霞鹜文楷 LXGW WenKai（lxgw-wenkai-webfont 包同源自托管分片，
- * 2026-09-17 由 Noto Serif SC 更换）：
- * 本 @import 仅供 Comment.astro 解析——由它在页面侧把 woff2 分片抓取并
+ * 现改为与文章正文一致的霞鹜文楷 LXGW WenKai（2026-09-17 由 Noto Serif SC 更换）。
+ * 2026-10-30 起字体改为**单文件全覆盖子集** `lxgw-wenkai-comment.css`（GB2312 全集，
+ * 1.57 MB）—— 旧的内联 97 个 unicode-range 分片是 4.42 MB 且只覆盖 CJK 57.7%。
+ * 本 @import 仅为说明/解析口径一致；实际由 Comment.astro 抓 FONT_CSS_URL 并
  * base64 内联进 data: URL 主题，iframe 内无需任何外部请求。 */
-  @import url('./fonts/lxgw-wenkai.css');
+  @import url('./fonts/lxgw-wenkai-comment.css');
   
   /* 2026-10-07：字体声明从 main 提升到 body —— giscus 的 body 自带
      `-apple-system, Segoe UI…` 系统栈，main 只盖得住 main 内部，
