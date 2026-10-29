@@ -12,8 +12,8 @@
  *    若把 Bold 追加进同一文件，评论主题体积会翻倍。
  *  - 输出文件名保持 `lxgw-wenkai.css`（Regular），BaseLayout 的 <link> 不变。
  *
- * 用法：node scripts/prepare-fonts.mjs
- * 幂等：重复运行输出一致。
+ * ⚠️ 2026-10-30 起分片已全部从仓库删除（站点改用单文件子集），本脚本仅作恢复备胎。
+ * 用法：node scripts/prepare-fonts.mjs（重复运行输出一致）。
  */
 import fs from 'node:fs';
 import path from 'node:path';

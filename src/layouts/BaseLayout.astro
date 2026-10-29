@@ -93,8 +93,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          改为下面的单文件全覆盖子集（2026-10-28）。
          原因：分片会让首屏落入「部分字系统楷体 + 其余文楷」的混用态，随后分片陆续
          到达逐个替换 → 肉眼看到「正文字体先渲染一次」。实测改为单文件后该现象消失。
-         注意 public/assets/styles/fonts/lxgw-wenkai.css 与分片文件**必须保留**：
-         Comment.astro 仍用它们给 giscus iframe 内联字体（独立于本站 <link>）。 -->
+         分片（291 个 woff2 + 3 份 lxgw-wenkai{,-bold,-mono}.css）已于 2026-10-30 全部删除：
+         Comment.astro 改抓单文件 lxgw-wenkai-comment.css，不再需要分片。 -->
     <!-- Bold 600~700（2026-10-30 重建为「与正文同表」）：938KB 单文件子集，只在文章页加载。
          官方从未提供 Bold 字重，粗体一贯是 Medium 轮廓 + 元数据标 700（见 css 头注释）。
          · 为什么是 938KB 而不是之前的 101KB：粗体字形每字约 220 字节，要覆盖正文全部
@@ -138,7 +138,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          两套家族名与字重相同，同一页只加载其中一套，不会混用。
          维护：新增分类/标签会生成新归档页、改导航或固定文案后若出现个别字回落系统楷体，
          按 AGENTS.md §3.3.4 重跑 lite 子集。
-         ?v=4 与各自 css 里的 src 版本号必须同步：/assets/(.*) 是 immutable 一年缓存。 -->
+         ⚠️ lite 字表必须含 src/data/ 全部数据（尤其 poetry.json 的 40 条诗句——侧栏只显示 1~2 条，按某次构建扫字必漏其余）；2026-10-30 因此漏 72 字含「聽」。?v=4 与各自 css 的 src 版本号必须同步（immutable 一年缓存）。 -->
     {/^\/posts\//.test(Astro.url.pathname) ? (
       <Fragment>
         <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=4" />
