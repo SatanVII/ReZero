@@ -117,6 +117,10 @@
     max-height: 60vh;
     padding: 14px 6px 12px;
     overflow: auto;
+    /* 滚到面板边界后滚动量不外溢到正文（2026-10-30 用户裁定方案二「完全隔离」）。
+       只在容器实际可滚时生效：目录不足一屏时滚轮穿透滚正文，属合理默认。
+       用 contain 不用 none：保留面板自身的回弹；Safari <16 忽略此行，回落链式（优雅降级）。 */
+    overscroll-behavior: contain;
     border: 1px solid var(--line-color);
     border-radius: 10px;
     /* 透明度对齐壁纸的观感（--wallpaper-opacity 亮 0.08 / 暗 0.05，非常淡）：
@@ -286,11 +290,16 @@
         root.style.right = `${Math.round(fixedR - cx - box.width / 2)}px`;
         root.style.bottom = 'auto';
       } else {
-        /* 移动端：右下角（太阳图标在这个断点隐藏） */
+        /*
+         * 移动端：右下角（太阳图标在这个断点隐藏）。
+         * bottom 2026-10-30 由 16 改为 44（上移 28）：16px 贴底时单手拇指要蜷到
+         * 屏幕最下沿才够得着；44~66px 落在拇指自然扫过的范围内，同时仍贴近底部，
+         * 不会显得「飘到正文中间」。BackTop 读本图标的 rect 定位，会自动跟随。
+         */
         root.style.top = 'auto';
         root.style.left = 'auto';
         root.style.right = `${Math.round(fixedR - (window.visualViewport?.width ?? innerWidth) + 16)}px`;
-        root.style.bottom = '16px';
+        root.style.bottom = '44px';
       }
     };
 

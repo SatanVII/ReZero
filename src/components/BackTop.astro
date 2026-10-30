@@ -5,12 +5,15 @@
  * 设计约束（与 TocBall.astro 保持一致）：
  *   - 只出现在文章正文页（由 posts/[slug].astro 挂载在 <TocBall /> 之后）
  *   - 没有「球」：无背景、无边框、无阴影，22×22 图标本身即交互区，与目录图标同规格
- *   - 图标来源：内联 SVG（lucide `chevron-up` 几何），与 TocBall 用内联 SVG 的做法一致
+ *   - 图标来源：内联 SVG（lucide `chevron-up` 几何）。
+ *     viewBox 边长决定图形大小：24 网格 → 14×7（原始）、20 网格 → 16.8×8（当前，+20%）、
+ *     16 网格 → 21×10（2026-10-30 试过，用户判「存在感过强」已回退）
  *   - 位置：
  *       桌面（≥1024px）→ 右下角，右边距/下边距 16px（与目录图标移动端同一安全边距）
- *       移动（<1024px）→ 目录图标正上方，水平同列对齐，垂直间距 12px；
- *         目录面板向**左**展开，所以图标在正上方不会碰到面板
- *   - 显隐：滚过半屏才出现，过渡与目录图标一致（opacity / color 0.2s ease）
+ *       移动（<1024px）→ 目录图标正上方，垂直间距 12px；水平**居中于视口**
+ *         （用户 2026-10-30 要求「移动端显示在中间」：不再与目录图标同列，
+ *          居中后落在屏幕中线，与桌面「居于正文栏中线」是同一套视觉逻辑）
+ *   - 显隐：滚过 0.8 屏才出现，过渡与目录图标一致（opacity / color 0.2s ease）
  *   - 不改变正文布局（position: fixed），也不触碰目录组件的任何逻辑
  *
  * 边界：内容不足一屏时 scrollY 永远到不了阈值 → 图标保持隐藏。
@@ -25,7 +28,7 @@
   data-back-top
 >
   <svg
-    viewBox="0 0 24 24"
+    viewBox="2 2 20 20"
     fill="none"
     stroke="currentColor"
     stroke-width="2"
@@ -64,7 +67,11 @@
       opacity 0.2s ease,
       color 0.2s ease;
   }
-  /* 出现态：常态 0.42（与目录图标一致，实心墨色存在感太强） */
+  /*
+   * 出现态：常态 0.42，与目录图标完全一致。
+   * 2026-10-30 曾试过 0.5 + 16 网格（图形 21×10），用户判「箭头存在感过强」→ 不透明度回退，
+   * 图形尺寸改取 20 网格（16.8×8，比原始 14×7 大 20%）。热区仍是 28×28。
+   */
   .btt.show {
     opacity: 0.42;
     visibility: visible;
@@ -169,12 +176,17 @@
       }
 
       /*
-       * 移动端：坐在目录图标正上方。
-       * 直接读目录图标的 rect 而不是写死 50px —— 目录位置由它自己的 JS 计算
-       * （且底部可能受 safe-area 影响），读实测值才能保证两者始终同列且不重叠。
+       * 移动端：垂直坐在目录图标正上方，水平**居中于视口**。
+       * 垂直直接读目录图标的 rect 而不是写死 50px —— 目录位置由它自己的 JS 计算
+       * （且底部可能受 safe-area 影响），读实测值才能保证不重叠。
+       * 水平不再跟随目录图标（它贴右边），改为居中：用户 2026-10-30 要求「显示在中间」。
+       * 居中基准用本行已算好的 vw（= innerWidth，含滚动条），再减 fixedL 换到
+       * fixed 包含块坐标系 —— 与桌面分支同一换算方式，移动端 gutter 为 0。
        */
       const toc = document.querySelector<HTMLElement>('[data-toc-ball]');
       const tr = toc?.getBoundingClientRect();
+      btn.style.right = 'auto';
+      btn.style.left = `${Math.round(vw / 2 - btn.offsetWidth / 2 - fixedL)}px`;
       btn.style.top = 'auto';
       btn.style.bottom =
         tr && tr.width > 0
@@ -182,14 +194,17 @@
           : `${EDGE + btn.offsetHeight + GAP}px`;
     };
 
-    /* ---------- 显隐：滚过约半屏才出现（内容不足一屏时永远不出现） ---------- */
+    /* ---------- 显隐：滚过 0.8 屏才出现（内容不足一屏时永远不出现） ---------- */
     /*
      * 这里**故意不用 requestAnimationFrame 节流**：只切换一个 class，开销可以忽略，
      * 而 rAF 在后台/最小化窗口里会被浏览器暂停，实测导致滚了很久图标仍不出现。
      * scroll 事件本身已被浏览器按帧合并，直接算即可。
+     *
+     * 阈值从「半屏」放宽到「0.8 屏」（用户 2026-10-30：出现时机过早）：
+     * 900px 视口下由 450px 改 720px，读者读完首屏标题+导语才浮出。
      */
     const update = () => {
-      const threshold = Math.max(400, innerHeight * 0.5);
+      const threshold = Math.max(600, innerHeight * 0.8);
       btn.classList.toggle('show', window.scrollY > threshold);
     };
     const onScroll = () => update();
@@ -216,10 +231,32 @@
     requestAnimationFrame(layout);
     update();
 
+    /*
+     * 桌面居中读的是 `.prose` 的实测 rect，而它会被入场动画带偏：
+     * `.page-wrap` 的 `page-in` 从 `translateX(-1.5rem)` 起步、0.5s 后归位，
+     * 在动画期间测量会让正文栏中线偏左 24px（实测图标中心 853 vs 正文 877）。
+     * `ResizeObserver` 抓不到这种偏差（位移不改尺寸），所以必须监听 `animationend`；
+     * 字体就绪与尺寸变化再各补一次，覆盖换页后的重排。
+     */
+    let ro: ResizeObserver | null = null;
+    const proseEl = document.querySelector('.prose');
+    if (proseEl && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => layout());
+      ro.observe(proseEl);
+    }
+    const onAnimEnd = (e: AnimationEvent) => {
+      if (e.animationName === 'page-in') layout();
+    };
+    document.addEventListener('animationend', onAnimEnd);
+    document.fonts?.ready.then(layout).catch(() => {});
+
     cleanup = () => {
       btn.removeEventListener('click', onClick);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
+      ro?.disconnect();
+      ro = null;
+      document.removeEventListener('animationend', onAnimEnd);
     };
   }
 
