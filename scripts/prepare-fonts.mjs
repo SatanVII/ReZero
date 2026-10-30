@@ -1,22 +1,46 @@
 /**
- * 自托管霞鹜文楷（LXGW WenKai）分片生成（2026-10-06）
+ * 自托管霞鹜文楷（LXGW WenKai）**旧分片架构**生成器（2026-10-06 写，2026-10-30 停用）
  *
- * 背景：全站中文字体为 LXGW WenKai，但此前**只生成了 Regular 400**，
- * 导致 `strong` 请求 600 字重时该族无对应字面 → 浏览器**合成加粗**（faux bold），
- * 楷体笔锋被糊成方硬笔画（用户反馈「markdown 标记的文字变成另一种字体」）。
- * 本脚本补上 Bold 700，并保证流程可复现。
+ * 历史：全站中文字体是 LXGW WenKai，2026-10-06 之前只生成了 Regular 400，
+ * 于是 `strong` 请求 600 时该族无对应字面 → 浏览器合成加粗（faux bold），
+ * 楷体笔锋被糊成方硬笔画。当时本脚本补上 Bold 700，并把官方包拆成 97 个分片。
  *
- * 设计约束（重要）：
- *  - Bold **必须输出为独立文件**。src/components/Comment.astro 会把
- *    `lxgw-wenkai.css` 引用的 woff2 全部 base64 内联进 giscus iframe 主题；
- *    若把 Bold 追加进同一文件，评论主题体积会翻倍。
- *  - 输出文件名保持 `lxgw-wenkai.css`（Regular），BaseLayout 的 <link> 不变。
+ * ⚠️ 2026-10-30 起这套分片架构已被整体淘汰（`61f6938` 删掉 291 个 woff2 与 3 个 css）：
+ * 「97 分片 + 子集 face 不写 unicode-range」会让首屏正文渲染两次，根因与三组实测见
+ * AGENTS.md §3.1.1。现在正文/粗体/代码/评论区全部是**单文件子集**：
+ *   lxgw-wenkai-subset.css       文章页正文 4284 字 / 922KB
+ *   lxgw-wenkai-lite.css         其它页正文 844 字 / 192KB
+ *   lxgw-wenkai-bold-subset.css  文章页粗体（与正文同表）
+ *   lxgw-wenkai-mono-subset.css  代码 182 字
+ *   lxgw-wenkai-comment.css      评论区 GB2312 全集 1.57MB
+ * 它们的重建方式见 AGENTS.md §3.3（fontTools.subset + 从产物反推 unicode-range）。
  *
- * ⚠️ 2026-10-30 起分片已全部从仓库删除（站点改用单文件子集），本脚本仅作恢复备胎。
- * 用法：node scripts/prepare-fonts.mjs（重复运行输出一致）。
+ * 因此本脚本默认**拒绝执行**：跑一次就会往 public/ 塞回 291 个分片（约 14MB，
+ * Astro 会原样拷进 dist），并重新造出 `lxgw-wenkai.css` —— 那个文件一旦被 link 回
+ * BaseLayout，站点就退回 FOUT 老路。真要临时对照旧架构才加 --force。
+ *
+ * 用法：
+ *   node scripts/prepare-fonts.mjs           # 打印原因后退出（exit 1）
+ *   node scripts/prepare-fonts.mjs --force   # 真的重建分片
  */
 import fs from 'node:fs';
 import path from 'node:path';
+
+// 守卫放最前面：连 node_modules 都不查，先说明为什么不该跑
+const FORCE = process.argv.includes('--force');
+
+if (!FORCE) {
+  console.error(
+    [
+      '[fonts] 已停用：本脚本重建的是旧分片架构（97 片 / 3 个 css）。',
+      '        现行站点用单文件子集 lxgw-wenkai-{subset,lite,bold-subset,mono-subset}.css，',
+      '        重建方法见 AGENTS.md §3.3（fontTools.subset + 从产物反推 unicode-range）。',
+      '        跑本脚本会往 public/ 塞回约 14MB 分片，并造出会引发正文二次渲染的 lxgw-wenkai.css。',
+      '        确实要重建旧分片时：node scripts/prepare-fonts.mjs --force',
+    ].join('\n'),
+  );
+  process.exit(1);
+}
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PKG = path.join(ROOT, 'node_modules/lxgw-wenkai-webfont');

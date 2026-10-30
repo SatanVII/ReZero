@@ -3,25 +3,11 @@
  * 移动端顶部栏（对应旧站 components/Header，lg 以下显示）
  * 导航激活态在构建期由 Astro.url.pathname 决定
  */
-// 图标全部取自 src/components/icons（lucide-react@0.279 几何 vendor），理由见 MIGRATION.md「图标 vendor」
-import BookOpen from '@/components/icons/BookOpen.astro';
-import Codepen from '@/components/icons/Codepen.astro';
-import Ghost from '@/components/icons/Ghost.astro';
-import HeartPulse from '@/components/icons/HeartPulse.astro';
-import ScrollText from '@/components/icons/ScrollText.astro';
-import Sparkles from '@/components/icons/Sparkles.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
 import { isNavActive } from '@/utils/nav';
+// 导航项（href / name / Icon）统一在 utils/navItems —— 与 Side.astro 共用同一份数据
+import { navItems } from '@/utils/navItems';
 import '@/components/Header.css';
-
-const navItems = [
-  { href: '/', name: '文章', Icon: ScrollText },
-  { href: '/inspiration', name: '隨想', Icon: Sparkles },
-  { href: '/archives', name: '歸檔', Icon: Codepen },
-  { href: '/book', name: '書閣', Icon: BookOpen },
-  { href: '/friend', name: '友鄰', Icon: HeartPulse },
-  { href: '/about', name: '自述', Icon: Ghost },
-];
 
 const { pathname } = Astro.url;
 ---

@@ -25,6 +25,13 @@ import TocBall from '@/components/TocBall.astro';
 import BackTop from '@/components/BackTop.astro';
 import { EXCLUDED_CATEGORIES } from '@/utils/content';
 
+/*
+ * ⚠️ **不要**把 getCollection 提到 frontmatter 顶层复用（2026-10-31 实测撞过）：
+ * 构建期 Astro 会把 getStaticPaths 抽成独立模块
+ * （`dist/.prerender/chunks/_slug__*.mjs`），frontmatter 作用域的变量在那里不可见，
+ * 构建直接报 `allPosts is not defined`。所以这里与下面的 archivePosts 各自
+ * getCollection 一次是**必要的**，不是重复读取。
+ */
 export async function getStaticPaths() {
   const entries = await getCollection('post');
   return entries.map((entry) => ({

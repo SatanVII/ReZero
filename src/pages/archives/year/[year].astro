@@ -9,26 +9,16 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ArchiveView from '@/components/ArchiveView.astro';
-import { EXCLUDED_CATEGORIES } from '@/utils/content';
+import { groupArchiveEntries } from '@/utils/content';
 
 export async function getStaticPaths() {
   const all = await getCollection('post');
-  const grouped = new Map<string, (typeof all)[number][]>();
-
-  for (const entry of all) {
-    if (EXCLUDED_CATEGORIES.includes(entry.data.category)) continue;
-    const year = String(entry.data.date.getFullYear());
-    const list = grouped.get(year);
-    if (list) list.push(entry);
-    else grouped.set(year, [entry]);
-  }
-
-  const byDateDesc = (a: (typeof all)[number], b: (typeof all)[number]) =>
-    b.data.date.getTime() - a.data.date.getTime();
+  // 单值维度：按 frontmatter 日期取年份（仅到年，不做月份下钻）
+  const grouped = groupArchiveEntries(all, (entry) => String(entry.data.date.getFullYear()));
 
   return [...grouped.entries()].map(([year, entries]) => ({
     params: { year },
-    props: { year, entries: [...entries].sort(byDateDesc) },
+    props: { year, entries },
   }));
 }
 

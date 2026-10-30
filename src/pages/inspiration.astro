@@ -41,6 +41,8 @@ const items = await Promise.all(
 </BaseLayout>
 
 <script>
+  import { moveListMask } from '../utils/listMask';
+
   /**
    * 隨想流悬停滑动遮罩
    *
@@ -63,23 +65,14 @@ const items = await Promise.all(
 
     const mask = document.querySelector<HTMLElement>(MASK_SELECTOR);
     const list = document.querySelector<HTMLElement>(LIST_SELECTOR);
-    const page = list?.closest<HTMLElement>('.page') ?? null;
-    if (!mask || !list || !page) return;
+    if (!mask || !list) return;
 
     const items = () => [...list.querySelectorAll<HTMLElement>(':scope > article')];
 
-    // 遮罩是 .page 的绝对定位子元素（top:0 贴 .page 顶边），
-    // 而 article.offsetTop 相对 .relative 的列表容器 —— 故需补上 .page 的上内边距。
-    // 上内边距是响应式的（py-24 → lg:py-16），在 moveTo 内现读，避免跨 lg 断口缩放后用到旧值。
-    const moveTo = (item: HTMLElement) => {
-      const paddingTop = Number.parseFloat(getComputedStyle(page).paddingTop) || 0;
-      const height = `${item.offsetHeight}px`;
-      const transform = `translateY(${item.offsetTop + paddingTop}px)`;
-      // 早退守卫：位置不变不重复写样式（mouseover 高频触发）
-      if (mask.style.height === height && mask.style.transform === transform) return;
-      mask.style.height = height;
-      mask.style.transform = transform;
-    };
+    // 对齐公式与早退守卫都在 utils/listMask（与首页文章列表共用）。
+    // 2026-10-31 起不再现读 .page 的 paddingTop —— 那个公式只在「列表容器之上
+    // 没有流内元素」时成立，统一用 list.offsetTop 后与 PostList 口径一致。
+    const moveTo = (item: HTMLElement) => moveListMask(mask, item, list);
 
     let current = items()[0] ?? null;
     if (current) moveTo(current);

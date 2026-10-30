@@ -22,7 +22,11 @@ const current = themes[0];
         <ul class="body">
           {
             themes.map((theme) => (
-              <li data-theme-item={theme.type} data-theme-url={theme.url} data-theme-description={theme.description}>
+              <li
+                data-theme-item={theme.type}
+                data-theme-url={theme.url}
+                data-theme-description={theme.description}
+                data-theme-image={theme.image}>
                 <span style={`border-color: ${theme.color.primary}; background-color: ${withAlpha(theme.color.primary, 0.3)}`}>
                   {theme.name}
                 </span>

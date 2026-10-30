@@ -189,6 +189,8 @@
 </style>
 
 <script>
+  import { measureFixedBounds } from '../utils/fixedBox';
+
   /**
    * ClientRouter 换页不会重新执行 module script，只会替换 body。
    * 所以初始化逻辑挂在 `astro:page-load` 上，并在换页前解绑。
@@ -245,26 +247,13 @@
     const GAP_BALL = 6; // 拿不到标题时，图标接在太阳图标下方的间距
     const BALL_LIFT = 17; // 图标底端比标题文字底端再抬高 17px（用户四次微调累加：2 → +3 → +7 → +5）
 
-    /*
-     * 站点开了 `scrollbar-gutter: stable both-edges`（左右各留排水沟），
-     * 于是 `position: fixed` 的包含块比 `getBoundingClientRect()` 的坐标系内缩了一段
-     * （实测 5px）：`left: 464px` 会画在 x=469。直接拿标题/太阳的 rect 去写 left/right
-     * 就会整体偏移，所以先用两个零尺寸探针量出 fixed 坐标系的实际左右边界。
-     */
-    let fixedL = 0;
+    // fixed 包含块因 scrollbar-gutter: stable both-edges 内缩约 5px，
+    // 写 right 前必须换算（探针实现在 utils/fixedBox，与 BackTop 共用）。
+    // 本组件只用到右侧边界：图标是相对右边定位的。
     let fixedR = 0;
 
     const measureFixed = () => {
-      const probe = (css: string) => {
-        const d = document.createElement('div');
-        d.style.cssText = `position:fixed;top:0;width:0;height:0;pointer-events:none;${css}`;
-        document.body.append(d);
-        const v = d.getBoundingClientRect();
-        d.remove();
-        return v;
-      };
-      fixedL = probe('left:0').left;
-      fixedR = probe('right:0').right;
+      fixedR = measureFixedBounds().right;
     };
 
     const layoutBall = () => {

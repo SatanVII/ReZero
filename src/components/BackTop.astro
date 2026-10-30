@@ -95,6 +95,8 @@
 </style>
 
 <script>
+  import { measureFixedBounds } from '../utils/fixedBox';
+
   /**
    * ClientRouter 换页不会重跑 module script，只会替换 body，
    * 所以挂在 `astro:page-load` 上，并在换页前解绑（与 TocBall 同一套路）。
@@ -121,23 +123,14 @@
     const GAP = 12; // 移动端：与目录图标的垂直间距（= 目录面板与图标的间距）
     const LIFT_DESKTOP = 50; // 桌面：在右下角基准 EDGE 之上再上移的距离（用户 2026-10-30 改为 50）
 
-    /*
-     * 站点开了 `scrollbar-gutter: stable both-edges`，`position: fixed` 的包含块
-     * 比 `getBoundingClientRect()` 的坐标系内缩约 5px。用零尺寸探针量出左右边界，
-     * 写 left / right 之前都要换算，否则图标会整体偏移（见 TocBall 的 measureFixed 注释）。
-     */
+    // fixed 包含块因 scrollbar-gutter 内缩约 5px，写 left/right 前必须换算
+    // （探针实现在 utils/fixedBox，与 TocBall 共用）
     let fixedL = 0;
     let fixedR = 0;
     const measureFixed = () => {
-      const d = document.createElement('div');
-      d.style.cssText =
-        'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none';
-      document.body.append(d);
-      fixedL = d.getBoundingClientRect().left;
-      d.style.left = 'auto';
-      d.style.right = '0';
-      fixedR = d.getBoundingClientRect().right;
-      d.remove();
+      const bounds = measureFixedBounds();
+      fixedL = bounds.left;
+      fixedR = bounds.right;
     };
 
     const layout = () => {

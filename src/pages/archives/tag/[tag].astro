@@ -9,27 +9,16 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ArchiveView from '@/components/ArchiveView.astro';
-import { EXCLUDED_CATEGORIES } from '@/utils/content';
+import { groupArchiveEntries } from '@/utils/content';
 
 export async function getStaticPaths() {
   const all = await getCollection('post');
-  const grouped = new Map<string, (typeof all)[number][]>();
-
-  for (const entry of all) {
-    if (EXCLUDED_CATEGORIES.includes(entry.data.category)) continue;
-    for (const tag of entry.data.tags ?? []) {
-      const list = grouped.get(tag);
-      if (list) list.push(entry);
-      else grouped.set(tag, [entry]);
-    }
-  }
-
-  const byDateDesc = (a: (typeof all)[number], b: (typeof all)[number]) =>
-    b.data.date.getTime() - a.data.date.getTime();
+  // 多值维度：一篇带多个标签的文章会进多个组
+  const grouped = groupArchiveEntries(all, (entry) => entry.data.tags ?? []);
 
   return [...grouped.entries()].map(([tag, entries]) => ({
     params: { tag },
-    props: { tag, entries: [...entries].sort(byDateDesc) },
+    props: { tag, entries },
   }));
 }
 

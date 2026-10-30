@@ -1,6 +1,5 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { satteri } from '@astrojs/markdown-satteri';
@@ -15,7 +14,13 @@ export default defineConfig({
   // 站点线上地址（sitemap / RSS / canonical 依赖此项）
   site: 'https://rezero-five.vercel.app',
 
-  integrations: [mdx(), sitemap()],
+  /*
+   * 只剩 sitemap（2026-10-31 移除 mdx）：content/ 下 0 个 .mdx 文件，全站文章都是
+   * .md，MDX 集成从来没被用到 —— 它只是让依赖树多一层 @astrojs/mdx / @mdx-js/mdx，
+   * 并让构建多装配一遍 MDX 的 rehype 插件。将来真要写 .mdx（比如正文里 import
+   * 组件），把 `mdx()` 加回来并装回依赖即可，收益只在那时才出现。
+   */
+  integrations: [sitemap()],
 
   markdown: {
     // Shiki 主题配置保留在 markdown 顶层（Astro 内部传给处理器）。

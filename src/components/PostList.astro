@@ -56,6 +56,8 @@ const { entries } = Astro.props;
 </div>
 
 <script>
+  import { moveListMask } from '../utils/listMask';
+
   /**
    * 文章列表悬停滑动遮罩
    *
@@ -84,26 +86,8 @@ const { entries } = Astro.props;
 
     const items = () => [...list.querySelectorAll<HTMLElement>(':scope > [data-post-item]')];
 
-    /*
-     * 遮罩是 .page 的绝对定位子元素（top:0 贴其 padding box 顶边），
-     * 而 item.offsetTop 相对 .relative 的列表容器 —— 故需补上**列表容器自身
-     * 相对 .page 的偏移**。
-     *
-     * 2026-10-06 改：原公式用「现读 .page 的 paddingTop」，其成立前提是
-     * **列表容器之上没有其它流内元素**。归档子视图在列表上方加了面包屑/维度标题
-     * （PostList 的头部槽），沿用原公式会让遮罩整体偏高一个头部的高度。
-     * 改用 list.offsetTop 后：它天然包含 .page 的响应式上内边距（py-24 → lg:py-16）
-     * 与头部槽的高度，无需再单独处理跨断点的 padding 变化。
-     */
-    const moveTo = (item: HTMLElement) => {
-      const listTop = list.offsetTop;
-      const height = `${item.offsetHeight}px`;
-      const transform = `translateY(${item.offsetTop + listTop}px)`;
-      // 与旧站 calcMaskPos 的早退守卫一致：位置不变不重复写样式（mouseover 高频触发）
-      if (mask.style.height === height && mask.style.transform === transform) return;
-      mask.style.height = height;
-      mask.style.transform = transform;
-    };
+    // 对齐公式与早退守卫都在 utils/listMask（与隨想流共用，注释里有 list.offsetTop 的来由）
+    const moveTo = (item: HTMLElement) => moveListMask(mask, item, list);
 
     // 进场：指示框动画滑向第一条文章（对应旧站挂载后的初始化）
     let current = items()[0] ?? null;

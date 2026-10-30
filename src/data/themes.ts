@@ -35,12 +35,22 @@ export interface Theme {
   url: string;
 }
 
-/** hex → rgba（替代旧站 color 库，仅用于色块底色的 30% 透明度） */
+/**
+ * hex → rgba（替代旧站 color 库，仅用于色块底色的 30% 透明度）
+ *
+ * 2026-10-31 加容错：
+ *  - 支持 `#abc` 三位简写（`c` → `cc`）
+ *  - 非法输入（缺 `#`、长度不对、非十六进制）不再产出 `rgba(NaN, NaN, NaN, a)`
+ *    —— 那是个会被浏览器整条丢弃的非法值，表现为色块突然无色且控制台无报错，
+ *    排查成本很高。这里回落成「黑色 + 同样的 alpha」，至少布局与叠色行为一致。
+ */
 export const withAlpha = (hex: string, alpha: number) => {
-  const value = hex.replace('#', '');
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
+  const value = hex.trim().replace(/^#/, '');
+  const full = value.length === 3 ? [...value].map((c) => c + c).join('') : value;
+  if (!/^[0-9a-f]{6}$/i.test(full)) return `rgba(0, 0, 0, ${alpha})`;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 

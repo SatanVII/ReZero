@@ -48,33 +48,32 @@ const { term } = Astro.props;
   const toDataUrl = (css: string) =>
     'data:text/css;charset=utf-8,' + encodeURIComponent(css);
 
-  async function fetchText(url: string, retries = 2): Promise<string> {
+  /** 带退避重试的 fetch：`read` 决定把响应读成什么（text / bytes） */
+  async function fetchWithRetry<T>(
+    url: string,
+    read: (res: Response) => Promise<T>,
+    retries: number,
+  ): Promise<T> {
     for (let i = 0; ; i++) {
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`${res.status} ${url}`);
-        return await res.text();
+        return await read(res);
       } catch (err) {
         // 瞬时失败（代理抖动、连接被挤）不该直接让主题回退成内置 light（白底）——
-        // 退避重试两次，仍失败才向上抛（由调用方的 catch 决定回退）
+        // 退避重试，仍失败才向上抛（由调用方的 catch 决定回退）
         if (i >= retries) throw err;
         await new Promise((r) => setTimeout(r, 220 * (i + 1)));
       }
     }
   }
 
-  async function fetchBuffer(url: string, retries = 1): Promise<Uint8Array> {
-    for (let i = 0; ; i++) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`${res.status} ${url}`);
-        return new Uint8Array(await res.arrayBuffer());
-      } catch (err) {
-        if (i >= retries) throw err;
-        await new Promise((r) => setTimeout(r, 220 * (i + 1)));
-      }
-    }
-  }
+  // CSS 是小文件、重试两次（它失败会直接把评论区拉回白底）；
+  // 字体是 1.57MB 大文件、只试一次（重试容易把连接池拖住，失败时回退字体栈可以接受）
+  const fetchText = (url: string, retries = 2) =>
+    fetchWithRetry(url, (res) => res.text(), retries);
+  const fetchBuffer = (url: string, retries = 1) =>
+    fetchWithRetry(url, async (res) => new Uint8Array(await res.arrayBuffer()), retries);
 
   const toBase64 = (bytes: Uint8Array): string => {
     let bin = '';
@@ -99,31 +98,27 @@ const { term } = Astro.props;
   let fontCssPromise: Promise<string> | null = null;
 
   /*
-   * 字体内联的总预算（2026-10-12 新增，修「评论区经常退回白底主题」）。
+   * 字体内联的预算护栏（2026-10-12 新增，2026-10-31 按现状重写说明）。
    *
-   * ★ 事故根因：字体分片在 2026-10-06 补 Bold 700 + Mono 后由 97 涨到 **291 片 / 14MB**，
-   *   而这里会把**全部**分片 base64 内联进同一个 data: URL。后果有三：
-   *     ① 291 个并发请求占满浏览器连接池，**同一 Promise.all 里的 3 个 CSS 请求被挤到
-   *        超时/中断 → reject → 主题构建 catch 回退字符串 `light` → giscus 内置白底** ✗
-   *        （这正是用户反馈「评论区经常变成原始白底主题」的直接原因，且因时序相关而"时好时坏"）
-   *     ② 即便全部成功，内联后 URL 约 19MB，远超 data: URL 实际可用上限
-   *     ③ 每次评论挂载都要拉 14MB，对真实访客是带宽灾难
+   * 机制：**全有或全无** —— 抓取时累计体积，一旦超预算就整体放弃字体（配色照常生效）。
+   *   不做"只内联一部分"：缺字会让同一条评论里出现两种字体，比统一回退更难看。
    *
-   * 策略：**全有或全无** —— 分批抓取并累计体积，一旦超预算就整体放弃字体（配色照常生效）。
-   *   不做"只内联一半"：unicode-range 分片缺一两片会让同一条评论里出现两种字体，
-   *   比统一回退更难看。
-   *   预算 1.5MB 是「值得内联」与「宁可不要」的分界：正常情况下文楷局部子集约 1MB 量级，
-   *   而现在这个 14MB 的巨物每次都会被直接跳过。
+   * 当前字体是**单文件** `lxgw-wenkai-comment.woff2`（1.57MB，GB2312 全集），
+   * 所以 refs 恒为 1，预算在这里的实质作用是「字体暴涨就自动弃用」的护墙：
+   * 超过 6MB 说明方案被换回了分片、或换成了超大子集，那时内联会把 data: URL 撑到
+   * 浏览器无法处理，宁可放弃字体也要保住配色。
    *
-   * ⚠️ 后续优化方向：若要恢复评论区的文楷，正确做法是**另做一套小字符集子集**
-   *   （例如常用 3500 字，fontTools subset），把体积压到 1MB 内 —— 那时本机制自动放行。
+   * ★ 历史教训（别把分片方案改回来）：2026-10-06 补 Bold/Mono 后字体一度涨到
+   *   **291 片 / 14MB**，291 个并发请求占满浏览器连接池，把同一 Promise.all 里的
+   *   CSS 请求挤到超时 → reject → 主题构建 catch 回退字符串 `light` → giscus 内置白底。
+   *   这才是「评论区经常变成原始白底」的直接原因（时序相关，所以"时好时坏"）。
+   *   预算护栏只能兜住内联体积，**兜不住并发数** —— 所以别再退回分片方案。
    */
   const FONT_INLINE_BUDGET = 6_000_000; // 字节（base64 前）
-  // ★ 数值来历（2026-10-12 二次修正）：评论区字体 97 片，**完整总量 > 3MB**。
-  //   先前日志里的「1.7MB」是**假象** —— 分批累计一旦越线就立刻中止，打印出的是
-  //   中止那一刻的部分和，不是总量 ✗。按部分和定预算必然误杀：3MB 预算下日志显示
-  //   「2.9MB 超出 2.9MB」并跳过内联 → 评论区回退字体栈（用户反馈「字体渲染不好」）。
-  //   现取 6MB：覆盖当前字体量级，同时保留「将来暴涨时自动放弃」的护栏。
+  // ★ 数值为何是 6MB（2026-10-12 二次修正，结论仍成立）：当年按日志把总量估成
+  //   1.7MB 是**假象** —— 分批累计一旦越线就立即中止，打印的是中止那一刻的部分和 ✗。
+  //   按部分和定预算必然误杀：3MB 预算下日志显示「2.9MB 超出 2.9MB」并跳过内联 →
+  //   评论区回退字体栈（用户反馈「字体渲染不好」）。留 6MB 是为了不再被部分和误导。
 
   function buildFontCss(): Promise<string> {
     fontCssPromise ??= (async () => {
@@ -136,34 +131,29 @@ const { term } = Astro.props;
         ),
       ];
 
-      // 先探总量：分批抓（每批 12 个），累计超预算立即放弃，不做无谓的后续请求
-      const BATCH = 12;
+      // 逐个抓、边抓边累计：一旦超预算立即放弃，不做无谓的后续请求。
+      // （此前的 BATCH=12 分批是为 291 片准备的；字体改成单文件后分批只剩一层壳）
       let total = 0;
       const fetched: Array<{ rel: string; bytes: Uint8Array }> = [];
-      for (let i = 0; i < refs.length; i += BATCH) {
-        const slice = refs.slice(i, i + BATCH);
-        const got = await Promise.all(
-          slice.map(async (rel) => {
-            const abs = new URL(rel, fontCssUrl).href;
-            const bytes = await fetchBuffer(abs);
-            // wOF2 魔数校验，防止 404 的 HTML 被误当字体内联
-            if (
-              !(bytes[0] === 0x77 && bytes[1] === 0x4f &&
-                bytes[2] === 0x46 && bytes[3] === 0x32)
-            ) {
-              throw new Error(`woff2 魔数校验失败: ${abs}`);
-            }
-            return { rel, bytes };
-          }),
-        );
-        fetched.push(...got);
-        total += got.reduce((n, g) => n + g.bytes.length, 0);
+      for (const rel of refs) {
+        const abs = new URL(rel, fontCssUrl).href;
+        const bytes = await fetchBuffer(abs);
+        // wOF2 魔数校验：404 的 HTML 会被原样内联成"字体"且不报错（静默失效），
+        // 必须在这里拦住
+        if (
+          !(bytes[0] === 0x77 && bytes[1] === 0x4f &&
+            bytes[2] === 0x46 && bytes[3] === 0x32)
+        ) {
+          throw new Error(`woff2 魔数校验失败: ${abs}`);
+        }
+        fetched.push({ rel, bytes });
+        total += bytes.length;
         if (total > FONT_INLINE_BUDGET) {
           console.warn(
-            // 明确标注"已抓取"与"x/y 片" —— 此前只印累计和，看起来像总量，
-            // 直接导致我把 1.7MB 当成全量、把预算定小 ✗
-            `[giscus] 字体分片已抓取 ${(total / 1048576).toFixed(1)}MB` +
-              `（${fetched.length}/${refs.length} 片）即超出内联预算 ` +
+            // 明确标注"已抓取"与"x/y 个" —— 此前只印累计和，看起来像总量，
+            // 直接导致我把部分和当全量、把预算定小 ✗
+            `[giscus] 评论字体已抓取 ${(total / 1048576).toFixed(1)}MB` +
+              `（${fetched.length}/${refs.length} 个）即超出内联预算 ` +
               `${(FONT_INLINE_BUDGET / 1048576).toFixed(0)}MB —— ` +
               `本次跳过字体内联，评论回退为 comment.css 里的字体栈（配色不受影响）`,
           );
@@ -175,7 +165,7 @@ const { term } = Astro.props;
         css = css.split(rel).join(`data:font/woff2;base64,${toBase64(bytes)}`);
       }
       console.log(
-        `[giscus] 评论字体内联完成：${refs.length} 片 / ${(total / 1048576).toFixed(1)}MB (LXGW WenKai)`,
+        `[giscus] 评论字体内联完成：${refs.length} 个 / ${(total / 1048576).toFixed(1)}MB (LXGW WenKai)`,
       );
       return css;
     })().catch((err) => {
@@ -192,6 +182,26 @@ const { term } = Astro.props;
   /** 当前明度轴（与 data-theme 正交）；夜间由 head 内联脚本在首绘前写好 */
   const currentScheme = () => document.documentElement.dataset.scheme ?? 'light';
 
+  /**
+   * 抓「评论主题的三个 CSS 片段」：主题色 + comment.css + [暗色叠加]。
+   * 完整主题与引导主题都用这三样，区别只在要不要带字体、要不要 minify。
+   *
+   * ⚠️ 返回值恒为 3 个元素的元组，调用方**必须**按 3 个解构。
+   *   2026-10-12 的「评论区变白底」就是这里漏解构 darkCss 导致 ReferenceError
+   *   （引导主题每次走 catch 回退成内置 light），所以才把三者收进一个函数固定形状。
+   */
+  function fetchBaseCss(themeKey: string, scheme: string) {
+    return Promise.all([
+      fetchText(`/assets/styles/${themeKey}.css?v=${THEME_V}`),
+      fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
+      // 夜间追加 giscus 官方 dark 主题作叠加层（同为 main{} 选择器，后者胜出）；
+      // 引导阶段也要带，否则 iframe 就绪那一瞬是白的
+      scheme === 'dark'
+        ? fetchText(`/assets/styles/comment-dark.css?v=${THEME_V}`)
+        : Promise.resolve(''),
+    ]);
+  }
+
   function buildFullTheme(theme: string, scheme = currentScheme()): Promise<string> {
     // 缓存键必须带明度，否则先切日间再切夜间会命中旧数据
     const key = `${theme.toLowerCase()}|${scheme}`;
@@ -199,13 +209,8 @@ const { term } = Astro.props;
       fullThemeCache.set(
         key,
         (async () => {
-          const [themeCss, commentCss, darkCss, fontCss] = await Promise.all([
-            fetchText(`/assets/styles/${theme.toLowerCase()}.css?v=${THEME_V}`),
-            fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
-            // 夜间：追加 giscus 官方 dark 主题作叠加层（同为 main{} 选择器，后者胜出）
-            scheme === 'dark'
-              ? fetchText(`/assets/styles/comment-dark.css?v=${THEME_V}`)
-              : Promise.resolve(''),
+          const [[themeCss, commentCss, darkCss], fontCss] = await Promise.all([
+            fetchBaseCss(theme.toLowerCase(), scheme),
             buildFontCss(),
           ]);
           // 顺序：字体声明在前 → comment.css → 暗色叠加 → 主题覆盖在后（与原站级联一致）
@@ -228,20 +233,11 @@ const { term } = Astro.props;
   // 引导主题：仅配色（去掉注释与空白以压体积），随 widget URL 传入；
   // 字体由 iframe 就绪后的 postMessage 升级补齐
   async function buildBootstrapTheme(theme: string): Promise<string> {
-    const key = theme.toLowerCase();
     try {
-      // ★ 2026-10-12 修复：Promise.all 里有 **3** 个元素，此前只解构了 2 个，
-      //   导致下面引用的 `darkCss` 是未声明变量 → ReferenceError →
-      //   引导主题**每次**都走 catch 回退成内置 `light`（白底）✗
-      //   这正是「评论区经常变成原始白底」的直接原因（实测 iframe 拿到的 theme 就是 "light"）。
-      const [themeCss, commentCss, darkCss] = await Promise.all([
-        fetchText(`/assets/styles/${key}.css?v=${THEME_V}`),
-        fetchText(`/assets/styles/comment.css?v=${THEME_V}`),
-        // 夜间引导主题也要带暗色叠加层，否则 iframe 就绪瞬间是白的
-        currentScheme() === 'dark'
-          ? fetchText(`/assets/styles/comment-dark.css?v=${THEME_V}`)
-          : Promise.resolve(''),
-      ]);
+      const [themeCss, commentCss, darkCss] = await fetchBaseCss(
+        theme.toLowerCase(),
+        currentScheme(),
+      );
       const minify = (css: string) =>
         stripImports(css)
           .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -293,9 +289,9 @@ const { term } = Astro.props;
     if (container.querySelector('iframe')) return;
     currentThemeName = document.documentElement.dataset.theme ?? 'Coral';
     const theme = currentThemeName;
-    // 完整主题（含字体分片内联）预构建：与 giscus 脚本网络加载、引导版构建并行。
-    // 此前要等 iframe 就绪探测循环首次触发才开始抓 97 个分片，字体应用总是
-    // "慢半拍"；现在构建提前启动，探测循环推送时直接命中缓存，零等待。
+    // 完整主题（含字体 base64 内联）预构建：与 giscus 脚本网络加载、引导版构建并行。
+    // 若不预构建，要等 iframe 就绪探测循环首次触发才开始抓那 1.57MB 字体，字体应用
+    // 总是"慢半拍"；提前启动后，探测循环推送时直接命中缓存，零等待。
     const fullThemePromise = buildFullTheme(theme);
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
@@ -333,7 +329,8 @@ const { term } = Astro.props;
   // 条件：评论区进入视口（IntersectionObserver，rootMargin 0）+ 用户有真实输入
   // （pointermove / wheel / keydown，信任事件才计入）；指针静止在图标上时永不注入，
   // 手型得以保持；一旦移动鼠标，注入落在连续输入事件流里，瞬时重置会被下一个移动
-  // 事件立即纠正。附带收益：每次换页省去 97 个字体分片请求。
+  // 事件立即纠正。附带收益：不进评论区就完全不抓那 1.57MB 评论字体，
+  // 也不构造它那份约 2.1MB 的 data URL。
   // ---------------------------------------------------------------------------
   const visibleContainers = new Set<HTMLElement>();
   let commentObserver: IntersectionObserver | null = null;
