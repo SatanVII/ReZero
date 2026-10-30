@@ -27,3 +27,6 @@ pnpm-debug.log*
 /public/IMAGES
 preview-4350.log
 preview-*.log
+
+# 站内搜索索引（构建期生成，见 scripts/build-search-index.mjs）
+/public/search-index.json

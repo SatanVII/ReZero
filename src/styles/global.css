@@ -2,8 +2,8 @@
 @plugin '@tailwindcss/typography';
 
 /* 2026-09-17 起全站中文字体为霞鹜文楷（LXGW WenKai，lxgw-wenkai-webfont 包 Regular 400）。
-   自托管已是**单文件子集**（2026-10-28 起弃用 unicode-range 分片）：文章页 subset.woff2、
-   其它页 lite.woff2；换版本时 bump 各自 <link> 上的 ?v。
+   自托管已是**单文件子集**（2026-10-28 起弃用 unicode-range 分片）：2026-10-31 起全站统一
+   用 subset.woff2（4284 字），lite 那套已删除；换版本时 bump <link> 上的 ?v。
    回退栈接系统楷体：文楷分片加载完成前（font-display: swap）先以楷体渲染，
    避免先见无衬线再跳楷体的明显闪变（评论区 iframe 内同理，见 comment.css） */
   @theme {

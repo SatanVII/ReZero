@@ -21,13 +21,16 @@ import '@/components/Side.css';
 
 // 与旧站一致：全部渲染（含空链接的 twitter/telegram/music）；
 // 末尾「书签」项（book-bookmark）对应 config.contact.bookmark，留空即不跳转
+// name 仅供 aria-label 使用（链接内只有 <svg>，否则屏幕阅读器读不出名字）。
+// ⚠️ 不要顺手加 data-name：sideInteraction.ts 的 KEEP_SELECTOR 是 `.side .nav a[data-name]`，
+//    社媒链接同样在 `.nav` 里，加上就会被卷进 hover-keep 状态机、并长出 tooltip。
 const socialItems = [
-  { href: config.contact.github, Icon: Github },
-  { href: config.contact.twitter, Icon: Twitter },
-  { href: config.contact.telegram, Icon: Send },
-  { href: config.contact.email, Icon: Mail },
-  { href: config.contact.music, Icon: Music },
-  { href: config.contact.bookmark, Icon: BookBookmark },
+  { href: config.contact.github, name: 'GitHub', Icon: Github },
+  { href: config.contact.twitter, name: 'X', Icon: Twitter },
+  { href: config.contact.telegram, name: 'Telegram', Icon: Send },
+  { href: config.contact.email, name: 'Email', Icon: Mail },
+  { href: config.contact.music, name: 'Spotify', Icon: Music },
+  { href: config.contact.bookmark, name: 'HelloGitHub', Icon: BookBookmark },
 ];
 
 const { pathname } = Astro.url;
@@ -37,11 +40,20 @@ const { pathname } = Astro.url;
   <ShootingStar />
 
   <!-- side menu -->
+  <!-- 导航 <a> 必须带 aria-label：链接内容只有一个 <svg>，屏幕阅读器读不出名字
+       （Lighthouse link-name 审计失败 6 个元素，2026-10-31 修）。
+       data-name 同时保留 —— CSS tooltip 与 scripts/sideInteraction.ts 的
+       选择器 `.side .nav a[data-name]` 都依赖它，不要因为有了 aria-label 就删。 -->
   <div class="z-20 flex h-3/5 w-full justify-end">
     <nav class="nav nav-y flex w-12 flex-col items-center justify-end">
       {
         navItems.map(({ href, name, Icon }) => (
-          <a class={isNavActive(href, pathname) ? 'active' : undefined} href={href} data-name={name}>
+          <a
+            class={isNavActive(href, pathname) ? 'active' : undefined}
+            href={href}
+            data-name={name}
+            aria-label={name}
+          >
             <Icon />
           </a>
         ))
@@ -58,8 +70,8 @@ const { pathname } = Astro.url;
     </div>
     <div class="nav nav-x flex h-12 items-center">
       {
-        socialItems.map(({ href, Icon }) => (
-          <a href={href} rel="noopener noreferrer" target="_blank">
+        socialItems.map(({ href, name, Icon }) => (
+          <a href={href} aria-label={name} rel="noopener noreferrer" target="_blank">
             <Icon />
           </a>
         ))

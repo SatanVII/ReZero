@@ -8,8 +8,8 @@
  * ⚠️ 2026-10-30 起这套分片架构已被整体淘汰（`61f6938` 删掉 291 个 woff2 与 3 个 css）：
  * 「97 分片 + 子集 face 不写 unicode-range」会让首屏正文渲染两次，根因与三组实测见
  * AGENTS.md §3.1.1。现在正文/粗体/代码/评论区全部是**单文件子集**：
- *   lxgw-wenkai-subset.css       文章页正文 4284 字 / 922KB
- *   lxgw-wenkai-lite.css         其它页正文 844 字 / 192KB
+ *   lxgw-wenkai-subset.css       全站正文 4284 字 / 922KB
+ *   （lxgw-wenkai-lite.css 已于 2026-10-31 删除，全站统一用上面的 subset）
  *   lxgw-wenkai-bold-subset.css  文章页粗体（与正文同表）
  *   lxgw-wenkai-mono-subset.css  代码 182 字
  *   lxgw-wenkai-comment.css      评论区 GB2312 全集 1.57MB
@@ -33,7 +33,7 @@ if (!FORCE) {
   console.error(
     [
       '[fonts] 已停用：本脚本重建的是旧分片架构（97 片 / 3 个 css）。',
-      '        现行站点用单文件子集 lxgw-wenkai-{subset,lite,bold-subset,mono-subset}.css，',
+      '        现行站点用单文件子集 lxgw-wenkai-{subset,bold-subset,mono-subset}.css，',
       '        重建方法见 AGENTS.md §3.3（fontTools.subset + 从产物反推 unicode-range）。',
       '        跑本脚本会往 public/ 塞回约 14MB 分片，并造出会引发正文二次渲染的 lxgw-wenkai.css。',
       '        确实要重建旧分片时：node scripts/prepare-fonts.mjs --force',

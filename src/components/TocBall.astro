@@ -123,22 +123,47 @@
     overscroll-behavior: contain;
     border: 1px solid var(--line-color);
     border-radius: 10px;
-    /* 透明度对齐壁纸的观感（--wallpaper-opacity 亮 0.08 / 暗 0.05，非常淡）：
-       底色只留 60%，靠 backdrop-filter 把底下的正文糊开保证可读，
-       边框也一起减淡，避免在浅色主题下出现硬边。 */
-    background: color-mix(in oklab, var(--background-color) 60%, transparent);
+    /* 与正文背景同一张纸（2026-10-31 二版）：底色 96% 先把正文挡住（完全不透字），
+       纸纹由 ::before 叠 1 层原始 texture.png、相位锁到视口，与 body::after 同源 ——
+       所以纹理的浓度与图案都和周围背景一致，并能连续穿过面板边界。
+       边框一起减淡，避免浅色主题下硬边。 */
+    background-color: color-mix(in oklab, var(--background-color) 96%, transparent);
     border-color: color-mix(in oklab, var(--line-color) 55%, transparent);
     box-shadow: 0 8px 28px -14px rgb(0 0 0 / 22%);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.2s ease;
-    backdrop-filter: blur(18px) saturate(1.3);
+    /* 伪元素纸纹要落在「面板底色之上、目录文字之下」→ z-index:-1 + 自身建层叠上下文 */
+    isolation: isolate;
   }
   .tocd.open .tocd-panel {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+  }
+
+  /*
+   * 纸纹层（2026-10-31）：浓度与全站完全一致（1 层原始 alpha 0~10，不叠加、不放大），
+   * 相位由 background-attachment:fixed 锁到视口原点，与 body::after（fixed; inset:0）同源，
+   * 于是图案能连续穿过面板边界，而不是从面板左上角另起一张纸。
+   * 暗色与 body::after 同样处理：texture.png 是纯黑颗粒，invert 只改 RGB 不动 alpha。
+   * ⚠️ 不要加第二层/第三层提浓（用户 2026-10-31「现在的太重了，纹理要跟背景契合一致」）。
+   */
+  .tocd-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: url('../assets/images/texture.png');
+    background-repeat: repeat;
+    background-attachment: fixed;
+  }
+  :root[data-scheme='dark'] .tocd-panel::before {
+    filter: invert(1);
+    opacity: 0.5;
   }
 
   .tocd-h {
@@ -245,7 +270,7 @@
     /* ---------- 定位：球贴太阳图标 / 移动端右下角；面板贴大标题 ---------- */
     const MOBILE = 1024; // 与 .scheme-toggle-desktop 的隐藏断点一致
     const GAP_BALL = 6; // 拿不到标题时，图标接在太阳图标下方的间距
-    const BALL_LIFT = 17; // 图标底端比标题文字底端再抬高 17px（用户四次微调累加：2 → +3 → +7 → +5）
+    const BALL_LIFT = 20; // 图标底端比标题文字底端再抬高 20px（2026-10-30 四次微调 2 → +3 → +7 → +5 = 17；2026-10-31 +3 使图标顶到太阳图标底的净间距 = 16px，与左侧栏导航图标间距一致）
 
     // fixed 包含块因 scrollbar-gutter: stable both-edges 内缩约 5px，
     // 写 right 前必须换算（探针实现在 utils/fixedBox，与 BackTop 共用）。

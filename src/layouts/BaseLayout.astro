@@ -11,6 +11,7 @@ import TopProgress from '@/components/TopProgress.astro';
 import Header from '@/components/Header.astro';
 import Side from '@/components/Side.astro';
 import SchemeToggle from '@/components/SchemeToggle.astro';
+import SearchBox from '@/components/SearchBox.astro';
 import Copy from '@/components/icons/Copy.astro';
 import Check from '@/components/icons/Check.astro';
 import Butterfly from '@/components/Butterfly.astro';
@@ -93,30 +94,27 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          到达逐个替换 → 肉眼看到「正文字体先渲染一次」。实测改为单文件后该现象消失。
          分片（291 个 woff2 + 3 份 lxgw-wenkai{,-bold,-mono}.css）已于 2026-10-30 全部删除：
          Comment.astro 改抓单文件 lxgw-wenkai-comment.css，不再需要分片。 -->
-    <!-- Bold 600~700（2026-10-30 重建为「与正文同表」）：938KB 单文件子集，只在文章页加载。
-         官方从未提供 Bold 字重，粗体一贯是 Medium 轮廓 + 元数据标 700（见 css 头注释）。
+    <!-- Bold 600~700（2026-10-30 重建为「与正文同表」，2026-10-31 起全站加载）：
+         938KB 单文件子集。官方从未提供 Bold 字重，粗体一贯是 Medium 轮廓 + 元数据标 700。
          · 为什么是 938KB 而不是之前的 101KB：粗体字形每字约 220 字节，要覆盖正文全部
            4284 字就是这个量级，中间没有可用的档位（实测「GB2312 一级 3755」是 885KB，
            只少 53KB）。101KB 那版只有 469 字，余量仅 140 字 —— 新文章一出现新粗体字就
-           掉回系统楷体并合成加粗，观感比正文缺字更明显。用户 2026-10-30 要求
-           「基本不会缺字」→ 扩到与正文同表，正文能显示的字粗体一定有。
-         · 为什么只在 /posts/* 加载：938KB 给归档页/自述页（那里只有几十个粗体字）
-           不划算。非文章页**完全不给 bold face**，由浏览器对 strong/h2 做合成加粗，
-           实测墨量只多 1.6 个百分点；归档页/自述页因此各少下约 101KB。
-         · 为什么必须 preload：938KB 若不 preload，文章页首屏会先出现合成加粗/系统楷体，
-           等字体到达后再换一次 —— 那正是「字体后渲染」。preload 后实测字体 17~36ms
-           内到位，远早于首帧。
+           掉回系统楷体并合成加粗，观感比正文缺字更明显。
+         · 为什么改成全站加载（2026-10-31）：此前只在 /posts/* 加载，非文章页由浏览器
+           对 strong/h2 合成加粗。但站内搜索的结果标题、归档页分区标题、自述页小标题
+           散落在所有页面，同站出现「真粗体 / 合成粗体」两套观感，与正文字体统一的目标
+           冲突。用户 2026-10-31「保证主页的声明和正文字体声明一样，一劳永逸，体积是
+           可以接受的」→ 与 regular 一起全站声明并 preload，任何页面、任何面板的粗体
+           都是同一套字形。首屏字体代价：921.9 + 937.8 ≈ 1.86MB（mono 仍按需）。
+         · 为什么必须 preload：938KB 若不 preload，首屏会先出现合成加粗/系统楷体，
+           等字体到达后再换一次 —— 那正是「字体后渲染」。preload 后实测 17~36ms 到位。
          · font-weight 在 css 里声明为区间 `600 700`：实测 .prose strong 计算字重 600、
            h2 为 700，写成区间才能两者都命中本 face，不会回落成正文的 400。
          · 集外字已不可能出现（字表直接取自 font-charset.json 的 regular）。若将来正文
            扩字表，粗体必须同步重建，否则又会出现「正文是文楷、标题掉楷体」的错配。
          ?v=6 与 css 里 src 的版本号必须同步（/assets/(.*) 是 immutable 一年缓存）。 -->
-    {/^\/posts\//.test(Astro.url.pathname) ? (
-      <Fragment>
-        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-bold-subset.woff2?v=6" />
-        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold-subset.css?v=6" />
-      </Fragment>
-    ) : null}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-bold-subset.woff2?v=6" />
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-bold-subset.css?v=6" />
     <!-- Mono（2026-10-29 改为单文件子集）：--font-mono 指向 'LXGW WenKai Mono'。
          此前用 97 个 unicode-range 分片，一个代码块里的中文散落在十几片里逐片到达 →
          与粗体同源的「一跳一跳」。实测文章页为几个中文代码字下了 12 片 / 622.7KB，
@@ -126,30 +124,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
          集外字由 --font-mono 栈后续项接管，不会再在同一段里来回替换。
          有代码块 Pages 用到的集外字由 check-font-coverage.mjs 在 prebuild 告警。 -->
     <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-mono-subset.css?v=4" />
-    <!-- 正文字体：**两套单文件子集，按页面类型分流**（2026-10-29）。源 LXGW WenKai v1.530。
+    <!-- 正文字体：**全站统一 4284 字单文件子集**（2026-10-31 起）。源 LXGW WenKai v1.530。
          旧架构是 97 个 unicode-range 分片：缺字不回落到同族分片、直接掉家族外的系统楷体，
          首屏必然经历字形跳变。单文件则「要么全有、要么全无」，最多切一次。
-         · 文章页 /posts/* —— 用 4284 字 GB2312 一级大子集（922KB）。文章用字随内容变化，
-           必须留足余量，兜底由 scripts/check-font-coverage.mjs 在 prebuild 告警。
-         · 首页 / 自述 / 随想 / 归档 / 书阁 / 友邻 / 404 —— 正文是**页面固定文案**，
-           实测 844 个码位，用 844 字 lite 子集（192.5KB）。首页因此从 1298KB 降到 551KB。
-         两套家族名与字重相同，同一页只加载其中一套，不会混用。
-         维护：改导航或固定文案后若个别字回落系统楷体，`scripts/check-font-coverage.mjs`
-         会在 prebuild 报缺字（它直接读两份 css 的 unicode-range 当真相源，并扫描 src/），
-         按 AGENTS.md §3.3.3 重跑 lite 子集即可。
-         ⚠️ lite 字表必须含 src/data/ 全部数据（尤其 poetry.json 的 40 条诗句——侧栏只显示 1~2 条，按某次构建扫字必漏其余）；2026-10-30 因此漏 72 字含「聽」，2026-10-31 又由新增的 src 扫描补了 55 字（含版权署名「紺」、friend 页的「＜＞」）。
-         ?v= regular 4 / lite 5，与各自 css 的 src 版本号必须同步（immutable 一年缓存）。 -->
-    {/^\/posts\//.test(Astro.url.pathname) ? (
-      <Fragment>
-        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=4" />
-        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=4" />
-      </Fragment>
-    ) : (
-      <Fragment>
-        <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-lite.woff2?v=5" />
-        <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-lite.css?v=5" />
-      </Fragment>
-    )}
+         2026-10-29 ~ 10-31 曾按页面类型分流（文章页 4284 字 / 其它页 844 字 lite，首页 551KB），
+         但站内搜索上线后结果文字散落在任意页面：非文章页的 lite 只覆盖固定文案，
+         搜出来的标题与摘要缺 18.1% 汉字，一条结果里两种楷体。用户权衡后接受 922KB
+         （2026-10-31「从点开主页开始就声明加载那个四千多字的字集，是可以接受的」），
+         于是取消分流 —— 正文与搜索面板同一份字体，也不再需要「打开搜索才开始下字体」的延迟加载。
+         · ?v= regular 4，与 css 的 src 版本号必须同步（immutable 一年缓存）。
+         · 旧的 844 字小表（含告警脚本的 lite 比对与重建脚本）已于 2026-10-31 整体删除，
+           `check-font-coverage.mjs` 现在只校验 regular / bold / mono 三套。
+         兜底：改导航或固定文案后若个别字回落系统楷体，`scripts/check-font-coverage.mjs`
+         会在 prebuild 报缺字（直接读 css 的 unicode-range 当真相源，并扫描 src/），
+         按 AGENTS.md §3.3.1 重跑子集即可。 -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/styles/fonts/lxgw-wenkai-subset.woff2?v=4" />
+    <link rel="stylesheet" href="/assets/styles/fonts/lxgw-wenkai-subset.css?v=4" />
     <!-- 站名字体 preload（2026-10-27 补）：--font-site 首字 ZQKNanBei 是首屏最大的
          可见文字，此前要等 global.css 解析完才发起请求，慢网下能明显看到
          「先楷体/宋体回退 → 再跳成郑庆科」的 FOUT。字体 preload 必须 crossorigin。 -->
@@ -270,6 +260,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <Side />
     <!-- 夜间模式切换（桌面落点：视口右上角；lg 以下隐藏，由 Header 内的实例承担） -->
     <SchemeToggle class="scheme-toggle-desktop" />
+    <!-- 站内搜索（桌面落点：太阳图标左侧 16px；与太阳图标同断点隐藏，面板向下展开） -->
+    <SearchBox />
 
     <!--
       移动端主题面板入口（2026-10-11）

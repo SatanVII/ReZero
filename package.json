@@ -5,9 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/sync-content.mjs",
+    "predev": "node scripts/sync-content.mjs && node scripts/build-search-index.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/sync-content.mjs && node scripts/check-font-coverage.mjs",
+    "prebuild": "node scripts/sync-content.mjs && node scripts/check-font-coverage.mjs && node scripts/build-search-index.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",

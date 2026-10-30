@@ -1,0 +1,530 @@
+---
+/**
+ * 站内搜索（2026-10-31）
+ *
+ * 落点：桌面（≥1024px）右上角，**太阳图标左侧**，图标净间隙 16px、与太阳图标垂直对齐。
+ *   推导（视口宽 W）：太阳按钮 40×40、`right: 1rem` → 其 svg(20×20) 居中，
+ *   左边缘 = W − 16 − 10 − 20 = W − 46；搜索 svg 右边缘应再让 16 → W − 62；
+ *   搜索按钮同尺寸、svg 居中 → 按钮右边缘 = W − 62 + 10 = W − 52 → **`right: 3.25rem`**。
+ *   不用 JS 测量：太阳按钮是纯 CSS 定位的固定尺寸，静态推导更稳（无换页时序问题）。
+ *   与 `.scheme-toggle-desktop` 同断点（lg 以下隐藏）—— 移动端太阳图标在 Header 标题左侧，
+ *   那里是 flex 流内布局，硬插搜索图标会挤掉标题，暂不提供移动端入口。
+ *
+ * 交互（选定方案 A：单面板承载输入 + 结果）：
+ *   点图标 → 面板在图标下方展开并自动聚焦输入框 → 边输入边搜（120ms 防抖）
+ *   → 点结果跳转 / Esc 关闭 / 点面板外关闭。
+ *
+ * 面板视觉**完全复用目录面板的那一套**（底色 96% 主题背景 + 1 层原始 texture.png
+ * + background-attachment: fixed 锁相位 + isolation: isolate）—— 用户要求「纹理沿用
+ * 目录面板同款，保证与全站背景观感一致」。改这里必须同步 `.tocd-panel`（见 AGENTS §5）。
+ *
+ * 索引由 `scripts/build-search-index.mjs` 在 prebuild/predev 生成到 `public/search-index.json`
+ * （构建产物，已 gitignore）；**首次打开面板才 fetch**，不拖首屏。
+ */
+import Search from '@/components/icons/Search.astro';
+---
+
+<div class="search-ui" data-search>
+  <button
+    type="button"
+    class="search-btn"
+    data-search-toggle
+    aria-expanded="false"
+    aria-controls="search-panel"
+    aria-label="搜索文章"
+    title="搜索文章"
+  >
+    <Search />
+  </button>
+
+  <div class="search-panel" id="search-panel" data-search-panel role="dialog" aria-label="站内搜索">
+    <input
+      type="search"
+      class="search-input"
+      data-search-input
+      placeholder="输入关键词"
+      aria-label="搜索关键词"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <!-- 空输入时不给任何提示（用户 2026-10-31 要求删掉下方那句固定提示）：
+         文案由 JS 按状态写入 —— 只有"无命中""加载失败""索引未就绪"三种情况才出现。 -->
+    <p class="search-hint" data-search-hint hidden></p>
+    <ul class="search-list" data-search-list hidden></ul>
+  </div>
+</div>
+
+<script>
+  const INDEX_URL = '/search-index.json';
+  const MAX_HITS = 8;
+  const SNIPPET_BEFORE = 18;
+  const SNIPPET_AFTER = 42;
+  const DEBOUNCE = 120;
+
+  let ui: HTMLElement | null = null;
+  let input: HTMLInputElement | null = null;
+  let list: HTMLElement | null = null;
+  let hint: HTMLElement | null = null;
+  let docs: Array<{ t: string; u: string; x: string; d?: string }> | null = null;
+  let loading: Promise<void> | null = null;
+  let timer = 0;
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  /** 输入框里的空格分词，全部命中才算（AND）；大小写不敏感。 */
+  const terms = (q: string) =>
+    Array.from(new Set(q.toLowerCase().split(/\s+/).filter(Boolean)));
+
+  const countOf = (hay: string, needle: string) => {
+    let n = 0;
+    let i = hay.indexOf(needle);
+    while (i >= 0) {
+      n++;
+      i = hay.indexOf(needle, i + needle.length);
+    }
+    return n;
+  };
+
+  /** 只对命中片段做 `<mark>`，其余部分保持纯文本 —— 先切分再逐段转义，避免把标签也转义掉。 */
+  const highlight = (text: string, ts: string[]) => {
+    if (!ts.length) return esc(text);
+    const re = new RegExp('(' + ts.map(escapeRe).join('|') + ')', 'gi');
+    let out = '';
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      out += esc(text.slice(last, m.index)) + '<mark>' + esc(m[0]) + '</mark>';
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    return out + esc(text.slice(last));
+  };
+
+  /** 取命中处上下文；正文无命中（只在标题命中）就退回开头 —— 「摘要过长需截断」。 */
+  const snippetOf = (text: string, ts: string[]) => {
+    const low = text.toLowerCase();
+    let at = -1;
+    for (const t of ts) {
+      const i = low.indexOf(t);
+      if (i >= 0 && (at < 0 || i < at)) at = i;
+    }
+    if (at < 0) {
+      const head = text.slice(0, SNIPPET_BEFORE + SNIPPET_AFTER);
+      return esc(head) + (text.length > head.length ? '…' : '');
+    }
+    const start = Math.max(0, at - SNIPPET_BEFORE);
+    const end = Math.min(text.length, at + SNIPPET_AFTER);
+    return (
+      (start > 0 ? '…' : '') +
+      highlight(text.slice(start, end), ts) +
+      (end < text.length ? '…' : '')
+    );
+  };
+
+  const search = (q: string) => {
+    const ts = terms(q);
+    if (!ts.length || !docs) return [];
+    const hits: Array<{ doc: (typeof docs)[number]; score: number }> = [];
+    for (const doc of docs) {
+      const tl = doc.t.toLowerCase();
+      const xl = doc.x.toLowerCase();
+      let titleHits = 0;
+      let bodyHits = 0;
+      let ok = true;
+      for (const t of ts) {
+        const inT = tl.includes(t);
+        const inB = xl.includes(t);
+        if (!inT && !inB) {
+          ok = false;
+          break;
+        }
+        if (inT) titleHits++;
+        if (inB) bodyHits += countOf(xl, t);
+      }
+      if (!ok) continue;
+      hits.push({ doc, score: titleHits * 100 + bodyHits });
+    }
+    hits.sort((a, b) => b.score - a.score);
+    return hits.slice(0, MAX_HITS).map((h) => h.doc);
+  };
+
+  const render = () => {
+    if (!input || !list || !hint) return;
+    const q = input.value.trim();
+    if (!q) {
+      list.hidden = true;
+      list.innerHTML = '';
+      hint.hidden = true;
+      hint.textContent = '';
+      return;
+    }
+    if (!docs) {
+      list.hidden = true;
+      hint.hidden = false;
+      hint.textContent = '正在加载索引…';
+      return;
+    }
+    const ts = terms(q);
+    const results = search(q);
+    if (!results.length) {
+      list.hidden = true;
+      list.innerHTML = '';
+      hint.hidden = false;
+      hint.textContent = `没有找到与「${q}」相关的文章`;
+      return;
+    }
+    hint.hidden = true;
+    list.hidden = false;
+    list.innerHTML = results
+      .map(
+        (doc) => `<li>
+  <a class="search-hit" href="${esc(doc.u)}">
+    <span class="search-hit-title">${highlight(doc.t, ts)}</span>
+    <span class="search-hit-snippet">${snippetOf(doc.x, ts)}</span>
+  </a>
+</li>`
+      )
+      .join('');
+  };
+
+  const ensureIndex = () => {
+    if (docs || loading) return loading;
+    loading = fetch(INDEX_URL)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data) => {
+        docs = Array.isArray(data?.docs) ? data.docs : [];
+      })
+      .catch(() => {
+        docs = [];
+        if (hint) {
+          hint.hidden = false;
+          hint.textContent = '搜索索引加载失败，请刷新重试';
+        }
+      })
+      .then(() => {
+        loading = null;
+        if (input && input.value.trim()) render();
+      });
+    return loading;
+  };
+
+  const setOpen = (next: boolean) => {
+    if (!ui || !input) return;
+    ui.classList.toggle('open', next);
+    const btn = ui.querySelector('[data-search-toggle]');
+    if (btn) btn.setAttribute('aria-expanded', String(next));
+    if (next) {
+      ensureIndex();
+      input.focus();
+      if (input.value) render();
+    } else {
+      input.blur();
+    }
+  };
+
+  const onDocClick = (e: MouseEvent) => {
+    if (!ui || !ui.classList.contains('open')) return;
+    if (e.target instanceof Node && ui.contains(e.target)) return;
+    setOpen(false);
+  };
+
+  const onKeydown = (e: KeyboardEvent) => {
+    if (!ui || !ui.classList.contains('open')) return;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      setOpen(false);
+    }
+  };
+
+  const bind = () => {
+    ui = document.querySelector<HTMLElement>('[data-search]');
+    if (!ui) return;
+    input = ui.querySelector<HTMLInputElement>('[data-search-input]');
+    list = ui.querySelector<HTMLElement>('[data-search-list]');
+    hint = ui.querySelector<HTMLElement>('[data-search-hint]');
+
+    const btn = ui.querySelector<HTMLButtonElement>('[data-search-toggle]');
+    if (btn && !btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(!ui!.classList.contains('open'));
+      });
+    }
+    if (input && !input.dataset.bound) {
+      input.dataset.bound = '1';
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = window.setTimeout(render, DEBOUNCE);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          setOpen(false);
+          return;
+        }
+        // 回车不做任何事（2026-10-31 用户要求）：此前会跳到第一个命中项，
+        // 输入到一半手滑回车就会离开当前页。跳转只保留「点击结果」这一条路径。
+        if (e.key === 'Enter') e.preventDefault();
+      });
+    }
+    // 点击跳转后关面板（换页由 ClientRouter 接管，这里只管视觉状态）
+    if (list && !list.dataset.bound) {
+      list.dataset.bound = '1';
+      list.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.search-hit')) setOpen(false);
+      });
+    }
+
+    // document 级监听只绑一次：标记挂 window（换页会重建 <html> 的属性，挂 html 会重复绑定）
+    if (!(window as any).__searchBound) {
+      (window as any).__searchBound = true;
+      document.addEventListener('click', onDocClick);
+      document.addEventListener('keydown', onKeydown);
+    }
+  };
+
+  bind();
+  document.addEventListener('astro:before-swap', () => {
+    clearTimeout(timer);
+    docs = null;
+    loading = null;
+  });
+  document.addEventListener('astro:page-load', bind);
+</script>
+
+<style is:global>
+  .search-btn {
+    position: fixed;
+    /* right: 3.25rem = 52px → 与太阳图标的 svg 净间隙正好 16px（推导见文件头注释） */
+    top: 1rem;
+    right: 3.25rem;
+    z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: none;
+    color: var(--font-color);
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .search-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  @media (hover: hover) {
+    .search-btn:hover,
+    .search-btn:focus-visible {
+      color: var(--theme-color);
+    }
+  }
+
+  .search-ui.open .search-btn {
+    color: var(--theme-color);
+  }
+
+  /*
+   * 移动端：与 Header 右端的「太阳 + 汉堡」排进同一行。Header 在 lg 以下固定显示，
+   * 右侧组是 `flex items-center gap-2`，几何由 CSS 定死（390×844 实测）：
+   *   padding-right 24（px-6）→ 汉堡 w-7 = 28 → gap-2 = 8 → 太阳按钮 40×40（svg 24×24 居中）。
+   * 用户要求「距离保持切换主题图标与最右汉堡菜单的距离一致」= 太阳 svg 到汉堡 16px。
+   * 40px 按钮 + 24px svg 左右各留 8px，所以按钮右缘贴住太阳按钮左缘时，
+   * 「搜索 svg → 太阳 svg」正好 8+8 = 16px，与太阳↔汉堡那侧等距。
+   * 于是 right = 24 + 28 + 8 + 40 = 100px，top 与太阳按钮同为 12px（两者等高自动对齐）。
+   */
+  @media (max-width: 1023px) {
+    .search-btn {
+      display: inline-flex;
+      top: 12px;
+      right: 100px;
+    }
+
+    .search-btn svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  }
+
+  /*
+   * 面板：视觉与 .tocd-panel 保持同一套（底色 96% + 1 层原始 texture.png + 相位锁视口）。
+   * 改这一块必须同步目录面板，否则两块面板的纸纹浓度/相位会分家（用户 2026-10-31 要求「同款」）。
+   */
+  .search-panel {
+    position: fixed;
+    top: calc(1rem + 2.5rem + 8px);
+    right: 3.25rem;
+    z-index: 20;
+    width: min(21rem, calc(100vw - 2rem));
+    max-height: min(60vh, 30rem);
+    padding: 0.75rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid color-mix(in oklab, var(--line-color) 55%, transparent);
+    border-radius: 10px;
+    background-color: color-mix(in oklab, var(--background-color) 96%, transparent);
+    box-shadow: 0 8px 28px -14px rgb(0 0 0 / 22%);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    pointer-events: none;
+    /* visibility 用 0s + 延迟：关闭时等淡出结束再 hidden，打开时立即 visible ——
+       否则「展开瞬间 input 还在 hidden 的父级里」，focus() 会被浏览器静默忽略（实测踩过）。 */
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+    /* 伪元素纸纹要落在「面板底色之上、内容之下」→ z-index:-1 + 自身建层叠上下文 */
+    isolation: isolate;
+  }
+
+  .search-ui.open .search-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s;
+  }
+
+  /* 纸纹层：与 .tocd-panel::before 完全同参（1 层、fixed、invert 暗色处理） */
+  .search-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: url('../assets/images/texture.png');
+    background-repeat: repeat;
+    background-attachment: fixed;
+  }
+
+  :root[data-scheme='dark'] .search-panel::before {
+    filter: invert(1);
+    opacity: 0.5;
+  }
+
+  /* 移动端面板：按钮底 12+40=52，往下留 8 → 60；右缘贴视口 1rem
+     （若沿用桌面 100px，336 宽的 `min(21rem, 100vw-2rem)` 会把左边界顶出屏幕） */
+  @media (max-width: 1023px) {
+    .search-panel {
+      top: calc(12px + 2.5rem + 8px);
+      right: 1rem;
+    }
+  }
+
+  .search-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid color-mix(in oklab, var(--line-color) 55%, transparent);
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--fill-color) 70%, transparent);
+    color: var(--font-color);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: color-mix(in oklab, var(--theme-color) 55%, transparent);
+  }
+
+  .search-input::placeholder {
+    color: var(--font-color);
+    opacity: 0.42;
+  }
+
+  /* 清空按钮：Chrome 原生的蓝 ✕ 与站点配色完全不搭 —— 换成主题色的细叉。
+     mask 取 alpha，颜色由 background-color 决定，随 --font-color 明暗自适应。 */
+  .search-input::-webkit-search-cancel-button {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-inline-start: 0.25rem;
+    background-color: currentColor;
+    opacity: 0.4;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+
+  .search-input::-webkit-search-cancel-button:hover {
+    opacity: 0.75;
+  }
+
+  .search-hint {
+    margin: 0.625rem 0.375rem 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    opacity: 0.55;
+  }
+
+  .search-list {
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .search-list li + li {
+    border-top: 1px solid color-mix(in oklab, var(--line-color) 32%, transparent);
+  }
+
+  .search-hit {
+    display: block;
+    padding: 0.5rem 0.375rem;
+    border-radius: 6px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  @media (hover: hover) {
+    .search-hit:hover {
+      background: color-mix(in oklab, var(--theme-color) 8%, transparent);
+    }
+  }
+
+  .search-hit-title {
+    display: block;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  /* 摘要最多 2 行 —— 「摘要过长需截断」的第二道保险（第一道是 SNIPPET_* 字数） */
+  .search-hit-snippet {
+    display: -webkit-box;
+    margin-top: 0.1875rem;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    opacity: 0.7;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  /*
+   * 命中高亮：荧光笔下划线（背景下半段染色），不用 font-weight ——
+   * 文楷只有 400 一个字重，600 会触发浏览器合成加粗（笔画发糊，见 AGENTS §3.5）。
+   * 颜色走 color-mix 主题色，明暗两套自动适配；正文色继承，暗色下仍是浅字，对比度不降。
+   */
+  .search-panel mark {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: linear-gradient(
+      transparent 58%,
+      color-mix(in oklab, var(--theme-color) 34%, transparent) 0
+    );
+    color: inherit;
+  }
+</style>

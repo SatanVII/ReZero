@@ -3,10 +3,10 @@
  * 字体子集覆盖率检查（由 prebuild 自动调用，也可单独跑）
  *
  * 背景
- *   全站正文用霞鹜文楷，四套自托管子集按「页面类型 / 字重 / 用途」分工：
- *     lxgw-wenkai-subset.woff2       文章页正文（/posts/*）      4284 码位
- *     lxgw-wenkai-lite.woff2         非文章页正文（其余全部）       789 码位
- *     lxgw-wenkai-bold-subset.woff2  文章页粗体                    4291 码位
+ *   全站正文用了三套自托管子集，按「字重 / 用途」分工（2026-10-31 起不再按页面类型
+ *   分流，lite 那套已删除）：
+ *     lxgw-wenkai-subset.woff2       全站正文                      4284 码位
+ *     lxgw-wenkai-bold-subset.woff2  全站粗体（与正文同表）          4291 码位
  *     lxgw-wenkai-mono-subset.woff2  代码块 / 行内 code（全站）      182 码位
  *   写新文章或改固定文案时若出现子集外的字，那个字会静默回落到系统楷体 ——
  *   不影响布局，但同一段里会混进另一种字体。本脚本只告警，exit 0，不阻断构建。
@@ -15,17 +15,17 @@
  *   **直接解析 public/assets/styles/fonts/*.css 里的 unicode-range**，不再读
  *   scripts/font-charset.json。原因：css 的 unicode-range 是重建子集时从 woff2
  *   实际码位反推写入的，等于「何字体里真有什么」的唯一真相；而 json 是人工回写，
- *   漏写/晚写都会让告警结论出错（连 lite 整套都曾长期没写进 json）。
+ *   漏写/晚写都会让告警结论出错（历史上 lite 整套就长期没写进 json）。
  *   json 仍保留，仅作为**重建子集时的输入字表**，不参与本检查。
  *
  * 判据
  *   正文用字     ← content/blog-post/**\/*.md 全文汉字 + 中文标点      → regular
  *   粗体用字     ← 同一批文件里 ## ~ ###### 标题行 + **加粗** 内容      → bold
  *   代码用字     ← 同一批文件里的 ``` 围栏与 `行内 code`                → mono
- *   页内固定文案 ← src/**\/*.{astro,ts}（已剥离注释）                   → lite + regular
- *                  这些文案在文章页与非文章页都会渲染，故两套都必须含。
+ *   页内固定文案 ← src/**\/*.{astro,ts}（已剥离注释）                   → regular
+ *                  这些文案全站都会渲染，regular 必须全部包含。
  *
- * 重建方法见工作区根 AGENTS.md §3.3.1（regular）/ §3.3.2（bold、mono）/ §3.3.3（lite）。
+ *   重建方法见工作区根 AGENTS.md §3.3.1（regular）/ §3.3.2（bold、mono）。
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -39,7 +39,6 @@ const FONT_DIR = join(ROOT, 'public', 'assets', 'styles', 'fonts');
 /** 子集名 → 提供 unicode-range 的 css（顺序无关） */
 const FACE_CSS = {
   regular: 'lxgw-wenkai-subset.css',
-  lite: 'lxgw-wenkai-lite.css',
   bold: 'lxgw-wenkai-bold-subset.css',
   mono: 'lxgw-wenkai-mono-subset.css',
 };
@@ -163,17 +162,16 @@ const miss = (need, face) => [...need].filter((cp) => !have[face].has(cp)).sort(
 const missBody = miss(needBody, 'regular');
 const missBold = miss(needBold, 'bold');
 const missCode = miss(needCode, 'mono');
-const missUiLite = miss(needUi, 'lite');
 const missUiRegular = miss(needUi, 'regular');
 
 const groups = [
   {
-    name: '正文（文章页 regular）',
+    name: '正文（全站 regular）',
     list: missBody,
     hint: '按 AGENTS.md §3.3.1 重建 lxgw-wenkai-subset，并递增其 css 与 BaseLayout 的 ?v=',
   },
   {
-    name: '粗体（文章页 bold）',
+    name: '粗体（全站 bold）',
     list: missBold,
     hint: '按 AGENTS.md §3.3.2 重建 lxgw-wenkai-bold-subset，并递增其 css 与 BaseLayout 的 ?v=',
   },
@@ -183,12 +181,7 @@ const groups = [
     hint: '按 AGENTS.md §3.3.2 重建 lxgw-wenkai-mono-subset，并递增其 css 与 BaseLayout 的 ?v=',
   },
   {
-    name: '页内文案（非文章页 lite）',
-    list: missUiLite,
-    hint: '按 AGENTS.md §3.3.3 重建 lxgw-wenkai-lite，并递增其 css 与 BaseLayout 的 ?v=',
-  },
-  {
-    name: '页内文案（文章页 regular）',
+    name: '页内文案（全站 regular）',
     list: missUiRegular,
     hint: '按 AGENTS.md §3.3.1 重建 lxgw-wenkai-subset（regular 需包含全部固定文案）',
   },

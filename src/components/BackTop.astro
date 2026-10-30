@@ -9,10 +9,11 @@
  *     viewBox 边长决定图形大小：24 网格 → 14×7（原始）、20 网格 → 16.8×8（当前，+20%）、
  *     16 网格 → 21×10（2026-10-30 试过，用户判「存在感过强」已回退）
  *   - 位置：
- *       桌面（≥1024px）→ 右下角，右边距/下边距 16px（与目录图标移动端同一安全边距）
- *       移动（<1024px）→ 目录图标正上方，垂直间距 12px；水平**居中于视口**
- *         （用户 2026-10-30 要求「移动端显示在中间」：不再与目录图标同列，
- *          居中后落在屏幕中线，与桌面「居于正文栏中线」是同一套视觉逻辑）
+ *       桌面（≥1024px）→ 水平居中于正文栏中线，距底 EDGE + LIFT_DESKTOP
+ *       移动（<1024px）→ 目录图标**正上方**，垂直净间隙 16px（与右上「太阳↔目录」、
+ *         左侧栏导航图标之间的净间隙同一数值），水平与目录图标**中心对齐**
+ *         （2026-10-31 用户要求「移动至右下角目录图标的上方，保证距离差不多，一定对齐」；
+ *          2026-10-30 的旧版是视口居中 + 12px 间隙，已弃用）
  *   - 显隐：滚过 0.8 屏才出现，过渡与目录图标一致（opacity / color 0.2s ease）
  *   - 不改变正文布局（position: fixed），也不触碰目录组件的任何逻辑
  *
@@ -120,7 +121,7 @@
 
     const MOBILE = 1024; // 与 .scheme-toggle-desktop 的隐藏断点、TocBall 的 MOBILE 一致
     const EDGE = 16; // 右边距 / 桌面下边距，与目录图标移动端的安全边距相同
-    const GAP = 12; // 移动端：与目录图标的垂直间距（= 目录面板与图标的间距）
+    const GAP = 16; // 移动端：与目录图标的垂直净间隙（= 右上太阳↔目录、左侧栏导航图标的净间隙）
     const LIFT_DESKTOP = 50; // 桌面：在右下角基准 EDGE 之上再上移的距离（用户 2026-10-30 改为 50）
 
     // fixed 包含块因 scrollbar-gutter 内缩约 5px，写 left/right 前必须换算
@@ -169,22 +170,37 @@
       }
 
       /*
-       * 移动端：垂直坐在目录图标正上方，水平**居中于视口**。
-       * 垂直直接读目录图标的 rect 而不是写死 50px —— 目录位置由它自己的 JS 计算
-       * （且底部可能受 safe-area 影响），读实测值才能保证不重叠。
-       * 水平不再跟随目录图标（它贴右边），改为居中：用户 2026-10-30 要求「显示在中间」。
-       * 居中基准用本行已算好的 vw（= innerWidth，含滚动条），再减 fixedL 换到
-       * fixed 包含块坐标系 —— 与桌面分支同一换算方式，移动端 gutter 为 0。
+       * 移动端：**坐在目录图标正上方，并与它中心对齐**（用户 2026-10-31）。
+       * 垂直直接读目录图标的 rect 而不是写死像素 —— 目录位置由它自己的 JS 算
+       * （底部还受 safe-area 影响），读实测值才能保证净间隙恒为 GAP。
+       * 水平取目录图标 rect 的中线，减自身半宽与 fixedL 换到 fixed 包含块坐标系
+       * （与桌面分支同一换算方式，移动端 gutter 为 0）。
+       * 两者都是 fixed 定位且不跟滚动，尺寸/换页后重算一次即可。
        */
       const toc = document.querySelector<HTMLElement>('[data-toc-ball]');
       const tr = toc?.getBoundingClientRect();
-      btn.style.right = 'auto';
-      btn.style.left = `${Math.round(vw / 2 - btn.offsetWidth / 2 - fixedL)}px`;
       btn.style.top = 'auto';
-      btn.style.bottom =
-        tr && tr.width > 0
-          ? `${Math.round(innerHeight - tr.top + GAP)}px`
-          : `${EDGE + btn.offsetHeight + GAP}px`;
+      if (tr && tr.width > 0) {
+        const tcx = (tr.left + tr.right) / 2;
+        /*
+         * 两个细节，缺一个就歪 0.3~0.4px：
+         * ① **不做 Math.round**：目录图标右对齐 16px + 宽 22 → 中心落在 x.34 这种小数上，
+         *    取整会让箭头中心偏 0.35px；fixed 支持亚像素，保留两位即可精确同心。
+         * ② **用 top 而不是 bottom 锚定**：`innerHeight` 是整数，而真实布局视口在
+         *    deviceScaleFactor=2 下是 844.36 这种小数，用 `innerHeight - tr.top` 反推
+         *    bottom 会漏掉那 0.36px（实测净间隙 15.64 而非 16.00）。top 与 tr.top
+         *    处在同一坐标系（都相对视口顶），直接相减没有这项误差。
+         */
+        btn.style.left = `${(tcx - btn.offsetWidth / 2 - fixedL).toFixed(2)}px`;
+        btn.style.right = 'auto';
+        btn.style.top = `${(tr.top - btn.offsetHeight - GAP).toFixed(2)}px`;
+        btn.style.bottom = 'auto';
+      } else {
+        // 拿不到目录图标时退回右下角，边距与桌面同一基准
+        btn.style.left = 'auto';
+        btn.style.right = `${EDGE - gutter}px`;
+        btn.style.bottom = `${EDGE + btn.offsetHeight + GAP}px`;
+      }
     };
 
     /* ---------- 显隐：滚过 0.8 屏才出现（内容不足一屏时永远不出现） ---------- */
