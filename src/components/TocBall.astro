@@ -295,11 +295,19 @@
       const box = root.getBoundingClientRect();
       if (innerWidth >= MOBILE && sr && sr.width > 0) {
         const cx = (sr.left + sr.right) / 2;
+        /*
+         * 标题在页面流里，`getBoundingClientRect()` 给的是**视口坐标**；
+         * 直接拿去当 `position: fixed` 的 `top` 只在 scrollY === 0 时成立。
+         * 一旦页面已滚动，任何一次 resize（安卓平板旋转、浏览器工具栏收起/展开）
+         * 都会把 top 算成大负数，图标整体飞出视口上方 —— 三星平板横屏「图标消失」的根因。
+         * 加上 `scrollY` 换算回「页面顶端时的视口坐标」后，结果与滚动位置无关；
+         * 再夹紧到视口内兜底：任何极端值都不允许把图标送出屏幕。
+         */
         const titleEl = document.querySelector<HTMLElement>('article > h2');
         const tr = titleEl?.getBoundingClientRect();
-        root.style.top = tr
-          ? `${Math.round(tr.bottom - box.height - BALL_LIFT)}px`
-          : `${Math.round(sr.bottom + GAP_BALL)}px`;
+        const raw = tr ? tr.bottom + scrollY - box.height - BALL_LIFT : sr.bottom + GAP_BALL;
+        const maxTop = Math.max(8, innerHeight - box.height - 8);
+        root.style.top = `${Math.min(Math.max(8, Math.round(raw)), maxTop)}px`;
         root.style.left = 'auto';
         root.style.right = `${Math.round(fixedR - cx - box.width / 2)}px`;
         root.style.bottom = 'auto';
