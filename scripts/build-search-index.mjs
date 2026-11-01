@@ -70,16 +70,30 @@ if (!fs.existsSync(SRC)) {
   process.exit(0);
 }
 
+/**
+ * 「关于」「随想」由专属页面独占渲染，不进 /posts 文章流
+ * （见 src/utils/content.ts 的 EXCLUDED_CATEGORIES）。索引必须跟上，否则搜索结果
+ * 会把人送到 /posts/<title> 那个通用文章详情页，版型骤变（2026-11-01）。
+ *   - 关于 → 链接改指 /about：单篇直出，命中即命中那篇，可发现性零损失
+ *   - 随想 → 完全不索引：/inspiration 是 5 条火花拼成的流，页面没有任何条目级锚点，
+ *     跳过去只能落在顶部；索引正文又是各条火花剥掉 `##` 后拼成的一整段，摘要天然
+ *     跨条目混杂，收益接近零
+ * ⚠️ 本文件是 .mjs，import 不了 content.ts 的 TS 常量 → 字面量须与那边保持一致。
+ */
+const PAGE_URL = { 关于: '/about' };
+const SKIP_CATEGORIES = ['随想'];
+
 const docs = [];
 for (const file of walk(SRC)) {
   const raw = fs.readFileSync(file, 'utf8');
   const { fm, body } = readFrontmatter(raw);
   const title = (fm.title || path.basename(file, path.extname(file))).trim();
   if (!title) continue;
+  if (SKIP_CATEGORIES.includes(fm.category)) continue;
   const text = toPlainText(body);
   docs.push({
     t: title,
-    u: `/posts/${title}`,
+    u: PAGE_URL[fm.category] ?? `/posts/${title}`,
     d: (fm.date || '').slice(0, 10),
     x: text,
   });
