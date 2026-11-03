@@ -45,8 +45,10 @@
     </svg>
   </button>
   <nav class="tocd-panel" id="tocd-panel" aria-label="章节目录">
-    <p class="tocd-h">目录</p>
-    <ol class="tocd-ol"></ol>
+    <div class="tocd-scroll">
+      <p class="tocd-h">目录</p>
+      <ol class="tocd-ol"></ol>
+    </div>
   </nav>
 </div>
 
@@ -114,13 +116,8 @@
     top: 0;
     right: calc(100% + 12px);
     width: 246px;
-    max-height: 60vh;
-    padding: 14px 6px 12px;
-    overflow: auto;
-    /* 滚到面板边界后滚动量不外溢到正文（2026-10-30 用户裁定方案二「完全隔离」）。
-       只在容器实际可滚时生效：目录不足一屏时滚轮穿透滚正文，属合理默认。
-       用 contain 不用 none：保留面板自身的回弹；Safari <16 忽略此行，回落链式（优雅降级）。 */
-    overscroll-behavior: contain;
+    /* 滚动交给内层 .tocd-scroll（2026-11-03）：面板自己滚会带着 ::before 纸纹一起上移 */
+    overflow: hidden;
     border: 1px solid var(--line-color);
     border-radius: 10px;
     /* 与正文背景同一张纸（2026-10-31 二版）：底色 96% 先把正文挡住（完全不透字），
@@ -136,6 +133,21 @@
     transition: opacity 0.2s ease;
     /* 伪元素纸纹要落在「面板底色之上、目录文字之下」→ z-index:-1 + 自身建层叠上下文 */
     isolation: isolate;
+  }
+  /*
+   * 滚动层（2026-11-03）：滚动必须发生在这一层，不能留在 .tocd-panel 上。
+   * 面板自己可滚时，::before 纸纹（position:absolute; inset:0）的高度只有可视高度，
+   * 滚动会带着它一起上移，滚到下半屏就露出没有纹理的纯底色 —— 面板变实色块。
+   * 挪到内层后面板尺寸恒等于可视区，纸纹层原地不动。
+   */
+  .tocd-scroll {
+    max-height: 60vh;
+    padding: 14px 6px 12px;
+    overflow: auto;
+    /* 滚到面板边界后滚动量不外溢到正文（2026-10-30 用户裁定方案二「完全隔离」）。
+       只在容器实际可滚时生效：目录不足一屏时滚轮穿透滚正文，属合理默认。
+       用 contain 不用 none：保留面板自身的回弹；Safari <16 忽略此行，回落链式（优雅降级）。 */
+    overscroll-behavior: contain;
   }
   .tocd.open .tocd-panel {
     opacity: 1;
