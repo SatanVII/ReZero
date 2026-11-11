@@ -782,6 +782,11 @@ svg[hidden] {
     position: absolute;
     inset: 0;
     margin: auto;
+  }
+  /* 过渡只在 data-scheme 真正取到 light/dark 时生效。换页时属性会被设成空字符串
+     （属性存在、值为空），不能只写 [data-scheme]，否则空值也会带上 0.35s 渐变 */
+  [data-scheme='light'] [data-toggle-scheme] svg,
+  [data-scheme='dark'] [data-toggle-scheme] svg {
     transition: opacity 0.35s ease;
   }
 
@@ -799,10 +804,30 @@ svg[hidden] {
       color: var(--theme-color);
     }
 
-  [data-scheme='light'] [data-toggle-scheme] .icon-moon,
+  /* 默认（含换页瞬间 data-scheme 缺失）显示太阳：moon 无条件隐藏。
+     否则两枚常驻图标都会 opacity:1，而 moon 叠在上层 → 看到月亮 */
+  [data-toggle-scheme] .icon-moon {
+    opacity: 0;
+    pointer-events: none;
+  }
   [data-scheme='dark'] [data-toggle-scheme] .icon-sun {
     opacity: 0;
     pointer-events: none;
+  }
+  [data-scheme='dark'] [data-toggle-scheme] .icon-moon {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* 跟随系统暗色的用户：换页空隙（尚无 data-scheme）也按暗色显示，避免闪太阳 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-scheme='light']):not([data-scheme='dark']) [data-toggle-scheme] .icon-sun {
+      opacity: 0;
+      pointer-events: none;
+    }
+    :root:not([data-scheme='light']):not([data-scheme='dark']) [data-toggle-scheme] .icon-moon {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 
   /* 移动端主题面板入口 FAB（2026-10-11，用户选定「裸图标」样式）

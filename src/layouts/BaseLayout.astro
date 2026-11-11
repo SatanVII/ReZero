@@ -379,6 +379,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
    * 所以交换完成后要立刻补回 —— 否则每一页都会闪一下 global.css 里的兜底默认主题，
    * 图片渐显的 .js 开关也会失效。这是最早可用的时机（早于 astro:page-load）。
    */
+  /*
+   * 更早一步：属性在 swap 瞬间就被新文档的 <html> 覆盖，所以直接在 before-swap
+   * 把当前 scheme 写进新文档，data-scheme 从头就不丢。
+   * 否则“系统亮色 + 显式选暗色”的用户拿不到 CSS 的 prefers-color-scheme 兜底，
+   * 会闪一下太阳图标。
+   */
+  document.addEventListener('astro:before-swap', (event) => {
+    const newDoc = (event as unknown as { newDocument?: Document }).newDocument;
+    if (newDoc) newDoc.documentElement.dataset.scheme = resolveScheme();
+  });
+
   document.addEventListener('astro:after-swap', (event) => {
     /* 彻底跳过 View Transition：截图层即使只有 ~55ms 也会遮蔽进度条造成闪现，
        进度条本身就是换页反馈，无需任何整页过渡 */
