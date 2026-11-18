@@ -2,14 +2,7 @@
  * 主题背景图为 8% 透明度的全屏装饰图，无需 astro:assets 优化管线；
  * 用 Vite 原生 ?url 导入，保证 dev/build 都稳定产出资源 URL。
  */
-import Slate from '@/assets/images/slate.webp?url';
-import Lilac from '@/assets/images/lilac.webp?url';
-import Indigo from '@/assets/images/indigo.webp?url';
-import Coral from '@/assets/images/coral.webp?url';
-import Mauve from '@/assets/images/mauve.webp?url';
-import Sage from '@/assets/images/sage.webp?url';
-import Azure from '@/assets/images/azure.webp?url';
-import Terracotta from '@/assets/images/terracotta.webp?url';
+import WallpaperWhite from '@/assets/images/wallpaper-white.webp?url';
 
 export type ThemeType =
   | 'Coral'
@@ -62,7 +55,7 @@ const themes: Theme[] = [
     name: '朱砂點記',
     description: 'illus.不想当画家的Leo',
     color: { primary: '#E06458', background: '#FCFAF2', darkBackground: '#201E18' },
-    image: Coral,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/artworks/133591148',
   },
   {
@@ -70,7 +63,7 @@ const themes: Theme[] = [
     name: '綠意初萌',
     description: 'illus.门特ment',
     color: { primary: '#7EA08A', background: '#F3F7F2', darkBackground: '#1A2018' },
-    image: Sage,
+    image: WallpaperWhite,
     url: 'https://v.douyin.com/BlCBRA-Syyg/',
   },
   {
@@ -78,7 +71,7 @@ const themes: Theme[] = [
     name: '天光雲影',
     description: 'illus.紺屋',
     color: { primary: '#74B5DB', background: '#DBEAF1', darkBackground: '#181D20' },
-    image: Azure,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/artworks/118359840',
   },
   {
@@ -86,7 +79,7 @@ const themes: Theme[] = [
     name: '深海星辰',
     description: 'illus.Rafa',
     color: { primary: '#5260A6', background: '#E2E5F5', darkBackground: '#181920' },
-    image: Indigo,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/users/3970196',
   },
   {
@@ -94,7 +87,7 @@ const themes: Theme[] = [
     name: '落星微塵',
     description: 'illus.花铭',
     color: { primary: '#BF9997', background: '#F2E1DC', darkBackground: '#201A18' },
-    image: Mauve,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/artworks/134109172',
   },
   {
@@ -102,7 +95,7 @@ const themes: Theme[] = [
     name: '煙波浩渺',
     description: 'illus.nawtis✤',
     color: { primary: '#8996B2', background: '#D8E2EC', darkBackground: '#181C20' },
-    image: Slate,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/artworks/135637025',
   },
   {
@@ -110,7 +103,7 @@ const themes: Theme[] = [
     name: '秋色連波',
     description: 'illus.门特ment',
     color: { primary: '#C15C42', background: '#F3E8DB', darkBackground: '#201C18' },
-    image: Terracotta,
+    image: WallpaperWhite,
     url: 'https://v.douyin.com/bwDvrIOTCvA/',
   },
   {
@@ -118,7 +111,7 @@ const themes: Theme[] = [
     name: '紫夢初醒',
     description: 'illus.Miracle',
     color: { primary: '#8C78B0', background: '#E3DBED', darkBackground: '#1C1820' },
-    image: Lilac,
+    image: WallpaperWhite,
     url: 'https://www.pixiv.net/artworks/149130893',
   },
 ];
